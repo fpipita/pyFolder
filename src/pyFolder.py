@@ -15,27 +15,27 @@ DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 
-class iFolderConfigManager ():
-    class iFolderConfigFile:
+class pyFolderConfigManager ():
+    class pyFolderConfigFile:
         def __init__ (self, ifcm):
             pass
 
     def __init__ (self):
 
         # Try to read the configuration file
-        iFolderConfigManager.iFolderConfigFile (self)
+        pyFolderConfigManager.pyFolderConfigFile (self)
         
         # If the user provides any command line option, just overwrite the 
         # settings previously read from the configuration file
         self.parser = OptionParser ()
 
-        self.parser.add_option ('--username', '-u', \
+        self.parser.add_option ('--username', \
                                     action='store', \
                                     type='string', \
                                     dest='username', \
                                     help='The username for your iFolder account')
 
-        self.parser.add_option ('--password', '-p', \
+        self.parser.add_option ('--password', \
                                     action='store', \
                                     type='string', \
                                     dest='password', \
@@ -47,21 +47,21 @@ class iFolderConfigManager ():
                                     dest='ifolderws', \
                                     help='The iFolder Web Service URI')
 
-        self.parser.add_option ('--soapbuflen', '-b', \
+        self.parser.add_option ('--soapbuflen', \
                                     action='store', \
                                     type='int', \
                                     dest='soapbuflen', \
                                     help='Bufferize up to SOAPBUFLEN bytes before to flush [ default : %default ]', \
                                     default=DEFAULT_SOAP_BUFLEN)
 
-        self.parser.add_option ('--config', '-c', \
+        self.parser.add_option ('--config', \
                                     action='store', \
                                     type='string', \
                                     dest='configfile', \
                                     help='Read the configuration from CONFIGFILE [ default : %default ]', \
                                     default=DEFAULT_CONFIG_FILE)
 
-        self.parser.add_option ('--pathtodb', '-s', \
+        self.parser.add_option ('--pathtodb', \
                                     action='store', \
                                     type='string', \
                                     dest='pathtodb', \
@@ -69,18 +69,18 @@ class iFolderConfigManager ():
                                     'the entry-IDs and their modification times [ default : %default ]', \
                                     default=DEFAULT_SQLITE_FILE)
 
-        self.parser.add_option ('--action', '-a', \
+        self.parser.add_option ('--action', \
                                     action='store', \
                                     type='choice', \
                                     dest='action', \
-                                    help='The action that will be done by iFolderClient [ default: %default ]', \
-                                    choices=self.choices (), \
-                                    default=self.choices ()[0])
+                                    help='The action that will be done by pyFolder [ default: %default ]', \
+                                    choices=self.actions (), \
+                                    default=self.actions ()[0])
 
         self.parser.add_option ('--verbose', '-v', \
                                     action='store_true', \
                                     dest='verbose', \
-                                    help='Starts iFolderClient in verbose mode, printing debug/error messages ' \
+                                    help='Starts pyFolder in verbose mode, printing debug/error messages ' \
                                     'on the stderr [ default : %default ]', \
                                     default=False)
                                     
@@ -89,7 +89,7 @@ class iFolderConfigManager ():
             self.parser.print_help ()
             sys.exit ()
 
-    def choices (self):
+    def actions (self):
         return [\
             'checkout', \
              'update' \
@@ -116,7 +116,7 @@ class iFolderConfigManager ():
     def verbose (self):
         return self.options.verbose
 
-class iFolderDBManager:
+class pyFolderDBManager:
     def __init__ (self, pathtodb):
         self.cx = sqlite3.connect (pathtodb)
 
@@ -180,17 +180,17 @@ class iFolderDBManager:
     def __del__ (self):
         self.cx.close ()
 
-class iFolderClient:
+class pyFolder:
 
     def __init__ (self, icm):
         transport = HttpAuthenticated (username=icm.username (), password=icm.password ())
         self.icm = icm
         self.client = Client (icm.ifolderws (), transport=transport)
-        self.dbm = iFolderDBManager (self.icm.pathtodb ())
+        self.dbm = pyFolderDBManager (self.icm.pathtodb ())
         self.action ()
         
     def action (self):
-        iFolderClient.__dict__[self.icm.action ()] (self)
+        pyFolder.__dict__[self.icm.action ()] (self)
 
     # Creates a local copy of the user's remote directory tree and the database
     # needed to handle the changes
@@ -324,9 +324,9 @@ class iFolderClient:
             print >> sys.stderr, message
             
 if __name__ == '__main__':
-    icm = iFolderConfigManager ()
+    icm = pyFolderConfigManager ()
 
     try:    
-        ifc = iFolderClient (icm)
+        ifc = pyFolder (icm)
     except WebFault, wf:
         print wf
