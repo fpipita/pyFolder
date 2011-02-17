@@ -290,8 +290,8 @@ class iFolderClient:
                                 # The server contains a more recent copy of the entry, let's sync it ...
                                 if change.Type == iet.File:
                                     
-                                    if self.icm.verbose ():
-                                        print >> sys.stderr, 'Found a more recent version of the entry \'{0}\', fetching it ...'.format (change.Name)
+
+                                    self.debug ('Found a more recent version of the entry \'{0}\', fetching it ...'.format (change.Name))
 
                                     self.fetch (ifolder.ID, change.ID, change.Name)
 
@@ -305,8 +305,7 @@ class iFolderClient:
                         else:
                             
                             # The entry does not already exist on the local copy, so let's just silently download it ...
-                            if self.icm.verbose ():
-                                print >> sys.stderr, 'Found a new entry, \'{0}\', retrieving it ...'.format (change.Name)
+                            self.debug ('Found a new entry, \'{0}\', retrieving it ...'.format (change.Name))
                             
                             if change.Type == iet.File:
                                 self.fetch (ifolder.ID, change.ID, change.Name)
@@ -318,8 +317,11 @@ class iFolderClient:
                         break
 
             except AttributeError, ae:
-                if self.icm.verbose ():
-                    print >> sys.stderr, ae
+                self.debug (ae)
+    
+    def debug (self, message):
+        if self.icm.verbose ():
+            print >> sys.stderr, message
             
 if __name__ == '__main__':
     icm = iFolderConfigManager ()
