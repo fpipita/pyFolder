@@ -4,8 +4,8 @@ from suds.client import Client
 from suds.transport.https import HttpAuthenticated
 from suds import WebFault
 from optparse import OptionParser
+from datetime import *
 
-import datetime
 import base64
 import os
 import sqlite3
@@ -33,13 +33,15 @@ class pyFolderConfigManager ():
                                     action='store', \
                                     type='string', \
                                     dest='username', \
-                                    help='The username for your iFolder account')
+                                    help='The username that you use to ' \
+                                    'login into your iFolder account')
 
         self.parser.add_option ('--password', \
                                     action='store', \
                                     type='string', \
                                     dest='password', \
-                                    help='The password for your iFolder account')
+                                    help='The password that you use to ' \
+                                    'login into your iFolder account')
 
         self.parser.add_option ('--ifolderws', \
                                     action='store', \
@@ -51,41 +53,49 @@ class pyFolderConfigManager ():
                                     action='store', \
                                     type='int', \
                                     dest='soapbuflen', \
-                                    help='Bufferize up to SOAPBUFLEN bytes before to flush [ default : %default ]', \
+                                    help='Bufferize up to SOAPBUFLEN bytes ' \
+                                    'before to flush [ default : %default ]', \
                                     default=DEFAULT_SOAP_BUFLEN)
 
         self.parser.add_option ('--config', \
                                     action='store', \
                                     type='string', \
                                     dest='configfile', \
-                                    help='Read the configuration from CONFIGFILE [ default : %default ]', \
+                                    help='Read the configuration from ' \
+                                    'CONFIGFILE [ default : %default ]', \
                                     default=DEFAULT_CONFIG_FILE)
 
         self.parser.add_option ('--pathtodb', \
                                     action='store', \
                                     type='string', \
                                     dest='pathtodb', \
-                                    help='The path to a local sqlite database containing the mapping between '\
-                                    'the entry-IDs and their modification times [ default : %default ]', \
+                                    help='The path to a local sqlite ' \
+                                    'database containing the mapping ' \
+                                    'between the entry-IDs and their ' \
+                                    'modification times [ default : ' \
+                                    '%default ]', \
                                     default=DEFAULT_SQLITE_FILE)
 
         self.parser.add_option ('--action', \
                                     action='store', \
                                     type='choice', \
                                     dest='action', \
-                                    help='The action that will be done by pyFolder [ default: %default ]', \
+                                    help='The action that will be done by ' \
+                                    'pyFolder [ default: %default ]', \
                                     choices=self.actions (), \
                                     default=self.actions ()[0])
 
         self.parser.add_option ('--verbose', '-v', \
                                     action='store_true', \
                                     dest='verbose', \
-                                    help='Starts pyFolder in verbose mode, printing debug/error messages ' \
+                                    help='Starts pyFolder in verbose mode, ' \
+                                    'printing debug/error messages ' \
                                     'on the stderr [ default : %default ]', \
                                     default=False)
                                     
         (self.options, self.args) = self.parser.parse_args ()
-        if self.options.username is None or self.options.password is None or self.options.ifolderws is None:
+        if self.options.username is None or self.options.password is None \
+                or self.options.ifolderws is None:
             self.parser.print_help ()
             sys.exit ()
 
@@ -124,121 +134,148 @@ class pyFolderDBManager:
         cu = self.cx.cursor ()
         try:
             # If the schema already exists ...
-            cu.execute ('CREATE TABLE iFolder (iFolderID TEXT, entryID TEXT, mtime DATETIME, PRIMARY KEY (iFolderID, entryID))')
-
+            cu.execute ('CREATE TABLE iFolder (iFolderID TEXT, ' \
+                            'entryID TEXT, mtime DATETIME, ' \
+                            'PRIMARY KEY (iFolderID, entryID))')
         except sqlite3.OperationalError, oe:
-            
             # ... just remove all the tuples
             cu.execute ('DELETE FROM iFolder')
-
         finally:
             self.cx.commit ()
 
+    # Add a new tuple (iFolderID, entryID, mtime) to the local
+    # database or do nothing if it already exists
     def add (self, iFolderID, entryID, mtime):
         cu = self.cx.cursor ()
-        cu.execute ('INSERT INTO iFolder VALUES (?, ?, ?)', (iFolderID, entryID, mtime))
-        self.cx.commit ()
+        try:
+            cu.execute ('INSERT INTO iFolder VALUES (?, ?, ?)', \
+                            (iFolderID, entryID, mtime))
+            self.cx.commit ()
+        except sqlite3.IntegrityError:
+            pass
 
+    # Update the tuple (iFolderID, entryID, mtime) or insert it if
+    # it does not already exist
     def update (self, iFolderID, entryID, mtime):
         cu = self.cx.cursor ()
 
-        if self.mtime (iFolderID, entryID) > datetime.datetime (datetime.MINYEAR, 1, 1, 0, 0, 0, 0):
-
-            cu.execute ('UPDATE iFolder SET mtime=(?) WHERE iFolderID=(?) AND entryID=(?)', (mtime, iFolderID, entryID))
+        if self.mtime (iFolderID, entryID) > \
+                datetime (MINYEAR, 1, 1, 0, 0, 0, 0):
+            cu.execute ('UPDATE iFolder SET mtime=(?) ' \
+                            'WHERE iFolderID=(?) AND ' \
+                            'entryID=(?)', (mtime, iFolderID, entryID))
             self.cx.commit ()
-
         else:
-
             self.add (iFolderID, entryID, mtime)
     
+    # Get a datetime.datetime object representing the timestamp of
+    # the last modification made to the entry identified by the key
+    # (iFolderID, entryID)
     def mtime (self, iFolderID, entryID):
         cu = self.cx.cursor ()
         try:
-
-            cu.execute ('SELECT i.mtime FROM iFolder AS i WHERE i.iFolderID=? AND i.entryID=?', (iFolderID, entryID))
+            cu.execute ('SELECT i.mtime FROM iFolder AS i ' \
+                            'WHERE i.iFolderID=? AND i.entryID=?', \
+                            (iFolderID, entryID))
             mtime = cu.fetchone ()
-
             if mtime is not None:
-
-                # The entry exists in the local copy, so return its mtime
-                mtime = datetime.datetime.strptime (mtime[0], '%Y-%m-%d %H:%M:%S.%f')
-
+                # The entry exists in the local copy, so just return its mtime
+                mtime = datetime.strptime (mtime[0], '%Y-%m-%d %H:%M:%S.%f')
             else:
-
-                # The db is empty or the entry does not exist yet in the local copy
-                mtime = datetime.datetime (datetime.MINYEAR, 1, 1, 0, 0, 0, 0)
-
+                # The db is empty or the entry does not 
+                # exist yet in the local copy, let's create a 'mock' mtime
+                mtime = datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
         except sqlite3.OperationalError, oe:
-            
-            # We are probably running the 'update' action without running the 'checkout', so
-            # we need to create the schema first
+            # We are probably running the 'update' action without 
+            # having ever run the 'checkout' action first, so we
+            # create the schema and then we return a 'mock' mtime
             self.create_schema ()
-            mtime = datetime.datetime (datetime.MINYEAR, 1, 1, 0, 0, 0, 0)
-            
+            mtime = datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
         return mtime
 
+    # The object destructor, makes sure that the connection to the db
+    # gets properly closed
     def __del__ (self):
         self.cx.close ()
 
 class pyFolder:
-
     def __init__ (self, icm):
-        transport = HttpAuthenticated (username=icm.username (), password=icm.password ())
+        transport = HttpAuthenticated (username=icm.username (), \
+                                           password=icm.password ())
         self.icm = icm
         self.client = Client (icm.ifolderws (), transport=transport)
         self.dbm = pyFolderDBManager (self.icm.pathtodb ())
         self.action ()
-        
+    
+    # Executes the chosen action
     def action (self):
         pyFolder.__dict__[self.icm.action ()] (self)
 
-    # Creates a local copy of the user's remote directory tree and the database
-    # needed to handle the changes
+    # Creates a local copy of the user's remote directory, overwriting an
+    # eventual existing local tree and resetting the database
     def checkout (self):
-
         # Create a new schema or delete the contents of the existing database
         self.dbm.create_schema ()
-        
         # Get all the iFolders belonging to the current user
         ifolders = self.client.service.GetiFolders (0, 0)
-
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-            
-                # Add the ifolder to the base tree, if it does not already exist
+                # Add the ifolder to the base tree, if it does not already 
+                # exist
                 if not os.path.isdir (ifolder.Name):
+                    self.debug ('Creating new iFolder '\
+                                    '\'{0}\' ... '.format (ifolder.Name), \
+                                    False)
                     os.mkdir (ifolder.Name)
-
+                    self.debug ('done.')
+                self.debug ('Getting all the children ' \
+                                'for iFolder \'{0}\' ' \
+                                '... '.format (ifolder.Name), False)
                 # Get all the children of the given iFolder
                 operation = self.client.factory.create ('SearchOperation')
-                entries = self.client.service.GetEntriesByName (ifolder.ID, ifolder.ID, operation.Contains, '.', 0, 0)
-
-                # This check is just to avoid the 'AttributeError' exception raised by suds when we access to the
-                # Total attribute, which has no iFolderEntry value
+                entries = self.client.service.GetEntriesByName \
+                    (ifolder.ID, ifolder.ID, operation.Contains, '.', 0, 0)
+                self.debug ('done.')
+                # This check is just to avoid the 'AttributeError' exception
+                # raised by suds when we access to the Total attribute, which
+                # has not the iFolderEntry value
                 entries_count = entries.Total
                 if entries_count > 0:
                     for entry in entries.Items.iFolderEntry:
-
-                        # Add the entry to the local database. We use GetChanges to get the time of the latest 
-                        # modification, because of the GetEntries* WS's, do not provide the microsecond field 
-                        # of the timestamp with the LastModified attribute.
-                        changes = self.client.service.GetChanges (entry.iFolderID, entry.ID, 0, 1)
-
+                        # Add the entry to the local database. We use
+                        # GetChanges to get the time of the latest
+                        # modification, because of the GetEntries* 
+                        # WS's, do not provide the microsecond field
+                        # of the timestamp with the LastModified attribute
+                        changes = self.client.service.GetChanges \
+                            (entry.iFolderID, entry.ID, 0, 1)
                         if changes.Total > 0:
                             for change in changes.Items.ChangeEntry:
-                                self.dbm.add (entry.iFolderID, entry.ID, change.Time)
+                                self.dbm.add \
+                                    (entry.iFolderID, entry.ID, change.Time)
                                 # Get just the latest change
                                 break
-
-                            # If the entry is a directory and it does not already exist, create it recursively,
+                            # If the entry is a directory and it does
+                            # not already exist, create it recursively,
                             # making intermediate-levels directories
                             if entry.IsDirectory == True:
                                 if not os.path.isdir (entry.Path):
+                                    self.debug \
+                                        ('Adding directory ' \
+                                             '\'{0}\' ... '.format \
+                                             (entry.Path), False)
                                     os.makedirs (entry.Path)
+                                    self.debug ('done.')
                             else:
                                 # if it is a file, just fetch it
-                                self.fetch (entry.iFolderID, entry.ID, entry.Path)
+                                self.debug \
+                                    ('Fetching file ' \
+                                         '\'{0}\' ... '.format \
+                                         (entry.Path), False)
+                                self.fetch \
+                                    (entry.iFolderID, entry.ID, entry.Path)
+                                self.debug ('done.')
 
                         entries_count = entries_count - 1
                         if entries_count == 0:
@@ -319,9 +356,12 @@ class pyFolder:
             except AttributeError, ae:
                 self.debug (ae)
     
-    def debug (self, message):
+    def debug (self, message, newline=True):
         if self.icm.verbose ():
-            print >> sys.stderr, message
+            if newline:
+                print >> sys.stderr, message
+            else:
+                print >> sys.stderr, message,
             
 if __name__ == '__main__':
     icm = pyFolderConfigManager ()
