@@ -215,64 +215,35 @@ class pyFolder:
     # Create a local copy of the user's remote directory, overwriting an
     # eventual existing local tree
     def checkout (self):
-        # Create a new schema or delete the contents of the existing database
         self.dbm.create_schema ()
-        # Get all the iFolders belonging to the current user
-        ifolders = self.client.service.GetiFolders (0, 0)
+        ifolders = self.get_all_ifolders ()
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-                # Add the ifolder to the base tree, if it does not already 
-                # exist
-                if not os.path.isdir (ifolder.Name):
-                    self.debug ('Creating new iFolder \'{0}\' ...'.format (ifolder.Name), False)
-                    os.mkdir (ifolder.Name)
-                    self.debug ('done.')
-                self.debug ('Getting all the children for iFolder \'{0}\' ...'.format (ifolder.Name), False)
-                # Get all the children of the given iFolder
-                operation = self.client.factory.create ('SearchOperation')
-                entries = self.client.service.GetEntriesByName \
-                    (ifolder.ID, ifolder.ID, operation.Contains, '.', 0, 0)
-                self.debug ('done.')
-                # This check is just to avoid the 'AttributeError' exception
-                # raised by suds when we access to the Total attribute, which
-                # has not the iFolderEntry value
+                self.add_ifolder (ifolder)
+                entries = self.get_children_by_ifolder (ifolder)
                 entries_count = entries.Total
                 if entries_count > 0:
                     for entry in entries.Items.iFolderEntry:
-                        # Add the entry to the local database. We use
-                        # GetChanges to get the time of the latest
-                        # modification, because of the GetEntries* 
-                        # WS's, do not provide the microsecond field
-                        # of the timestamp with the LastModified attribute
-                        changes = self.client.service.GetChanges \
-                            (entry.iFolderID, entry.ID, 0, 1)
-                        if changes.Total > 0:
-                            for change in changes.Items.ChangeEntry:
-                                self.dbm.add \
-                                    (entry.iFolderID, entry.ID, change.Time)
-                                # Get just the latest change
-                                break
-                            # If the entry is a directory and it does
-                            # not already exist, create it recursively,
-                            # making intermediate-levels directories
-                            if entry.IsDirectory == True:
-                                if not os.path.isdir (entry.Path):
-                                    self.debug ('Adding directory \'{0}\' ...'.format (entry.Path), False)
-                                    os.makedirs (entry.Path)
-                                    self.debug ('done.')
-                            else:
-                                # if it is a file, just fetch it
-                                self.debug ('Fetching file \'{0}\' ...'.format (entry.Path), False)
-                                self.fetch \
-                                    (entry.iFolderID, entry.ID, entry.Path)
-                                self.debug ('done.')
+                        latest_change = self.get_latest_change (entry)
+                        if latest_change.Total > 0:
+                            for change in latest_change.Items.ChangeEntry:
+                                self.apply_change (ifolder, change, True)
                         entries_count = entries_count - 1
                         if entries_count == 0:
                             break
                 ifolders_count = ifolders_count - 1
                 if ifolders_count == 0:
                     break
+
+    def get_all_ifolders (self):
+        return self.client.service.GetiFolders (0, 0)
+
+    def add_ifolder (self, ifolder):
+        if not os.path.isdir (ifolder.Name):
+            self.debug ('Creating new iFolder \'{0}\' ...'.format (ifolder.Name), False)
+            os.mkdir (ifolder.Name)
+            self.debug ('done.')
 
     # Download the unique file identified by ifolderID and 
     # entryID from the server
@@ -315,27 +286,19 @@ class pyFolder:
     #           version.
     #          
     def update (self):
-        ifolders = self.client.service.GetiFolders (0, 0)
+        ifolders = self.get_all_ifolders ()
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-                # If any new iFolder is found, create it locally
-                if not os.path.isdir (ifolder.Name):
-                    self.debug ('Found new iFolder \'{0}\' adding it to the local copy ...'.format (ifolder.Name), False)
-                    os.mkdir (ifolder.Name)
-                    self.debug ('done.')
-                # Get all the children of the current iFolder
+                self.add_ifolder (ifolder)
                 entries = self.get_children_by_ifolder (ifolder)
                 entries_count = entries.Total
                 if entries_count > 0:
                     for entry in entries.Items.iFolderEntry:
-                        # Get the latest change for the current entry
                         latest_change = self.get_latest_change (entry)
                         if latest_change.Total > 0:
                             for change in latest_change.Items.ChangeEntry:
                                 self.apply_change (ifolder, change)
-                                # We mind just about the latest change made 
-                                # to the entry
                                 break
                     entries_count = entries_count - 1
                     if entries_count == 0:
@@ -352,9 +315,11 @@ class pyFolder:
     def get_latest_change (self, entry):
         return self.client.service.GetChanges (entry.iFolderID, entry.ID, 0, 1)
 
-    def apply_change (self, ifolder, change):
+    # Apply `change' to `ifolder'. If overwrite is True, apply
+    # the change unconditionally
+    def apply_change (self, ifolder, change, overwrite=False):
         iet = self.client.factory.create ('iFolderEntryType')
-        if os.path.exists (change.Name):
+        if not overwrite and os.path.exists (change.Name):
             # If the entry already exists in the 
             # local copy, we need to check whether 
             # it has to be updated or not
