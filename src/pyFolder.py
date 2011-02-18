@@ -266,14 +266,12 @@ class pyFolder:
         return self.client.service.GetiFolders (0, 0)
 
     def __add_ifolder (self, ifolder):
-        if not os.path.isdir (ifolder.Name):
-            self.__debug ('Creating new iFolder \'{0}\' ...'.format (ifolder.Name), False)
-            os.mkdir (ifolder.Name)
-            self.__debug ('done')
+        self.__mkdir (ifolder.Name)
 
     # Download the unique file identified by ifolderID and 
     # entryID from the server
     def __fetch (self, iFolderID, entryID, path):
+        self.__debug ('Fetching file \'{0}\' ...'.format (path), False)
         handle = self.client.service.OpenFileRead (iFolderID, entryID)
         with open (path, 'wb') as f:
             while True:
@@ -285,6 +283,7 @@ class pyFolder:
                     break
                 f.write (base64.b64decode (b64data))
             self.client.service.CloseFile (handle)
+        self.__debug ('done')
 
     # Update the user's local copy of the iFolder tree
     # WARNING: what does it happen whether the user adds/modifies a file
@@ -347,27 +346,28 @@ class pyFolder:
     # unconditionally
     def __apply_change (self, ifolder, change, force=False):
         iet = self.client.factory.create ('iFolderEntryType')
+        digest = self.dbm.digest (ifolder.ID, change.ID)
         if not force and os.path.exists (change.Name):
             if change.Time > self.dbm.mtime (ifolder.ID, change.ID):
                 if change.Type == iet.File:
-                    self.__debug ('Found a newer version of the file \'{0}\', fetching it ...'.format (change.Name), False)
                     self.__fetch (ifolder.ID, change.ID, change.Name)
-                    self.__debug ('done')
                 elif change.Type == iet.Directory:
                     if not os.path.isdir (change.Name):
                         os.makedirs (change.Name)
                 self.__update_dbm (ifolder, change)
         else:
             if change.Type == iet.File:
-                self.__debug ('Adding file \'{0}\' ...'.format (change.Name), False)
                 self.__fetch (ifolder.ID, change.ID, change.Name)
-                self.__debug ('done')
             elif change.Type == iet.Directory:
                 if not os.path.isdir (change.Name):
-                    self.__debug ('Adding directory \'{0}\' ...'.format (change.Name), False)
-                    os.makedirs (change.Name)
-                    self.__debug ('done')
+                    self.__mkdir (change.Name)
             self.__update_dbm (ifolder, change)
+
+    def __mkdir (self, path):
+        if not os.path.isdir (path):
+            self.__debug ('Adding new directory \'{0}\' ...'.format (path), False)
+            os.makedirs (path)
+            self.__debug ('done')
 
     def __update_dbm (self, ifolder, change):
         if os.path.isfile (change.Name):
