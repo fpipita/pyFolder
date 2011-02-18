@@ -346,26 +346,23 @@ class pyFolder:
     # unconditionally
     def __apply_change (self, ifolder, change, force=False):
         iet = self.client.factory.create ('iFolderEntryType')
-        digest = self.dbm.digest (ifolder.ID, change.ID)
         if not force and os.path.exists (change.Name):
             if change.Time > self.dbm.mtime (ifolder.ID, change.ID):
                 if change.Type == iet.File:
                     self.__fetch (ifolder.ID, change.ID, change.Name)
                 elif change.Type == iet.Directory:
-                    if not os.path.isdir (change.Name):
-                        os.makedirs (change.Name)
+                    self.__mkdir (change.Name)
                 self.__update_dbm (ifolder, change)
         else:
             if change.Type == iet.File:
                 self.__fetch (ifolder.ID, change.ID, change.Name)
             elif change.Type == iet.Directory:
-                if not os.path.isdir (change.Name):
-                    self.__mkdir (change.Name)
+                self.__mkdir (change.Name)
             self.__update_dbm (ifolder, change)
 
     def __mkdir (self, path):
         if not os.path.isdir (path):
-            self.__debug ('Adding new directory \'{0}\' ...'.format (path), False)
+            self.__debug ('Adding directory \'{0}\' ...'.format (path), False)
             os.makedirs (path)
             self.__debug ('done')
 
