@@ -215,26 +215,7 @@ class pyFolder:
     # Create a local copy of the user's remote directory, overwriting an
     # eventual existing local tree
     def checkout (self):
-        self.dbm.create_schema ()
-        ifolders = self.get_all_ifolders ()
-        ifolders_count = ifolders.Total
-        if ifolders_count > 0:
-            for ifolder in ifolders.Items.iFolder:
-                self.add_ifolder (ifolder)
-                entries = self.get_children_by_ifolder (ifolder)
-                entries_count = entries.Total
-                if entries_count > 0:
-                    for entry in entries.Items.iFolderEntry:
-                        latest_change = self.get_latest_change (entry)
-                        if latest_change.Total > 0:
-                            for change in latest_change.Items.ChangeEntry:
-                                self.apply_change (ifolder, change, True)
-                        entries_count = entries_count - 1
-                        if entries_count == 0:
-                            break
-                ifolders_count = ifolders_count - 1
-                if ifolders_count == 0:
-                    break
+        self.update (checkout=True)
 
     def get_all_ifolders (self):
         return self.client.service.GetiFolders (0, 0)
@@ -285,7 +266,9 @@ class pyFolder:
     #           one stored in the local database, we can safely fetch the newer
     #           version.
     #          
-    def update (self):
+    def update (self, checkout=False):
+        if checkout:
+            self.dbm.create_schema ()
         ifolders = self.get_all_ifolders ()
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
@@ -298,7 +281,7 @@ class pyFolder:
                         latest_change = self.get_latest_change (entry)
                         if latest_change.Total > 0:
                             for change in latest_change.Items.ChangeEntry:
-                                self.apply_change (ifolder, change)
+                                self.apply_change (ifolder, change, checkout)
                                 break
                     entries_count = entries_count - 1
                     if entries_count == 0:
@@ -317,9 +300,9 @@ class pyFolder:
 
     # Apply `change' to `ifolder'. If overwrite is True, apply
     # the change unconditionally
-    def apply_change (self, ifolder, change, overwrite=False):
+    def apply_change (self, ifolder, change, force=False):
         iet = self.client.factory.create ('iFolderEntryType')
-        if not overwrite and os.path.exists (change.Name):
+        if not force and os.path.exists (change.Name):
             # If the entry already exists in the 
             # local copy, we need to check whether 
             # it has to be updated or not
