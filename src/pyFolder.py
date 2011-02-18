@@ -206,10 +206,10 @@ class pyFolder:
         self.icm = icm
         self.client = Client (icm.ifolderws (), transport=transport)
         self.dbm = pyFolderDBManager (self.icm.pathtodb ())
-        self.action ()
+        self.__action ()
     
     # Execute the chosen action
-    def action (self):
+    def __action (self):
         pyFolder.__dict__[self.icm.action ()] (self)
 
     # Create a local copy of the user's remote directory, overwriting an
@@ -217,18 +217,18 @@ class pyFolder:
     def checkout (self):
         self.update (checkout=True)
 
-    def get_all_ifolders (self):
+    def __get_all_ifolders (self):
         return self.client.service.GetiFolders (0, 0)
 
-    def add_ifolder (self, ifolder):
+    def __add_ifolder (self, ifolder):
         if not os.path.isdir (ifolder.Name):
-            self.debug ('Creating new iFolder \'{0}\' ...'.format (ifolder.Name), False)
+            self.__debug ('Creating new iFolder \'{0}\' ...'.format (ifolder.Name), False)
             os.mkdir (ifolder.Name)
-            self.debug ('done.')
+            self.__debug ('done.')
 
     # Download the unique file identified by ifolderID and 
     # entryID from the server
-    def fetch (self, iFolderID, entryID, path):
+    def __fetch (self, iFolderID, entryID, path):
         handle = self.client.service.OpenFileRead (iFolderID, entryID)
         with open (path, 'wb') as f:
             while True:
@@ -269,19 +269,19 @@ class pyFolder:
     def update (self, checkout=False):
         if checkout:
             self.dbm.create_schema ()
-        ifolders = self.get_all_ifolders ()
+        ifolders = self.__get_all_ifolders ()
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-                self.add_ifolder (ifolder)
-                entries = self.get_children_by_ifolder (ifolder)
+                self.__add_ifolder (ifolder)
+                entries = self.__get_children_by_ifolder (ifolder)
                 entries_count = entries.Total
                 if entries_count > 0:
                     for entry in entries.Items.iFolderEntry:
-                        latest_change = self.get_latest_change (entry)
+                        latest_change = self.__get_latest_change (entry)
                         if latest_change.Total > 0:
                             for change in latest_change.Items.ChangeEntry:
-                                self.apply_change (ifolder, change, checkout)
+                                self.__apply_change (ifolder, change, checkout)
                                 break
                     entries_count = entries_count - 1
                     if entries_count == 0:
@@ -290,17 +290,17 @@ class pyFolder:
                 if ifolders_count == 0:
                     break
     
-    def get_children_by_ifolder (self, ifolder):
+    def __get_children_by_ifolder (self, ifolder):
         operation = self.client.factory.create ('SearchOperation')
         return self.client.service.GetEntriesByName ( \
             ifolder.ID, ifolder.ID, operation.Contains, '.', 0, 0)
 
-    def get_latest_change (self, entry):
+    def __get_latest_change (self, entry):
         return self.client.service.GetChanges (entry.iFolderID, entry.ID, 0, 1)
 
-    # Apply `change' to `ifolder'. If overwrite is True, apply
+    # Apply `change' to `ifolder'. If `force' is True, apply
     # the change unconditionally
-    def apply_change (self, ifolder, change, force=False):
+    def __apply_change (self, ifolder, change, force=False):
         iet = self.client.factory.create ('iFolderEntryType')
         if not force and os.path.exists (change.Name):
             # If the entry already exists in the 
@@ -310,9 +310,9 @@ class pyFolder:
                 # The server contains a more recent 
                 # copy of the entry, let's sync it ...
                 if change.Type == iet.File:
-                    self.debug ('Found a more recent version of the file \'{0}\', fetching it ...'.format (change.Name), False)
-                    self.fetch (ifolder.ID, change.ID, change.Name)
-                    self.debug ('done.')
+                    self.__debug ('Found a more recent version of the file \'{0}\', fetching it ...'.format (change.Name), False)
+                    self.__fetch (ifolder.ID, change.ID, change.Name)
+                    self.__debug ('done.')
                 elif change.Type == iet.Directory:
                     if not os.path.isdir (change.Name):
                         os.makedirs (change.Name)
@@ -323,19 +323,19 @@ class pyFolder:
             # The entry does not already exist on the 
             # local copy, so just download it
             if change.Type == iet.File:
-                self.debug ('Found new file \'{0}\', fetching it ...'.format (change.Name), False)
-                self.fetch (ifolder.ID, change.ID, change.Name)
-                self.debug ('done.')
+                self.__debug ('Found new file \'{0}\', fetching it ...'.format (change.Name), False)
+                self.__fetch (ifolder.ID, change.ID, change.Name)
+                self.__debug ('done.')
             elif change.Type == iet.Directory:
                 if not os.path.isdir (change.Name):
-                    self.debug ('Creating new directory \'{0}\' ...'.format (change.Name), False)
+                    self.__debug ('Creating new directory \'{0}\' ...'.format (change.Name), False)
                     os.makedirs (change.Name)
-                    self.debug ('done.')
+                    self.__debug ('done.')
             self.dbm.update (ifolder.ID, change.ID, change.Time)
 
     # Print message to the stderr, if the user supplied the verbosity
     # command line switch. If newline is False, don't add the newline
-    def debug (self, message, newline=True):
+    def __debug (self, message, newline=True):
         if self.icm.verbose ():
             if newline:
                 print >> sys.stderr, message
