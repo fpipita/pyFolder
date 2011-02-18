@@ -156,6 +156,12 @@ class DBM:
         WHERE i.iFolderID=? AND i.entryID=?
         """
 
+    Q_DIGEST = \
+        """
+        SELECT i.digest FROM iFolder AS i
+        WHERE i.iFolderID=? AND i.entryID=?
+        """
+
     def __init__ (self, pathtodb):
         self.pathtodb = pathtodb
         self.cx = sqlite3.connect (pathtodb)
@@ -184,15 +190,18 @@ class DBM:
         except sqlite3.IntegrityError:
             pass
 
-    # Create a `mock' date
-    def __mock_datetime (self):
-        return datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
+    # Create a `mock' tuple of the given `type'
+    def __mock_tuple (self, type):
+        if type == 'mtime':
+            return datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
+        elif type == 'digest':
+            return None
 
     # Update the tuple (iFolderID, entryID, mtime) or insert it if
     # it does not already exist
     def update (self, ifolder, change, digest=None):
         cu = self.cx.cursor ()
-        if self.mtime (ifolder.ID, change.ID) > self.__mock_datetime ():
+        if self.mtime (ifolder.ID, change.ID) > self.__mock_tuple ('mtime'):
             cu.execute (DBM.Q_UPDATE, (change.Time, digest, ifolder.ID, change.ID))
             self.cx.commit ()
         else:
@@ -203,23 +212,31 @@ class DBM:
     # key (iFolderID, entryID)
     def mtime (self, iFolderID, entryID):
         cu = self.cx.cursor ()
+        mtime = self.__mock_tuple ('mtime')
         try:
             cu.execute (DBM.Q_MTIME, (iFolderID, entryID))
-            mtime = cu.fetchone ()
-            if mtime is not None:
+            row = cu.fetchone ()
+            if row is not None:
                 # The entry exists in the local copy, so just return its mtime
-                mtime = datetime.strptime (mtime[0], '%Y-%m-%d %H:%M:%S.%f')
-            else:
-                # The db is empty or the entry does not 
-                # exist yet in the local copy, let's create a 'mock' mtime
-                mtime = self.__mock_datetime ()
+                mtime = datetime.strptime (row[0], '%Y-%m-%d %H:%M:%S.%f')
         except sqlite3.OperationalError, oe:
             # We are probably running the 'update' action without 
             # having ever run the 'checkout' action first, so we
             # create the schema and then we return a 'mock' mtime
             self.create_schema ()
-            mtime = self.__mock_datetime ()
         return mtime
+
+    def digest (self, iFolderID, entryID):
+        cu = self.cx.cursor ()
+        digest = self.__mock_tuple ('digest')
+        try:
+            cu.execute (DBM.Q_DIGEST, (iFolderID, entryID))
+            row = cu.fetchone ()
+            if row is not None:
+                digest = row[0]
+        except sqlite3.OperationalError, oe:
+            self.create_schema ()
+        return digest
 
     # The object destructor, to make sure that the connection to the db
     # gets properly closed and all the modifies made committed
@@ -252,7 +269,7 @@ class pyFolder:
         if not os.path.isdir (ifolder.Name):
             self.__debug ('Creating new iFolder \'{0}\' ...'.format (ifolder.Name), False)
             os.mkdir (ifolder.Name)
-            self.__debug ('done.')
+            self.__debug ('done')
 
     # Download the unique file identified by ifolderID and 
     # entryID from the server
@@ -331,32 +348,25 @@ class pyFolder:
     def __apply_change (self, ifolder, change, force=False):
         iet = self.client.factory.create ('iFolderEntryType')
         if not force and os.path.exists (change.Name):
-            # If the entry already exists in the local copy, we need to 
-            # check whether it has to be updated or not
             if change.Time > self.dbm.mtime (ifolder.ID, change.ID):
-                # The server contains a more recent copy of the entry, 
-                # let's sync it ...
                 if change.Type == iet.File:
-                    self.__debug ('Found a more recent version of the file \'{0}\', fetching it ...'.format (change.Name), False)
+                    self.__debug ('Found a newer version of the file \'{0}\', fetching it ...'.format (change.Name), False)
                     self.__fetch (ifolder.ID, change.ID, change.Name)
-                    self.__debug ('done.')
+                    self.__debug ('done')
                 elif change.Type == iet.Directory:
                     if not os.path.isdir (change.Name):
                         os.makedirs (change.Name)
-                # Update the information about the entry's mtime
                 self.__update_dbm (ifolder, change)
         else:
-            # The entry does not already exist on the local copy, so just 
-            # download it
             if change.Type == iet.File:
-                self.__debug ('Found new file \'{0}\', fetching it ...'.format (change.Name), False)
+                self.__debug ('Adding file \'{0}\' ...'.format (change.Name), False)
                 self.__fetch (ifolder.ID, change.ID, change.Name)
-                self.__debug ('done.')
+                self.__debug ('done')
             elif change.Type == iet.Directory:
                 if not os.path.isdir (change.Name):
-                    self.__debug ('Creating new directory \'{0}\' ...'.format (change.Name), False)
+                    self.__debug ('Adding directory \'{0}\' ...'.format (change.Name), False)
                     os.makedirs (change.Name)
-                    self.__debug ('done.')
+                    self.__debug ('done')
             self.__update_dbm (ifolder, change)
 
     def __update_dbm (self, ifolder, change):
