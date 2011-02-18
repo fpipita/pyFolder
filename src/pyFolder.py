@@ -7,6 +7,7 @@ from optparse import OptionParser
 from datetime import *
 
 import base64
+import hashlib
 import os
 import sqlite3
 import sys
@@ -126,47 +127,76 @@ class pyFolderConfigManager ():
     def verbose (self):
         return self.options.verbose
 
-class pyFolderDBManager:
+class DBM:
+    Q_CREATE_SCHEMA = \
+        """
+        CREATE TABLE iFolder (
+           iFolderID     TEXT,
+           entryID       TEXT,
+           mtime         DATETIME,
+           digest        TEXT,
+           PRIMARY KEY (iFolderID, entryID)
+        )
+        """
+
+    Q_ADD = \
+        """
+        INSERT INTO iFolder VALUES (?, ?, ?, ?)
+        """
+    
+    Q_UPDATE = \
+        """
+        UPDATE iFolder SET mtime=(?), digest=(?)
+        WHERE iFolderID=(?) AND entryID=(?)
+        """
+
+    Q_MTIME = \
+        """
+        SELECT i.mtime FROM iFolder AS i
+        WHERE i.iFolderID=? AND i.entryID=?
+        """
+
     def __init__ (self, pathtodb):
+        self.pathtodb = pathtodb
         self.cx = sqlite3.connect (pathtodb)
 
     def create_schema (self):
         cu = self.cx.cursor ()
         try:
-            # If the schema already exists ...
-            cu.execute ('CREATE TABLE iFolder (iFolderID TEXT, ' \
-                            'entryID TEXT, mtime DATETIME, ' \
-                            'PRIMARY KEY (iFolderID, entryID))')
+            cu.execute (DBM.Q_CREATE_SCHEMA)
         except sqlite3.OperationalError, oe:
-            # ... just remove all the tuples
-            cu.execute ('DELETE FROM iFolder')
+            self.cx.close ()
+            if os.path.isfile (self.pathtodb):
+                os.remove (self.pathtodb)
+            self.cx = sqlite3.connect (self.pathtodb)
+            cu = self.cx.cursor ()
+            cu.execute (DBM.Q_CREATE_SCHEMA)
         finally:
             self.cx.commit ()
 
     # Add a new tuple (iFolderID, entryID, mtime) to the local
     # database or do nothing if it already exists
-    def add (self, iFolderID, entryID, mtime):
+    def add (self, ifolder, change, digest):
         cu = self.cx.cursor ()
         try:
-            cu.execute ('INSERT INTO iFolder VALUES (?, ?, ?)', \
-                            (iFolderID, entryID, mtime))
+            cu.execute (DBM.Q_ADD, (ifolder.ID, change.ID, change.Time, digest))
             self.cx.commit ()
         except sqlite3.IntegrityError:
             pass
 
+    # Create a `mock' date
+    def __mock_datetime (self):
+        return datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
+
     # Update the tuple (iFolderID, entryID, mtime) or insert it if
     # it does not already exist
-    def update (self, iFolderID, entryID, mtime):
+    def update (self, ifolder, change, digest=None):
         cu = self.cx.cursor ()
-
-        if self.mtime (iFolderID, entryID) > \
-                datetime (MINYEAR, 1, 1, 0, 0, 0, 0):
-            cu.execute ('UPDATE iFolder SET mtime=(?) ' \
-                            'WHERE iFolderID=(?) AND ' \
-                            'entryID=(?)', (mtime, iFolderID, entryID))
+        if self.mtime (ifolder.ID, change.ID) > self.__mock_datetime ():
+            cu.execute (DBM.Q_UPDATE, (change.Time, digest, ifolder.ID, change.ID))
             self.cx.commit ()
         else:
-            self.add (iFolderID, entryID, mtime)
+            self.add (ifolder, change, digest)
     
     # Get a datetime.datetime object representing the timestamp of
     # the last modification made to the entry identified by the composite
@@ -174,9 +204,7 @@ class pyFolderDBManager:
     def mtime (self, iFolderID, entryID):
         cu = self.cx.cursor ()
         try:
-            cu.execute ('SELECT i.mtime FROM iFolder AS i ' \
-                            'WHERE i.iFolderID=? AND i.entryID=?', \
-                            (iFolderID, entryID))
+            cu.execute (DBM.Q_MTIME, (iFolderID, entryID))
             mtime = cu.fetchone ()
             if mtime is not None:
                 # The entry exists in the local copy, so just return its mtime
@@ -184,13 +212,13 @@ class pyFolderDBManager:
             else:
                 # The db is empty or the entry does not 
                 # exist yet in the local copy, let's create a 'mock' mtime
-                mtime = datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
+                mtime = self.__mock_datetime ()
         except sqlite3.OperationalError, oe:
             # We are probably running the 'update' action without 
             # having ever run the 'checkout' action first, so we
             # create the schema and then we return a 'mock' mtime
             self.create_schema ()
-            mtime = datetime (MINYEAR, 1, 1, 0, 0, 0, 0)
+            mtime = self.__mock_datetime ()
         return mtime
 
     # The object destructor, to make sure that the connection to the db
@@ -205,7 +233,7 @@ class pyFolder:
                                            password=icm.password ())
         self.icm = icm
         self.client = Client (icm.ifolderws (), transport=transport)
-        self.dbm = pyFolderDBManager (self.icm.pathtodb ())
+        self.dbm = DBM (self.icm.pathtodb ())
         self.__action ()
     
     # Execute the chosen action
@@ -298,17 +326,16 @@ class pyFolder:
     def __get_latest_change (self, entry):
         return self.client.service.GetChanges (entry.iFolderID, entry.ID, 0, 1)
 
-    # Apply `change' to `ifolder'. If `force' is True, apply
-    # the change unconditionally
+    # Apply `change' to `ifolder'. If `force' is True, apply the change 
+    # unconditionally
     def __apply_change (self, ifolder, change, force=False):
         iet = self.client.factory.create ('iFolderEntryType')
         if not force and os.path.exists (change.Name):
-            # If the entry already exists in the 
-            # local copy, we need to check whether 
-            # it has to be updated or not
+            # If the entry already exists in the local copy, we need to 
+            # check whether it has to be updated or not
             if change.Time > self.dbm.mtime (ifolder.ID, change.ID):
-                # The server contains a more recent 
-                # copy of the entry, let's sync it ...
+                # The server contains a more recent copy of the entry, 
+                # let's sync it ...
                 if change.Type == iet.File:
                     self.__debug ('Found a more recent version of the file \'{0}\', fetching it ...'.format (change.Name), False)
                     self.__fetch (ifolder.ID, change.ID, change.Name)
@@ -316,12 +343,11 @@ class pyFolder:
                 elif change.Type == iet.Directory:
                     if not os.path.isdir (change.Name):
                         os.makedirs (change.Name)
-                # Update the information about the
-                # entry's mtime
-                self.dbm.update (ifolder.ID, change.ID, change.Time)
+                # Update the information about the entry's mtime
+                self.__update_dbm (ifolder, change)
         else:
-            # The entry does not already exist on the 
-            # local copy, so just download it
+            # The entry does not already exist on the local copy, so just 
+            # download it
             if change.Type == iet.File:
                 self.__debug ('Found new file \'{0}\', fetching it ...'.format (change.Name), False)
                 self.__fetch (ifolder.ID, change.ID, change.Name)
@@ -331,7 +357,21 @@ class pyFolder:
                     self.__debug ('Creating new directory \'{0}\' ...'.format (change.Name), False)
                     os.makedirs (change.Name)
                     self.__debug ('done.')
-            self.dbm.update (ifolder.ID, change.ID, change.Time)
+            self.__update_dbm (ifolder, change)
+
+    def __update_dbm (self, ifolder, change):
+        if os.path.isfile (change.Name):
+            m = hashlib.md5 ()
+            with open (change.Name, 'rb') as f:
+                while True:
+                    data = f.read ()
+                    m.update (data)
+                    if len (data) == 0:
+                        break
+                self.__debug ('Computed MD5 hash \'{0}\' for file \'{1}\''.format (m.hexdigest (), change.Name))
+            self.dbm.update (ifolder, change, m.hexdigest ())
+        else:
+            self.dbm.update (ifolder, change)
 
     # Print message to the stderr, if the user supplied the verbosity
     # command line switch. If newline is False, don't add the newline
