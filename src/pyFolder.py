@@ -25,28 +25,27 @@ class pyFolder:
         self.dbm = DBM (self.cm.pathtodb ())
         self.__action ()
     
-    # Execute the chosen action
     def __action (self):
         pyFolder.__dict__[self.cm.action ()] (self)
-
-
-    # Wrappers
 
     def __get_all_ifolders (self):
         return self.client.service.GetiFolders (0, 0)
 
-    def __get_latest_change (self, entry):
-        return self.client.service.GetChanges (entry.iFolderID, entry.ID, 0, 1)
+    def __get_latest_change (self, ifolder_id, entry_id):
+        return self.client.service.GetChanges (ifolder_id, entry_id, 0, 1)
 
-    def __get_children_by_ifolder (self, ifolder):
+    def __get_children_by_ifolder (self, ifolder_id):
         operation = self.client.factory.create ('SearchOperation')
         return self.client.service.GetEntriesByName ( \
-            ifolder.ID, ifolder.ID, operation.Contains, '.', 0, 0)
+            ifolder_id, ifolder_id, operation.Contains, '.', 0, 0)
 
-    def __fetch (self, ifolder, change):
-        self.__debug ('Fetching file \'{0}\' ...'.format (change.Name), False)
-        handle = self.client.service.OpenFileRead (ifolder.ID, change.ID)
-        with open (change.Name, 'wb') as f:
+    def __get_ifolder (self, ifolder_id):
+        return self.client.service.GetiFolder (ifolder_id)
+
+    def __fetch (self, ifolder_id, entry_id, path):
+        self.__debug ('Fetching file \'{0}\' ...'.format (path), False)
+        handle = self.client.service.OpenFileRead (ifolder_id, entry_id)
+        with open (path, 'wb') as f:
             while True:
                 b64data = self.client.service.ReadFile \
                     (handle, cm.soapbuflen ())
@@ -55,99 +54,6 @@ class pyFolder:
                 f.write (base64.b64decode (b64data))
             self.client.service.CloseFile (handle)
         self.__debug ('done')
-
-    # Wrappers end here
-
-    def __add_ifolder (self, ifolder):
-        self.dbm.ifolder_add (ifolder)
-        self.__rmdir (ifolder.Name)
-        self.__mkdir (ifolder.Name)
-
-    # Create a local copy of the user's remote directory, overwriting an
-    # eventual existing local tree
-    def checkout (self):
-        self.dbm.create_schema ()
-        ifolders = self.__get_all_ifolders ()
-        ifolders_count = ifolders.Total
-        if ifolders_count > 0:
-            for ifolder in ifolders.Items.iFolder:
-                self.__add_ifolder (ifolder)
-                entries = self.__get_children_by_ifolder (ifolder)
-                entries_count = entries.Total
-                if entries_count > 0:
-                    for entry in entries.Items.iFolderEntry:
-                        latest_change = self.__get_latest_change (entry)
-                        if latest_change.Total > 0:
-                            for change in latest_change.Items.ChangeEntry:
-                                self.__apply_change (ifolder, change, True)
-                                break
-                    entries_count = entries_count - 1
-                    if entries_count == 0:
-                        break
-                ifolders_count = ifolders_count - 1
-                if ifolders_count == 0:
-                    break
-
-    # Update the user's local copy of the iFolder tree
-    def update (self):
-        ifolders = self.__get_all_ifolders ()
-        ifolders_count = ifolders.Total
-        if ifolders_count > 0:
-            for ifolder in ifolders.Items.iFolder:
-                self.__add_ifolder (ifolder)
-                entries = self.__get_children_by_ifolder (ifolder)
-                entries_count = entries.Total
-                if entries_count > 0:
-                    for entry in entries.Items.iFolderEntry:
-                        latest_change = self.__get_latest_change (entry)
-                        if latest_change.Total > 0:
-                            for change in latest_change.Items.ChangeEntry:
-                                self.__apply_change (ifolder, change, False)
-                                break
-                    entries_count = entries_count - 1
-                    if entries_count == 0:
-                        break
-                ifolders_count = ifolders_count - 1
-                if ifolders_count == 0:
-                    break
-    
-    # Apply `change' to `ifolder'. If `force' is True, apply the change 
-    # unconditionally
-    def __apply_change (self, ifolder, change, force):
-        cea = self.client.factory.create ('ChangeEntryAction')
-        if change.Action == cea.Add:
-            self.__apply_add_change (ifolder, change, force)
-        elif change.Action == cea.Modify:
-            self.__apply_modify_change (ifolder, change, force)
-        elif change.Action == cea.Delete:
-            self.__apply_delete_change (ifolder, change, force)
-
-    def __apply_add_change (self, ifolder, change, force):
-        iet = self.client.factory.create ('iFolderEntryType')
-        if force:
-            if change.Type == iet.File:
-                self.__fetch (ifolder, change)
-            elif change.Type == iet.Directory:
-                self.__mkdir (change.Name)
-            self.__dbm_update (ifolder, change)
-
-    def __apply_modify_change (self, ifolder, change, force):
-        iet = self.client.factory.create ('iFolderEntryType')
-        if force:
-            if change.Type == iet.File:
-                self.__fetch (ifolder, change)
-            elif change.Type == iet.Directory:
-                self.__mkdir (change.Name)
-            self.__dbm_update (ifolder, change)
-
-    def __apply_delete_change (self, ifolder, change, force):
-        iet = self.client.factory.create ('iFolderEntryType')
-        if force:
-            if change.Type == iet.File:
-                self.__del (ifolder.ID, change.ID, change.Name)
-            elif change.Type == iet.Directory:
-                self.__rmdir (change.Name)
-            self.__dbm_update (ifolder, change)
 
     def __del (self, path):
         if os.path.isfile (path):
@@ -167,15 +73,125 @@ class pyFolder:
             os.makedirs (path)
             self.__debug ('done')
 
-    def __dbm_update (self, ifolder, change, force):
-        pass
+    def __add_ifolder (self, ifolder_id, name):
+        self.dbm.add_ifolder (self.__get_ifolder (ifolder_id))
+        self.__mkdir (name)
 
-    # Utilities
+    def __add_entries (self, ifolder_id):
+        entries = self.__get_children_by_ifolder (ifolder_id)
+        entries_count = entries.Total
+        if entries_count > 0:
+            for entry in entries.Items.iFolderEntry:
+                latest_change = self.__get_latest_change (ifolder_id, entry.ID)
+                if latest_change.Total > 0:
+                    for change in latest_change.Items.ChangeEntry:
+                        self.__apply_change (ifolder_id, change)
+                        break
+                entries_count = entries_count - 1
+                if entries_count == 0:
+                    break
+
+    def __apply_change (self, ifolder_id, change):
+        iet = self.client.factory.create ('iFolderEntryType')
+        cea = self.client.factory.create ('ChangeEntryAction')
+        if change.Action == cea.Add or change.Action == cea.Modify:
+            if change.Type == iet.File:
+                self.__fetch (ifolder_id, change.ID, change.Name)
+            elif change.Type == iet.Directory:
+                self.__mkdir (change.Name)
+            digest = self.__md5_hash (change)
+            self.dbm.add_entry (ifolder_id, change, digest)
+        
+    def checkout (self):
+        self.dbm.create_schema ()
+        ifolders = self.__get_all_ifolders ()
+        ifolders_count = ifolders.Total
+        if ifolders_count > 0:
+            for ifolder in ifolders.Items.iFolder:
+                self.__add_ifolder (ifolder.ID, ifolder.Name)
+                self.__add_entries (ifolder.ID)
+                ifolders_count = ifolders_count - 1
+                if ifolders_count == 0:
+                    break
+
+    def __ifolder_has_changes (self, ifolder_t):
+        remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        if remote_ifolder is not None:
+            if remote_ifolder.LastModified > ifolder_t[1]:
+                return True
+            else:
+                return False
+        return True
+
+    def __entry_has_changes (self, entry_t):
+        latest_change = self.__get_latest_change (entry_t[0], entry_t[1])
+        if latest_change.Total > 0:
+            for change in latest_change.Items.ChangeEntry:
+                if change.Time > entry_t[2]:
+                    return True
+                else:
+                    return False
+
+    def __update_ifolder (self, ifolder_t):
+        entries_t = self.dbm.get_entries_by_ifolder (ifolder_t[0])
+        for entry_t in entries_t:
+            if self.__entry_has_changes (entry_t):
+                self.__debug ('Entry {0} has remote changes'.format (entry_t[1]))
+                iet = self.client.factory.create ('iFolderEntryType')
+                cea = self.client.factory.create ('ChangeEntryAction')
+                latest_change = self.__get_latest_change \
+                    (entry_t[0], entry_t[1])
+                if latest_change.Total > 0:
+                    for change in latest_change.Items.ChangeEntry:
+                        if change.Action == cea.Add:
+                            if change.Type == iet.Directory:
+                                self.__mkdir (change.Name)
+                            elif change.Type == iet.File:
+                                self.__fetch (entry_t[0], entry_t[1])
+                        elif change.Action == cea.Modify:
+                            if change.Type == iet.Directory:
+                                pass
+                            elif change.Type == iet.File:
+                                self.__fetch \
+                                    (entry_t[0], entry_t[1], change.Name)
+                        elif change.Action == cea.Delete:
+                            if change.Type == iet.Directory:
+                                self.__rmdir (change.Name)
+                            elif change.Type == iet.File:
+                                self.__del (change.Name)
+                    self.dbm.update_entry (ifolder_t[0], change, \
+                                               self.__md5_hash (change))
+
+    def __add_new_entries (self, ifolder_t):
+        entries = self.__get_children_by_ifolder (ifolder_t[0])
+        entries_count = entries.Total
+        if entries_count > 0:
+            for entry in entries.Items.iFolderEntry:
+                if self.dbm.get_entry (ifolder_t[0], entry.ID) is None:
+                    latest_change = self.__get_latest_change (ifolder_t[0], entry.ID)
+                    if latest_change.Total > 0:
+                        for change in latest_change.Items.ChangeEntry:
+                            self.__apply_change (ifolder_t[0], change)
+                            break
+                entries_count = entries_count - 1
+                if entries_count == 0:
+                    break
+
+    def update (self):
+        known_ifolders_t = self.dbm.get_ifolders ()
+        for ifolder_t in known_ifolders_t:
+            if self.__ifolder_has_changes (ifolder_t):
+                self.__debug ('iFolder {0} has remote changes'.format (ifolder_t[0]))
+                self.__update_ifolder (ifolder_t)
+                self.__add_new_entries (ifolder_t)
+                self.dbm.update_ifolder (\
+                    ifolder_t[0], \
+                        self.__get_ifolder (ifolder_t[0]).LastModified)
 
     def __md5_hash (self, change):
         md5_hash = 'DIRECTORY'
         if os.path.isfile (change.Name):
-            self.__debug ('Calculating MD5 hash for file \'{0}\''.format (change.Name), False)
+            self.__debug ('MD5SUM (\'{0}\') ->'.format (change.Name), False)
             m = hashlib.md5 ()
             with open (change.Name, 'rb') as f:
                 while True:
@@ -184,7 +200,7 @@ class pyFolder:
                     if len (data) == 0:
                         break
                 md5_hash = m.hexdigest ()
-                self.__debug ('{0}'.format (m.hexdigest ()), True)
+                self.__debug ('{0}'.format (md5_hash, True))
         return md5_hash
 
     def __debug (self, message, newline=True):
@@ -193,8 +209,6 @@ class pyFolder:
                 print >> sys.stderr, message
             else:
                 print >> sys.stderr, message,
-
-    # Utilities end here
 
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
