@@ -1,4 +1,5 @@
 from optparse import OptionParser
+import sys
 
 class CfgManager ():
     class CfgFile:
@@ -82,6 +83,7 @@ class CfgManager ():
         if self.options.username is None or self.options.password is None \
                 or self.options.ifolderws is None:
             self.parser.print_help ()
+            sys.exit ()
 
     def actions (self):
         return [\
