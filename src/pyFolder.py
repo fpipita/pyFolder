@@ -3,13 +3,13 @@
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated
 from suds import WebFault
-
 from dbm import DBM
 from cfg_manager import CfgManager
 import base64
 import hashlib
 import os
 import shutil
+import sqlite3
 import sys
 
 DEFAULT_SOAP_BUFLEN = 65536
@@ -73,8 +73,8 @@ class pyFolder:
             os.makedirs (path)
             self.__debug ('done')
 
-    def __add_ifolder (self, ifolder_id, name):
-        self.dbm.add_ifolder (self.__get_ifolder (ifolder_id))
+    def __add_ifolder (self, ifolder_id, name, mtime):
+        self.dbm.add_ifolder (ifolder_id, mtime)
         self.__mkdir (name)
 
     def __add_entries (self, ifolder_id):
@@ -108,7 +108,7 @@ class pyFolder:
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-                self.__add_ifolder (ifolder.ID, ifolder.Name)
+                self.__add_ifolder (ifolder.ID, ifolder.Name, ifolder.LastModified)
                 self.__add_entries (ifolder.ID)
                 ifolders_count = ifolders_count - 1
                 if ifolders_count == 0:
@@ -178,15 +178,21 @@ class pyFolder:
                     break
 
     def update (self):
-        known_ifolders_t = self.dbm.get_ifolders ()
-        for ifolder_t in known_ifolders_t:
-            if self.__ifolder_has_changes (ifolder_t):
-                self.__debug ('iFolder {0} has remote changes'.format (ifolder_t[0]))
-                self.__update_ifolder (ifolder_t)
-                self.__add_new_entries (ifolder_t)
-                self.dbm.update_ifolder (\
-                    ifolder_t[0], \
-                        self.__get_ifolder (ifolder_t[0]).LastModified)
+        try:
+            known_ifolders_t = self.dbm.get_ifolders ()
+            for ifolder_t in known_ifolders_t:
+                if self.__ifolder_has_changes (ifolder_t):
+                    self.__debug ('iFolder {0} has remote changes'.format (ifolder_t[0]))
+                    self.__update_ifolder (ifolder_t)
+                    self.__add_new_entries (ifolder_t)
+                    self.dbm.update_ifolder (\
+                        ifolder_t[0], \
+                            self.__get_ifolder (ifolder_t[0]).LastModified)
+        except sqlite3.OperationalError, oe:
+            print 'Could not access the local database. Run the checkout ' \
+                'command again or provide a valid path to the database ' \
+                'file, using the --pathtodb command line switch.'
+            sys.exit ()
 
     def __md5_hash (self, change):
         md5_hash = 'DIRECTORY'
