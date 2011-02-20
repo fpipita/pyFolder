@@ -18,7 +18,8 @@ class DBM:
         """
         CREATE TABLE ifolder (
            id             TEXT PRIMARY KEY,
-           mtime          timestamp
+           mtime          timestamp,
+           name           TEXT
         )
         """
 
@@ -27,10 +28,10 @@ class DBM:
         INSERT INTO entry VALUES (?, ?, ?, ?)
         """
     
-    Q_UPDATE_ENTRY = \
+    Q_UPDATE_MTIME_AND_DIGEST_BY_ENTRY = \
         """
-        UPDATE entry SET mtime=(?), digest=(?)
-        WHERE ifolder=(?) AND id=(?)
+        UPDATE entry SET mtime=?, digest=?
+        WHERE ifolder=? AND id=?
         """
     
     Q_GET_ENTRY = \
@@ -57,13 +58,18 @@ class DBM:
 
     Q_ADD_IFOLDER = \
         """
-        INSERT INTO ifolder VALUES (?, ?)
+        INSERT INTO ifolder VALUES (?, ?, ?)
         """
 
-    Q_UPDATE_IFOLDER = \
+    Q_DELETE_IFOLDER = \
         """
-        UPDATE ifolder SET mtime=(?)
-        WHERE id=(?)
+        DELETE FROM ifolder WHERE id=?
+        """
+
+    Q_UPDATE_MTIME_BY_IFOLDER = \
+        """
+        UPDATE ifolder SET mtime=?
+        WHERE id=?
         """
 
     Q_GET_MTIME_BY_IFOLDER = \
@@ -73,7 +79,12 @@ class DBM:
         """
     Q_GET_IFOLDERS = \
         """
-        SELECT i.id, i.mtime FROM ifolder AS i
+        SELECT * FROM ifolder AS i
+        """
+
+    Q_GET_IFOLDER = \
+        """
+        SELECT * from ifolder AS i where i.id=?
         """
 
     def __init__ (self, pathtodb):
@@ -99,9 +110,14 @@ class DBM:
         finally:
             self.cx.commit ()
 
-    def add_ifolder (self, ifolder_id, mtime):
+    def add_ifolder (self, ifolder_id, mtime, name):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime))
+        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime, name))
+        self.cx.commit ()
+
+    def delete_ifolder (self, ifolder_id):
+        cu = self.cx.cursor ()
+        cu.execute (DBM.Q_DELETE_IFOLDER, (ifolder_id,))
         self.cx.commit ()
 
     def get_ifolders (self):
@@ -109,9 +125,14 @@ class DBM:
         cu.execute (DBM.Q_GET_IFOLDERS)
         return cu.fetchall ()
 
-    def update_ifolder (self, ifolder_id, mtime):
+    def get_ifolder (self, ifolder_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_UPDATE_IFOLDER, (mtime, ifolder_id))
+        cu.execute (DBM.Q_GET_IFOLDER, (ifolder_id,))
+        return cu.fetchone ()
+
+    def update_mtime_by_ifolder (self, ifolder_id, mtime):
+        cu = self.cx.cursor ()
+        cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
         self.cx.commit ()
 
     def add_entry (self, ifolder_id, change, digest):
@@ -119,20 +140,20 @@ class DBM:
         cu.execute (DBM.Q_ADD_ENTRY, (ifolder_id, change.ID, change.Time, digest))
         self.cx.commit ()
 
-    def update_entry (self, ifolder_id, change, digest):
+    def update_mtime_and_digest_by_entry (self, ifolder_id, change, digest):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_UPDATE_ENTRY, \
+        cu.execute (DBM.Q_UPDATE_MTIME_AND_DIGEST_BY_ENTRY, \
                         (change.Time, digest, ifolder_id, change.ID))
         self.cx.commit ()
     
     def get_mtime_by_entry (self, ifolder_id, entry_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRY_MTIME, (ifolder_id, entry_id))
+        cu.execute (DBM.Q_GET_MTIME_BY_ENTRY, (ifolder_id, entry_id))
         return cu.fetchone ()
 
     def get_digest_by_entry (self, ifolder_id, entry_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRY_DIGEST, (ifolder_id, entry_id))
+        cu.execute (DBM.Q_GET_DIGEST_BY_ENTRY, (ifolder_id, entry_id))
         return cu.fetchone ()
 
     def get_entry (self, ifolder_id, entry_id):
