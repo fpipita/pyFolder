@@ -73,8 +73,8 @@ class pyFolder:
             os.makedirs (path)
             self.__debug ('done')
 
-    def __add_ifolder (self, ifolder_id, name, mtime):
-        self.dbm.add_ifolder (ifolder_id, mtime)
+    def __add_ifolder (self, ifolder_id, mtime, name):
+        self.dbm.add_ifolder (ifolder_id, mtime, name)
         self.__mkdir (name)
 
     def __add_entries (self, ifolder_id):
@@ -108,7 +108,7 @@ class pyFolder:
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-                self.__add_ifolder (ifolder.ID, ifolder.Name, ifolder.LastModified)
+                self.__add_ifolder (ifolder.ID, ifolder.LastModified, ifolder.Name)
                 self.__add_entries (ifolder.ID)
                 ifolders_count = ifolders_count - 1
                 if ifolders_count == 0:
@@ -121,7 +121,7 @@ class pyFolder:
                 return True
             else:
                 return False
-        return True
+        return False
 
     def __entry_has_changes (self, entry_t):
         latest_change = self.__get_latest_change (entry_t[0], entry_t[1])
@@ -159,8 +159,9 @@ class pyFolder:
                                 self.__rmdir (change.Name)
                             elif change.Type == iet.File:
                                 self.__del (change.Name)
-                    self.dbm.update_entry (ifolder_t[0], change, \
-                                               self.__md5_hash (change))
+                    self.dbm.update_mtime_and_digest_by_entry (\
+                        ifolder_t[0], change, \
+                            self.__md5_hash (change))
 
     def __add_new_entries (self, ifolder_t):
         entries = self.__get_children_by_ifolder (ifolder_t[0])
@@ -177,22 +178,36 @@ class pyFolder:
                 if entries_count == 0:
                     break
 
+    def __add_new_ifolders (self):
+        ifolders = self.__get_all_ifolders ()
+        ifolders_count = ifolders.Total
+        if ifolders_count > 0:
+            for ifolder in ifolders.Items.iFolder:
+                if self.dbm.get_ifolder (ifolder.ID) is None:
+                    self.__add_ifolder (ifolder.ID, ifolder.LastModified, ifolder.Name)
+                    self.__add_entries (ifolder.ID)
+                ifolders_count = ifolders_count - 1
+                if ifolders_count == 0:
+                    break
+
+    def __check_for_deleted_ifolder (self, ifolder_t):
+        remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        if remote_ifolder is None:
+            self.__rmdir (ifolder_t[2])
+            self.dbm.delete_ifolder (ifolder_t[0])
+
     def update (self):
-        try:
-            known_ifolders_t = self.dbm.get_ifolders ()
-            for ifolder_t in known_ifolders_t:
-                if self.__ifolder_has_changes (ifolder_t):
-                    self.__debug ('iFolder {0} has remote changes'.format (ifolder_t[0]))
-                    self.__update_ifolder (ifolder_t)
-                    self.__add_new_entries (ifolder_t)
-                    self.dbm.update_ifolder (\
-                        ifolder_t[0], \
-                            self.__get_ifolder (ifolder_t[0]).LastModified)
-        except sqlite3.OperationalError, oe:
-            print 'Could not access the local database. Run the checkout ' \
-                'command again or provide a valid path to the database ' \
-                'file, using the --pathtodb command line switch.'
-            sys.exit ()
+        known_ifolders_t = self.dbm.get_ifolders ()
+        for ifolder_t in known_ifolders_t:
+            if self.__ifolder_has_changes (ifolder_t):
+                self.__debug ('iFolder {0} has remote changes'.format (ifolder_t[0]))
+                self.__update_ifolder (ifolder_t)
+                self.__add_new_entries (ifolder_t)
+                self.dbm.update_mtime_by_ifolder (\
+                    ifolder_t[0], \
+                        self.__get_ifolder (ifolder_t[0]).LastModified)
+            self.__check_for_deleted_ifolder (ifolder_t)
+        self.__add_new_ifolders ()
 
     def __md5_hash (self, change):
         md5_hash = 'DIRECTORY'
