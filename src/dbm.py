@@ -99,9 +99,9 @@ class DBM:
         finally:
             self.cx.commit ()
 
-    def add_ifolder (self, ifolder):
+    def add_ifolder (self, ifolder_id, mtime):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder.ID, ifolder.LastModified))
+        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime))
         self.cx.commit ()
 
     def get_ifolders (self):
@@ -125,14 +125,14 @@ class DBM:
                         (change.Time, digest, ifolder_id, change.ID))
         self.cx.commit ()
     
-    def get_mtime_by_entry (self, ifolder, change):
+    def get_mtime_by_entry (self, ifolder_id, entry_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRY_MTIME, (ifolder.ID, change.ID))
+        cu.execute (DBM.Q_GET_ENTRY_MTIME, (ifolder_id, entry_id))
         return cu.fetchone ()
 
-    def get_digest_by_entry (self, ifolder, change):
+    def get_digest_by_entry (self, ifolder_id, entry_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRY_DIGEST, (ifolder.ID, change.ID))
+        cu.execute (DBM.Q_GET_ENTRY_DIGEST, (ifolder_id, entry_id))
         return cu.fetchone ()
 
     def get_entry (self, ifolder_id, entry_id):
