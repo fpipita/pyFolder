@@ -97,6 +97,7 @@ class DBM:
         self.cx = sqlite3.connect (pathtodb, detect_types=\
                                        sqlite3.PARSE_DECLTYPES| \
                                        sqlite3.PARSE_COLNAMES)
+        self.cx.row_factory = sqlite3.Row
 
     def __create_tables (self):
         cu = self.cx.cursor ()
