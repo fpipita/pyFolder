@@ -22,6 +22,7 @@ class DBM:
            id             TEXT PRIMARY KEY,
            mtime          timestamp,
            name           TEXT
+           entry_id       TEXT
         )
         """
 
@@ -70,7 +71,7 @@ class DBM:
 
     Q_ADD_IFOLDER = \
         """
-        INSERT INTO ifolder VALUES (?, ?, ?)
+        INSERT INTO ifolder VALUES (?, ?, ?, ?)
         """
 
     Q_DELETE_IFOLDER = \
@@ -123,9 +124,9 @@ class DBM:
         finally:
             self.cx.commit ()
 
-    def add_ifolder (self, ifolder_id, mtime, name):
+    def add_ifolder (self, ifolder_id, mtime, name, entry_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime, name))
+        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime, name, entry_id))
         self.cx.commit ()
 
     def delete_ifolder (self, ifolder_id):
