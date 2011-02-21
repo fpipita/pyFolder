@@ -141,9 +141,9 @@ class DBM:
         cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
         self.cx.commit ()
 
-    def add_entry (self, ifolder_id, change, digest):
+    def add_entry (self, ifolder_id, entry_id, mtime, digest):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_ENTRY, (ifolder_id, change.ID, change.Time, digest))
+        cu.execute (DBM.Q_ADD_ENTRY, (ifolder_id, entry_id, mtime, digest))
         self.cx.commit ()
 
     def delete_entry (self, ifolder_id, entry_id):
