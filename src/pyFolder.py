@@ -77,19 +77,20 @@ class pyFolder:
             self.debug ('done')
 
     def directory_has_local_changes (self, ifolder_id, entry_id, name):
-        return True
-        # has_local_changes = False
-        # rows = self.dbm_get_entries_by_parent (entry_id)
-        # for row in rows:
-        #     if row['digest'] == 'DIRECTORY':
+        has_local_changes = False
+        # entries = self.dbm_get_entries_by_parent (entry_id)
+        # for entry in entries:
+        #     if entry['digest'] == 'DIRECTORY':
         #         has_local_changes = has_local_changes or \
         #             self.directory_has_local_changes \
-        #             (row['ifolder'], row['id'], row['name'])
+        #             (entry['ifolder'], entry['id'], entry['name'])
         #     else:
         #         has_local_changes = has_local_changes or \
         #             self.file_has_local_changes \
-        #             (row['ifolder'], row['id'], row['name'])
-        # return has_local_changes
+        #             (entry['ifolder'], entry['id'], entry['name'])
+        #         if has_local_changes:
+        #             return True
+        return has_local_changes
 
     def file_has_local_changes (self, ifolder_id, entry_id, name):
         entry = self.dbm.get_entry (ifolder_id, entry_id)
@@ -144,7 +145,7 @@ class pyFolder:
                     (ifolder_id, change.ID, change.Name)
             if update_dbm:
                 self.dbm.add_entry \
-                    (ifolder_id, change, self.__md5_hash (change.Name))
+                    (ifolder_id, change.ID, change.Time, self.__md5_hash (change.Name))
         return update_dbm
         
     def checkout (self):
@@ -289,7 +290,14 @@ class pyFolder:
 
     def update (self):
         update_dbm = False
-        known_ifolders_t = self.dbm.get_ifolders ()
+        try:
+            known_ifolders_t = self.dbm.get_ifolders ()
+        except sqlite3.OperationalError:
+            print 'Could not open the local database. Please, ' \
+                'run the `checkout\' action first or provide a valid ' \
+                'path to the local database using the `--pathtodb\' ' \
+                'command line switch.'
+            sys.exit ()
         for ifolder_t in known_ifolders_t:
             if self.__ifolder_has_changes (ifolder_t):
                 self.debug ('iFolder {0} has remote changes'.format (ifolder_t['name']))
