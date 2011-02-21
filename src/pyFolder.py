@@ -147,7 +147,8 @@ class pyFolder:
             if update_dbm:
                 self.dbm.add_entry \
                     (ifolder_id, change.ID, change.Time, \
-                         self.__md5_hash (change.Name), parent_id)
+                         self.__md5_hash (change.Name), parent_id, \
+                         change.Name)
         return update_dbm
         
     def checkout (self):
