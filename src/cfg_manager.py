@@ -68,9 +68,20 @@ class CfgManager ():
                                     dest='action', \
                                     help='The action that will be done by ' \
                                     'pyFolder [ default: %default ]', \
-                                    choices=self.actions (), \
-                                    default=self.actions ()[0])
-
+                                    choices=self.__actions (), \
+                                    default=self.__actions ()[0])
+        self.parser.add_option ('--conflicts', \
+                                    action='store', \
+                                    type='choice', \
+                                    dest='conflicts', \
+                                    help='The way pyFolder will behave ' \
+                                    'whether it detects any conflict ' \
+                                    'between the local copy of the ' \
+                                    'user\'s tree and the remote one ' \
+                                    '[ default : %default ]', \
+                                    choices=self.__conflicts (), \
+                                    default=self.__conflicts ()[0])
+                                
         self.parser.add_option ('--verbose', '-v', \
                                     action='store_true', \
                                     dest='verbose', \
@@ -85,29 +96,37 @@ class CfgManager ():
             self.parser.print_help ()
             sys.exit ()
 
-    def actions (self):
+    def __actions (self):
         return [\
             'checkout', \
              'update' \
                 ]
+    
+    def __conflicts (self):
+        return [\
+            'AlwaysAcceptRemoteChanges' \
+                ]
+    
+    def get_conflicts (self):
+        return self.options.conflicts
 
-    def action (self):
+    def get_action (self):
         return self.options.action
 
-    def username (self):
+    def get_username (self):
         return self.options.username
 
-    def password (self):
+    def get_password (self):
         return self.options.password
 
-    def ifolderws (self):
+    def get_ifolderws (self):
         return self.options.ifolderws
     
-    def soapbuflen (self):
+    def get_soapbuflen (self):
         return self.options.soapbuflen
 
-    def pathtodb (self):
+    def get_pathtodb (self):
         return self.options.pathtodb
 
-    def verbose (self):
+    def get_verbose (self):
         return self.options.verbose
