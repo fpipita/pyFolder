@@ -95,6 +95,10 @@ class CfgManager ():
                 or self.options.ifolderws is None:
             self.parser.print_help ()
             sys.exit ()
+        if self.options.action == 'checkout' and \
+                self.options.conflicts != 'AlwaysAcceptRemoteChanges':
+            self.parser.error ('You can\'t use the `--conflicts\' switch ' \
+                                   'while running the `checkout\' action.')
 
     def __actions (self):
         return [\
@@ -104,7 +108,8 @@ class CfgManager ():
     
     def __conflicts (self):
         return [\
-            'AlwaysAcceptRemoteChanges' \
+            'AlwaysAcceptRemoteChanges', \
+                'AlwaysKeepLocalChanges' \
                 ]
     
     def get_conflicts (self):
