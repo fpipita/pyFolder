@@ -61,15 +61,19 @@ class AlwaysKeepLocalChanges (Policy):
 
     def modify_directory (self, ifolder_id, entry_id, path):
         if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
+            self.pyFolder.debug ('Remote changes detected to the directory ' \
+                                     '`{0}\'. It has also local changes, so ' \
+                                     'it won\'t get updated, according to ' \
+                                     'the current policy'.format (path))
             return False
         else:
             return True
 
     def modify_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('Remote changes detected in `{0}\'. ' \
-                                     'It has also local changes, so it ' \
-                                     'won\'t get updated, according to ' \
+            self.pyFolder.debug ('Remote changes detected to the file ' \
+                                     '`{0}\'. It has also local changes, so ' \
+                                     'it won\'t get updated, according to ' \
                                      'the current policy'.format (path))
             return False
         else:
@@ -78,6 +82,10 @@ class AlwaysKeepLocalChanges (Policy):
     
     def delete_directory (self, ifolder_id, entry_id, path):
         if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
+            self.pyFolder.debug ('Directory `{0}\' has been remotely deleted. ' \
+                                     'It has also local changes, so it ' \
+                                     'won\'t get deleted, according to ' \
+                                     'the current policy'.format (path))            
             return False
         else:
             self.pyFolder.rmdir (path)
