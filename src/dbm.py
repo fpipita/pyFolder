@@ -11,6 +11,7 @@ class DBM:
            mtime          timestamp,
            digest         TEXT,
            parent         TEXT,
+           path           TEXT,
            PRIMARY KEY (ifolder, id)
         )
         """
@@ -26,7 +27,7 @@ class DBM:
 
     Q_ADD_ENTRY = \
         """
-        INSERT INTO entry VALUES (?, ?, ?, ?, ?)
+        INSERT INTO entry VALUES (?, ?, ?, ?, ?, ?)
         """
 
     Q_DELETE_ENTRY = \
@@ -147,10 +148,10 @@ class DBM:
         cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
         self.cx.commit ()
 
-    def add_entry (self, ifolder_id, entry_id, mtime, digest, parent_id):
+    def add_entry (self, ifolder_id, entry_id, mtime, digest, parent_id, path):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_ADD_ENTRY, \
-                        (ifolder_id, entry_id, mtime, digest, parent_id))
+                        (ifolder_id, entry_id, mtime, digest, parent_id, path))
         self.cx.commit ()
 
     def delete_entry (self, ifolder_id, entry_id):
