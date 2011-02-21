@@ -112,9 +112,15 @@ class pyFolder:
         return True
         
     def __add_ifolder (self, ifolder_id, mtime, name):
-        update_dbm = self.conflicts_handler.add_directory (None, None, name)
-        if update_dbm:
-            self.dbm.add_ifolder (ifolder_id, mtime, name)
+        ifolder_as_entry = self.client.service.GetEntries \
+            (ifolder_id, ifolder_id, 0, 1)
+        if ifolder_as_entry.Total > 0:
+            for ifolder_entry in ifolder_as_entry.Items.iFolderEntry:
+                update_dbm = self.conflicts_handler.add_directory \
+                    (ifolder_entry.iFolderID, ifolder_entry.ID, name)
+                if update_dbm:
+                    self.dbm.add_ifolder \
+                        (ifolder_id, mtime, name, ifolder_entry.ID)
 
     def __add_entries (self, ifolder_id):
         entries = self.__get_children_by_ifolder (ifolder_id)
@@ -274,8 +280,8 @@ class pyFolder:
         if remote_ifolder is None:
             update_dbm = \
                 self.conflicts_handler.delete_directory \
-                (ifolder_t['id'], None, ifolder_t['name'])
-            if update_dbm:
+                (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
+            if update_dbm:n
                 self.dbm.delete_ifolder (ifolder_t['id'])
         return update_dbm
 
@@ -287,7 +293,7 @@ class pyFolder:
         except WebFault:
             update_dbm = \
                 self.conflicts_handler.delete_directory \
-                (ifolder_t['id'], None, ifolder_t['name'])
+                (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
             if update_dbm:
                 self.dbm.delete_ifolder (ifolder_t['id'])
             return update_dbm
