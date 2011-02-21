@@ -21,7 +21,7 @@ class DBM:
         CREATE TABLE ifolder (
            id             TEXT PRIMARY KEY,
            mtime          timestamp,
-           name           TEXT
+           name           TEXT,
            entry_id       TEXT
         )
         """
