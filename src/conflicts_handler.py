@@ -46,18 +46,24 @@ class AlwaysAcceptRemoteChanges (Policy):
 
 class AlwaysKeepLocalChanges (Policy):
     def add_directory (self, ifolder_id, entry_id, path):
-        self.pyFolder.mkdir (path)
-        return True
+        if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
+            return False
+        else:
+            self.pyFolder.mkdir (path)
+            return True
 
     def add_file (self, ifolder_id, entry_id, path):
-        if self.pyFolder.has_local_changes (ifolder_id, entry_id, path):
+        if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
             return False
         else:
             self.pyFolder.fetch (ifolder_id, entry_id, path)
             return True
 
     def modify_directory (self, ifolder_id, entry_id, path):
-        return True
+        if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
+            return False
+        else:
+            return True
 
     def modify_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
@@ -71,8 +77,11 @@ class AlwaysKeepLocalChanges (Policy):
             return True
     
     def delete_directory (self, ifolder_id, entry_id, path):
-        self.pyFolder.rmdir (path)
-        return True
+        if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
+            return False
+        else:
+            self.pyFolder.rmdir (path)
+            return True
 
     def delete_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
