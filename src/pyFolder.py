@@ -78,18 +78,18 @@ class pyFolder:
 
     def directory_has_local_changes (self, ifolder_id, entry_id, name):
         has_local_changes = False
-        # entries = self.dbm.get_entries_by_parent (entry_id)
-        # for entry in entries:
-        #     if entry['digest'] == 'DIRECTORY':
-        #         has_local_changes = has_local_changes or \
-        #             self.directory_has_local_changes \
-        #             (entry['ifolder'], entry['id'], entry['name'])
-        #     else:
-        #         has_local_changes = has_local_changes or \
-        #             self.file_has_local_changes \
-        #             (entry['ifolder'], entry['id'], entry['name'])
-        #         if has_local_changes:
-        #             return True
+        entries = self.dbm.get_entries_by_parent (entry_id)
+        for entry in entries:
+            if entry['digest'] == 'DIRECTORY':
+                has_local_changes = has_local_changes or \
+                    self.directory_has_local_changes \
+                    (entry['ifolder'], entry['id'], entry['path'])
+            else:
+                has_local_changes = has_local_changes or \
+                    self.file_has_local_changes \
+                    (entry['ifolder'], entry['id'], entry['path'])
+                if has_local_changes:
+                    return True
         return has_local_changes
 
     def file_has_local_changes (self, ifolder_id, entry_id, name):
