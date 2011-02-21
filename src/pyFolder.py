@@ -126,7 +126,11 @@ class pyFolder:
                     break
 
     def __ifolder_has_changes (self, ifolder_t):
-        remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        remote_ifolder = None
+        try:
+            remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        except WebFault, wf:
+            return False
         if remote_ifolder is not None:
             if remote_ifolder.LastModified > ifolder_t[1]:
                 return True
@@ -183,9 +187,13 @@ class pyFolder:
                                     self.conflicts_handler.delete_file \
                                     (entry_t[0], entry_t[1], change.Name)
                     if update_dbm:
-                        self.dbm.update_mtime_and_digest_by_entry (\
-                            ifolder_t[0], change, \
-                                self.__md5_hash (change))
+                        if change.Action == cea.Add or \
+                                change.Action == cea.Modify:
+                            self.dbm.update_mtime_and_digest_by_entry (\
+                                ifolder_t[0], change, \
+                                    self.__md5_hash (change))
+                        elif change.Action == cea.Delete:
+                            self.dbm.delete_entry (ifolder_t[0], change.ID)
         return update_dbm
 
     def __add_new_entries (self, ifolder_t):
@@ -219,7 +227,11 @@ class pyFolder:
 
     def __check_for_deleted_ifolder (self, ifolder_t):
         update_dbm = False
-        remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        remote_ifolder = None
+        try:
+            remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        except WebFault:
+            return update_dbm
         if remote_ifolder is None:
             update_dbm = \
                 self.conflicts_handler.delete_directory \
@@ -227,6 +239,19 @@ class pyFolder:
             if update_dbm:
                 self.dbm.delete_ifolder (ifolder_t[0])
         return update_dbm
+
+    def __check_for_deleted_membership (self, ifolder_t):
+        update_dbm = False
+        remote_ifolder = None
+        try:
+            remote_ifolder = self.__get_ifolder (ifolder_t[0])
+        except WebFault:
+            update_dbm = \
+                self.conflicts_handler.delete_directory \
+                (ifolder_t[0], ifolder_t[1], ifolder_t[2])
+            if update_dbm:
+                self.dbm.delete_ifolder (ifolder_t[0])
+            return update_dbm
 
     def update (self):
         update_dbm = False
@@ -241,6 +266,7 @@ class pyFolder:
                         (ifolder_t[0], self.__get_ifolder \
                              (ifolder_t[0]).LastModified)
             self.__check_for_deleted_ifolder (ifolder_t)
+            self.__check_for_deleted_membership (ifolder_t)
         self.__add_new_ifolders ()
 
     def __md5_hash (self, change):
@@ -268,7 +294,4 @@ class pyFolder:
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
                          DEFAULT_SOAP_BUFLEN)
-    try:    
-        pf = pyFolder (cm)
-    except WebFault, wf:
-        print wf
+    pf = pyFolder (cm)
