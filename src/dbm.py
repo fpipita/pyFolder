@@ -10,6 +10,7 @@ class DBM:
            id             TEXT,
            mtime          timestamp,
            digest         TEXT,
+           parent         TEXT,
            PRIMARY KEY (ifolder, id)
         )
         """
@@ -25,7 +26,7 @@ class DBM:
 
     Q_ADD_ENTRY = \
         """
-        INSERT INTO entry VALUES (?, ?, ?, ?)
+        INSERT INTO entry VALUES (?, ?, ?, ?, ?)
         """
 
     Q_DELETE_ENTRY = \
@@ -43,6 +44,11 @@ class DBM:
         """
         SELECT * FROM entry AS e 
         WHERE e.ifolder=? AND e.id=?
+        """
+
+    Q_GET_ENTRIES_BY_PARENT = \
+        """
+        SELECT * FROM entry AS e WHERE e.parent=?
         """
 
     Q_GET_MTIME_BY_ENTRY = \
@@ -141,9 +147,10 @@ class DBM:
         cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
         self.cx.commit ()
 
-    def add_entry (self, ifolder_id, entry_id, mtime, digest):
+    def add_entry (self, ifolder_id, entry_id, mtime, digest, parent_id):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_ENTRY, (ifolder_id, entry_id, mtime, digest))
+        cu.execute (DBM.Q_ADD_ENTRY, \
+                        (ifolder_id, entry_id, mtime, digest, parent_id))
         self.cx.commit ()
 
     def delete_entry (self, ifolder_id, entry_id):
@@ -175,6 +182,11 @@ class DBM:
     def get_entries_by_ifolder (self, ifolder_id):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_GET_ENTRIES_BY_IFOLDER, (ifolder_id,))
+        return cu.fetchall ()
+    
+    def get_entries_by_parent (self, parent_id):
+        cu = self.cx.cursor ()
+        cu.execute (DBM.Q_GET_ENTRIES_BY_PARENT, (parent_id,))
         return cu.fetchall ()
 
     def __del__ (self):
