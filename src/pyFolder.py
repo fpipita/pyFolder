@@ -76,18 +76,33 @@ class pyFolder:
             os.makedirs (path)
             self.debug ('done')
 
+    def directory_has_local_changes (self, ifolder_id, entry_id, name):
+        return True
+        # has_local_changes = False
+        # rows = self.dbm_get_entries_by_parent (entry_id)
+        # for row in rows:
+        #     if row['digest'] == 'DIRECTORY':
+        #         has_local_changes = has_local_changes or \
+        #             self.directory_has_local_changes \
+        #             (row['ifolder'], row['id'], row['name'])
+        #     else:
+        #         has_local_changes = has_local_changes or \
+        #             self.file_has_local_changes \
+        #             (row['ifolder'], row['id'], row['name'])
+        # return has_local_changes
+
     def file_has_local_changes (self, ifolder_id, entry_id, name):
-        row = self.dbm.get_digest_by_entry (ifolder_id, entry_id)
+        entry = self.dbm.get_entry (ifolder_id, entry_id)
         if not os.path.exists (name):
-            if row is None:
+            if entry is None:
                 return False
             else:
                 return True
         else:
-            if row is None:
+            if entry is None:
                 return True
             else:
-                old_digest = row[0]
+                old_digest = entry['digest']
                 new_digest = self.__md5_hash (name)
                 if old_digest != new_digest:
                     return True
@@ -147,85 +162,85 @@ class pyFolder:
     def __ifolder_has_changes (self, ifolder_t):
         remote_ifolder = None
         try:
-            remote_ifolder = self.__get_ifolder (ifolder_t[0])
+            remote_ifolder = self.__get_ifolder (ifolder_t['id'])
         except WebFault, wf:
             return False
         if remote_ifolder is not None:
-            if remote_ifolder.LastModified > ifolder_t[1]:
+            if remote_ifolder.LastModified > ifolder_t['mtime']:
                 return True
             else:
                 return False
         return False
 
     def __entry_has_changes (self, entry_t):
-        latest_change = self.__get_latest_change (entry_t[0], entry_t[1])
+        latest_change = self.__get_latest_change (entry_t['ifolder'], entry_t['id'])
         if latest_change.Total > 0:
             for change in latest_change.Items.ChangeEntry:
-                if change.Time > entry_t[2]:
+                if change.Time > entry_t['mtime']:
                     return True
                 else:
                     return False
 
     def __update_ifolder (self, ifolder_t):
-        entries_t = self.dbm.get_entries_by_ifolder (ifolder_t[0])
+        entries_t = self.dbm.get_entries_by_ifolder (ifolder_t['id'])
         update_dbm = False
         for entry_t in entries_t:
             if self.__entry_has_changes (entry_t):
-                self.debug ('Entry {0} has remote changes'.format (entry_t[1]))
+                self.debug ('Entry {0} has remote changes'.format (entry_t['id']))
                 iet = self.client.factory.create ('iFolderEntryType')
                 cea = self.client.factory.create ('ChangeEntryAction')
                 latest_change = self.__get_latest_change \
-                    (entry_t[0], entry_t[1])
+                    (entry_t['ifolder'], entry_t['id'])
                 if latest_change.Total > 0:
                     for change in latest_change.Items.ChangeEntry:
                         if change.Action == cea.Add:
                             if change.Type == iet.Directory:
                                 update_dbm = \
                                     self.conflicts_handler.add_directory \
-                                    (entry_t[0], entry_t[1], change.Name)
+                                    (entry_t['ifolder'], entry_t['id'], change.Name)
                             elif change.Type == iet.File:
                                 update_dbm = \
                                     self.conflicts_handler.add_file \
-                                    (entry_t[0], entry_t[1], change.Name)
+                                    (entry_t['ifolder'], entry_t['id'], change.Name)
                         elif change.Action == cea.Modify:
                             if change.Type == iet.Directory:
                                 update_dbm = \
                                     self.conflict_handler.modify_directory \
-                                    (entry_t[0], entry_t[1], change.Name)
+                                    (entry_t['ifolder'], entry_t['id'], change.Name)
                             elif change.Type == iet.File:
                                 update_dbm = \
                                     self.conflicts_handler.modify_file \
-                                    (entry_t[0], entry_t[1], change.Name)
+                                    (entry_t['ifolder'], entry_t['id'], change.Name)
                         elif change.Action == cea.Delete:
                             if change.Type == iet.Directory:
                                 update_dbm = \
                                     self.conflicts_handler.delete_directory \
-                                    (entry_t[0], entry_t[1], change.Name)
+                                    (entry_t['ifolder'], entry_t['id'], change.Name)
                             elif change.Type == iet.File:
                                 update_dbm = \
                                     self.conflicts_handler.delete_file \
-                                    (entry_t[0], entry_t[1], change.Name)
+                                    (entry_t['ifolder'], entry_t['id'], change.Name)
                     if update_dbm:
                         if change.Action == cea.Add or \
                                 change.Action == cea.Modify:
                             self.dbm.update_mtime_and_digest_by_entry (\
-                                ifolder_t[0], change, \
+                                ifolder_t['id'], change, \
                                     self.__md5_hash (change.Name))
                         elif change.Action == cea.Delete:
-                            self.dbm.delete_entry (ifolder_t[0], change.ID)
+                            self.dbm.delete_entry (ifolder_t['id'], change.ID)
         return update_dbm
 
     def __add_new_entries (self, ifolder_t):
         update_dbm = False
-        entries = self.__get_children_by_ifolder (ifolder_t[0])
+        entries = self.__get_children_by_ifolder (ifolder_t['id'])
         entries_count = entries.Total
         if entries_count > 0:
             for entry in entries.Items.iFolderEntry:
-                if self.dbm.get_entry (ifolder_t[0], entry.ID) is None:
-                    latest_change = self.__get_latest_change (ifolder_t[0], entry.ID)
+                if self.dbm.get_entry (ifolder_t['id'], entry.ID) is None:
+                    latest_change = self.__get_latest_change (ifolder_t['id'], entry.ID)
                     if latest_change.Total > 0:
                         for change in latest_change.Items.ChangeEntry:
-                            update_dbm = self.__apply_change (ifolder_t[0], change)
+                            update_dbm = self.__apply_change (ifolder_t['id'], change)
                             break
                 entries_count = entries_count - 1
                 if entries_count == 0:
@@ -248,28 +263,28 @@ class pyFolder:
         update_dbm = False
         remote_ifolder = None
         try:
-            remote_ifolder = self.__get_ifolder (ifolder_t[0])
+            remote_ifolder = self.__get_ifolder (ifolder_t['id'])
         except WebFault:
             return update_dbm
         if remote_ifolder is None:
             update_dbm = \
                 self.conflicts_handler.delete_directory \
-                (ifolder_t[0], ifolder_t[1], ifolder_t[2])
+                (ifolder_t['id'], None, ifolder_t['name'])
             if update_dbm:
-                self.dbm.delete_ifolder (ifolder_t[0])
+                self.dbm.delete_ifolder (ifolder_t['id'])
         return update_dbm
 
     def __check_for_deleted_membership (self, ifolder_t):
         update_dbm = False
         remote_ifolder = None
         try:
-            remote_ifolder = self.__get_ifolder (ifolder_t[0])
+            remote_ifolder = self.__get_ifolder (ifolder_t['id'])
         except WebFault:
             update_dbm = \
                 self.conflicts_handler.delete_directory \
-                (ifolder_t[0], ifolder_t[1], ifolder_t[2])
+                (ifolder_t['id'], None, ifolder_t['name'])
             if update_dbm:
-                self.dbm.delete_ifolder (ifolder_t[0])
+                self.dbm.delete_ifolder (ifolder_t['id'])
             return update_dbm
 
     def update (self):
@@ -277,13 +292,13 @@ class pyFolder:
         known_ifolders_t = self.dbm.get_ifolders ()
         for ifolder_t in known_ifolders_t:
             if self.__ifolder_has_changes (ifolder_t):
-                self.debug ('iFolder {0} has remote changes'.format (ifolder_t[0]))
+                self.debug ('iFolder {0} has remote changes'.format (ifolder_t['name']))
                 update_dbm = update_dbm or self.__update_ifolder (ifolder_t)
                 update_dbm = update_dbm or self.__add_new_entries (ifolder_t)
                 if update_dbm:
                     self.dbm.update_mtime_by_ifolder \
-                        (ifolder_t[0], self.__get_ifolder \
-                             (ifolder_t[0]).LastModified)
+                        (ifolder_t['id'], self.__get_ifolder \
+                             (ifolder_t['id']).LastModified)
             self.__check_for_deleted_ifolder (ifolder_t)
             self.__check_for_deleted_membership (ifolder_t)
         self.__add_new_ifolders ()
