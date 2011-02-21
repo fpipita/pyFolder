@@ -78,7 +78,7 @@ class pyFolder:
 
     def directory_has_local_changes (self, ifolder_id, entry_id, name):
         has_local_changes = False
-        # entries = self.dbm_get_entries_by_parent (entry_id)
+        # entries = self.dbm.get_entries_by_parent (entry_id)
         # for entry in entries:
         #     if entry['digest'] == 'DIRECTORY':
         #         has_local_changes = has_local_changes or \
@@ -124,13 +124,14 @@ class pyFolder:
                 latest_change = self.__get_latest_change (ifolder_id, entry.ID)
                 if latest_change.Total > 0:
                     for change in latest_change.Items.ChangeEntry:
-                        self.__apply_change (ifolder_id, change)
+                        self.__apply_change \
+                            (ifolder_id, entry.ParentID, change)
                         break
                 entries_count = entries_count - 1
                 if entries_count == 0:
                     break
 
-    def __apply_change (self, ifolder_id, change):
+    def __apply_change (self, ifolder_id, parent_id, change):
         update_dbm = False
         iet = self.client.factory.create ('iFolderEntryType')
         cea = self.client.factory.create ('ChangeEntryAction')
@@ -145,7 +146,8 @@ class pyFolder:
                     (ifolder_id, change.ID, change.Name)
             if update_dbm:
                 self.dbm.add_entry \
-                    (ifolder_id, change.ID, change.Time, self.__md5_hash (change.Name))
+                    (ifolder_id, change.ID, change.Time, \
+                         self.__md5_hash (change.Name), parent_id)
         return update_dbm
         
     def checkout (self):
@@ -241,7 +243,8 @@ class pyFolder:
                     latest_change = self.__get_latest_change (ifolder_t['id'], entry.ID)
                     if latest_change.Total > 0:
                         for change in latest_change.Items.ChangeEntry:
-                            update_dbm = self.__apply_change (ifolder_t['id'], change)
+                            update_dbm = self.__apply_change \
+                                (ifolder_t['id'], entry.ParentID, change)
                             break
                 entries_count = entries_count - 1
                 if entries_count == 0:
