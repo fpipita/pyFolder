@@ -102,15 +102,18 @@ class DBM:
 
     def __init__ (self, pathtodb):
         self.pathtodb = pathtodb
-        self.cx = sqlite3.connect (pathtodb, detect_types=\
-                                       sqlite3.PARSE_DECLTYPES| \
-                                       sqlite3.PARSE_COLNAMES)
-        self.cx.row_factory = sqlite3.Row
+        self.__connect ()
 
     def __create_tables (self):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_CREATE_TABLE_IFOLDERS)
         cu.execute (DBM.Q_CREATE_TABLE_ENTRIES)        
+
+    def __connect (self):
+        self.cx = sqlite3.connect (self.pathtodb, detect_types=\
+                                       sqlite3.PARSE_DECLTYPES| \
+                                       sqlite3.PARSE_COLNAMES)
+        self.cx.row_factory = sqlite3.Row        
 
     def create_schema (self):
         try:
@@ -119,7 +122,7 @@ class DBM:
             self.cx.close ()
             if os.path.isfile (self.pathtodb):
                 os.remove (self.pathtodb)
-            self.cx = sqlite3.connect (self.pathtodb)
+            self.__connect ()
             self.__create_tables ()
         finally:
             self.cx.commit ()
