@@ -3,9 +3,9 @@
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated
 from suds import WebFault
-from dbm import DBM
-from cfg_manager import CfgManager
-from conflicts_handler import ConflictsHandlerFactory
+from support.dbm import DBM
+from support.cfg_manager import CfgManager
+from support.conflicts_handler import ConflictsHandlerFactory
 import base64
 import hashlib
 import os
@@ -342,6 +342,9 @@ class pyFolder:
                 print >> sys.stderr, message
             else:
                 print >> sys.stderr, message,
+
+    def commit (self):
+        pass
 
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \

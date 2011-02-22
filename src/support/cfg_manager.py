@@ -103,7 +103,8 @@ class CfgManager ():
     def __actions (self):
         return [\
             'checkout', \
-             'update' \
+                'update', \
+                'commit' \
                 ]
     
     def __conflicts (self):
