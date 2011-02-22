@@ -63,30 +63,35 @@ class pyFolder:
                 f.write (base64.b64decode (b64data))
             self.client.service.CloseFile (handle)
         self.debug ('done')
+    
+    def path_exists (self, path):
+        return os.path.exists (self.__add_prefix (path))
+
+    def path_isfile (self, path):
+        return os.path.isfile (self.__add_prefix (path))
+
+    def path_is_dir (self, path):
+        return os.path.isdir (self.__add_prefix (path))
 
     def delete (self, path):
-        path = self.__add_prefix (path)
-        if os.path.isfile (path):
+        if self.path_isfile (path):
             self.debug ('Deleting file \'{0}\' ...'.format (path), False)
             os.remove (path)
             self.debug ('done')
 
     def rmdir (self, path):
-        path = self.__add_prefix (path)
-        if os.path.isdir (path):
+        if self.path_isdir (path):
             self.debug ('Removing directory \'{0}\' ...'.format (path), False)
             shutil.rmtree (path)
             self.debug ('done')
 
     def mkdir (self, path):
-        path = self.__add_prefix (path)
-        if not os.path.isdir (path):
+        if not self.path_isdir (path):
             self.debug ('Adding directory \'{0}\' ...'.format (path), False)
             os.makedirs (path)
             self.debug ('done')
 
     def directory_has_local_changes (self, ifolder_id, entry_id, path):
-        path = self.__add_prefix (path)
         has_local_changes = False
         entries = self.dbm.get_entries_by_parent (entry_id)
         for entry in entries:
@@ -103,9 +108,8 @@ class pyFolder:
         return has_local_changes
 
     def file_has_local_changes (self, ifolder_id, entry_id, path):
-        path = self.__add_prefix (path)
         entry = self.dbm.get_entry (ifolder_id, entry_id)
-        if not os.path.exists (path):
+        if not self.path_exists (path):
             if entry is None:
                 return False
             else:
@@ -245,7 +249,8 @@ class pyFolder:
                         if change.Action == cea.Add or \
                                 change.Action == cea.Modify:
                             self.dbm.update_mtime_and_digest_by_entry (\
-                                ifolder_t['id'], change, \
+                                ifolder_t['id'], change.ID, \
+                                    change.Time, \
                                     self.__md5_hash (change.Name))
                         elif change.Action == cea.Delete:
                             self.dbm.delete_entry (ifolder_t['id'], change.ID)
@@ -332,12 +337,13 @@ class pyFolder:
             self.__check_for_deleted_membership (ifolder_t)
         self.__add_new_ifolders ()
 
-    def __md5_hash (self, name):
+    def __md5_hash (self, path):
+        path = self.__add_prefix (path)
         md5_hash = 'DIRECTORY'
-        if os.path.isfile (name):
-            self.debug ('MD5SUM (\'{0}\') ->'.format (name), False)
+        if os.path.isfile (path):
+            self.debug ('MD5SUM (\'{0}\') ->'.format (path), False)
             m = hashlib.md5 ()
-            with open (name, 'rb') as f:
+            with open (path, 'rb') as f:
                 while True:
                     data = f.read ()
                     m.update (data)
@@ -355,7 +361,37 @@ class pyFolder:
                 print >> sys.stderr, message,
 
     def commit (self):
-        pass
+        try:
+            known_ifolders_t = self.dbm.get_ifolders ()
+        except sqlite3.OperationalError:
+            print 'Could not open the local database. Please, ' \
+                'run the `checkout\' action first or provide a valid ' \
+                'path to the local database using the `--pathtodb\' ' \
+                'command line switch.'
+            sys.exit ()
+        # We first check for changes made to the entries which were already
+        # present in the repository
+        # for ifolder_t in known_ifolders_t:
+        #     update_ifolder_in_dbm = False
+        #     entries_t = self.dbm.get_entries_by_parent (ifolder_t['entry_id'])
+        #     for entry_t in entries_t:
+        #         update_entry_in_dbm = False
+        #         if self.__entry_has_changes (entry_t):
+        #             update_entry_in_dbm = \
+        #                 self.conflicts_handler.add_remote_entry (entry_t)
+        #             update_ifolder_in_dbm = update_ifolder_in_dbm or \
+        #                 update_entry_in_dbm
+        #             if update_entry_in_dbm:
+        #                 latest_change = self.__get_latest_change (\
+        #                     entry_t['ifolder'], \
+        #                         entry_t['id'])
+        #                 if latest_change.Total > 0:
+        #                     for change in latest_change.Items.ChangeEntry:
+        #                         self.dbm.update_entry (entry_t['ifolder'], \
+        #                                                    entry_t['id'], \
+        #                                                    change.Time, \
+        #                                                    self.__md5_hash ())
+                                                   
 
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
