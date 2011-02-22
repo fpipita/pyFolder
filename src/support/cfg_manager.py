@@ -1,4 +1,5 @@
 from optparse import OptionParser
+
 import sys
 
 class CfgManager ():
@@ -33,14 +34,25 @@ class CfgManager ():
                                     action='store', \
                                     type='string', \
                                     dest='ifolderws', \
-                                    help='The iFolder Web Service URI')
+                                    help='Use `IFOLDERWS\' as the iFolder Web ' \
+                                    'Service URI')
+
+        self.parser.add_option ('--prefix', \
+                                    action='store', \
+                                    type='string', \
+                                    dest='prefix', \
+                                    help='Use `PREFIX\' as root path where ' \
+                                    'to create the local repository ' \
+                                    '[ default: %default ]', \
+                                    default='')
 
         self.parser.add_option ('--soapbuflen', \
                                     action='store', \
                                     type='int', \
                                     dest='soapbuflen', \
-                                    help='Bufferize up to SOAPBUFLEN bytes ' \
-                                    'before to flush [ default : %default ]', \
+                                    help='Bufferize up to `SOAPBUFLEN\' ' \
+                                    'bytes before to flush ' \
+                                    '[ default : %default ]', \
                                     default=soapbuflen)
 
         self.parser.add_option ('--config', \
@@ -48,7 +60,7 @@ class CfgManager ():
                                     type='string', \
                                     dest='configfile', \
                                     help='Read the configuration from ' \
-                                    'CONFIGFILE [ default : %default ]', \
+                                    '`CONFIGFILE\' [ default : %default ]', \
                                     default=configfile)
 
         self.parser.add_option ('--pathtodb', \
@@ -70,6 +82,7 @@ class CfgManager ():
                                     'pyFolder [ default: %default ]', \
                                     choices=self.__actions (), \
                                     default=self.__actions ()[0])
+
         self.parser.add_option ('--conflicts', \
                                     action='store', \
                                     type='choice', \
@@ -89,7 +102,7 @@ class CfgManager ():
                                     'printing debug/error messages ' \
                                     'on the stderr [ default : %default ]', \
                                     default=False)
-                                    
+        
         (self.options, self.args) = self.parser.parse_args ()
         if self.options.username is None or self.options.password is None \
                 or self.options.ifolderws is None:
@@ -124,6 +137,9 @@ class CfgManager ():
 
     def get_password (self):
         return self.options.password
+    
+    def get_prefix (self):
+        return self.options.prefix
 
     def get_ifolderws (self):
         return self.options.ifolderws

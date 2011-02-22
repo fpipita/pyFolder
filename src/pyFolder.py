@@ -45,7 +45,13 @@ class pyFolder:
     def __get_ifolder (self, ifolder_id):
         return self.client.service.GetiFolder (ifolder_id)
 
+    def __add_prefix (self, path):
+        if self.cm.get_prefix () != '':
+            return os.path.join (self.cm.get_prefix (), path)
+        return path
+
     def fetch (self, ifolder_id, entry_id, path):
+        path = self.__add_prefix (path)
         self.debug ('Fetching file \'{0}\' ...'.format (path), False)
         handle = self.client.service.OpenFileRead (ifolder_id, entry_id)
         with open (path, 'wb') as f:
@@ -59,24 +65,28 @@ class pyFolder:
         self.debug ('done')
 
     def delete (self, path):
+        path = self.__add_prefix (path)
         if os.path.isfile (path):
             self.debug ('Deleting file \'{0}\' ...'.format (path), False)
             os.remove (path)
             self.debug ('done')
 
     def rmdir (self, path):
+        path = self.__add_prefix (path)
         if os.path.isdir (path):
             self.debug ('Removing directory \'{0}\' ...'.format (path), False)
             shutil.rmtree (path)
             self.debug ('done')
 
     def mkdir (self, path):
+        path = self.__add_prefix (path)
         if not os.path.isdir (path):
             self.debug ('Adding directory \'{0}\' ...'.format (path), False)
             os.makedirs (path)
             self.debug ('done')
 
-    def directory_has_local_changes (self, ifolder_id, entry_id, name):
+    def directory_has_local_changes (self, ifolder_id, entry_id, path):
+        path = self.__add_prefix (path)
         has_local_changes = False
         entries = self.dbm.get_entries_by_parent (entry_id)
         for entry in entries:
@@ -92,9 +102,10 @@ class pyFolder:
                     return True
         return has_local_changes
 
-    def file_has_local_changes (self, ifolder_id, entry_id, name):
+    def file_has_local_changes (self, ifolder_id, entry_id, path):
+        path = self.__add_prefix (path)
         entry = self.dbm.get_entry (ifolder_id, entry_id)
-        if not os.path.exists (name):
+        if not os.path.exists (path):
             if entry is None:
                 return False
             else:
@@ -104,7 +115,7 @@ class pyFolder:
                 return True
             else:
                 old_digest = entry['digest']
-                new_digest = self.__md5_hash (name)
+                new_digest = self.__md5_hash (path)
                 if old_digest != new_digest:
                     return True
                 else:
