@@ -281,7 +281,7 @@ class pyFolder:
             update_dbm = \
                 self.conflicts_handler.delete_directory \
                 (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
-            if update_dbm:n
+            if update_dbm:
                 self.dbm.delete_ifolder (ifolder_t['id'])
         return update_dbm
 
