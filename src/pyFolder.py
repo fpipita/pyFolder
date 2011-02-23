@@ -145,16 +145,22 @@ class pyFolder:
                     return False
         return True
         
-    def __add_ifolder (self, ifolder_id, mtime, name):
+    def __add_ifolder (self, ifolder_id):
+        entry_id = None
         ifolder_as_entry = self.client.service.GetEntries \
             (ifolder_id, ifolder_id, 0, 1)
-        if ifolder_as_entry.Total > 0:
+        ifolder = self.__get_ifolder (ifolder_id)
+        if ifolder_as_entry.Total > 0 and ifolder is not None:
             for ifolder_entry in ifolder_as_entry.Items.iFolderEntry:
-                update_dbm = self.conflicts_handler.add_directory \
-                    (ifolder_entry.iFolderID, ifolder_entry.ID, name)
-                if update_dbm:
-                    self.dbm.add_ifolder \
-                        (ifolder_id, mtime, name, ifolder_entry.ID)
+                entry_id = ifolder_entry.ID
+                break
+            mtime = ifolder.LastModified
+            name = ifolder.Name
+            update_dbm = self.conflicts_handler.add_directory \
+                (ifolder_id, entry_id, name)
+            if update_dbm:
+                self.dbm.add_ifolder \
+                    (ifolder_id, mtime, name, entry_id)
 
     def __add_entries (self, ifolder_id):
         entries = self.__get_children_by_ifolder (ifolder_id)
@@ -197,7 +203,7 @@ class pyFolder:
         ifolders_count = ifolders.Total
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
-                self.__add_ifolder (ifolder.ID, ifolder.LastModified, ifolder.Name)
+                self.__add_ifolder (ifolder.ID)
                 self.__add_entries (ifolder.ID)
                 ifolders_count = ifolders_count - 1
                 if ifolders_count == 0:
@@ -299,7 +305,7 @@ class pyFolder:
         if ifolders_count > 0:
             for ifolder in ifolders.Items.iFolder:
                 if self.dbm.get_ifolder (ifolder.ID) is None:
-                    self.__add_ifolder (ifolder.ID, ifolder.LastModified, ifolder.Name)
+                    self.__add_ifolder (ifolder.ID)
                     self.__add_entries (ifolder.ID)
                 ifolders_count = ifolders_count - 1
                 if ifolders_count == 0:
@@ -317,6 +323,7 @@ class pyFolder:
                 self.conflicts_handler.delete_directory \
                 (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
             if update_dbm:
+                self.dbm.delete_entries_by_ifolder (ifolder_t['id'])
                 self.dbm.delete_ifolder (ifolder_t['id'])
         return update_dbm
 
@@ -330,6 +337,7 @@ class pyFolder:
                 self.conflicts_handler.delete_directory \
                 (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
             if update_dbm:
+                self.dbm.delete_entries_by_ifolder (ifolder_t['id'])
                 self.dbm.delete_ifolder (ifolder_t['id'])
             return update_dbm
 
