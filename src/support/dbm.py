@@ -36,6 +36,11 @@ class DBM:
         DELETE FROM entry WHERE ifolder=? AND id=?
         """
 
+    Q_DELETE_ENTRIES_BY_IFOLDER = \
+        """
+        DELETE FROM entry WHERE ifolder=?
+        """
+
     Q_UPDATE_MTIME_AND_DIGEST_BY_ENTRY = \
         """
         UPDATE entry SET mtime=?, digest=?
@@ -161,6 +166,11 @@ class DBM:
     def delete_entry (self, ifolder_id, entry_id):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_DELETE_ENTRY, (ifolder_id, entry_id))
+        self.cx.commit ()
+
+    def delete_entries_by_ifolder (self, ifolder_id):
+        cu = self.cx.cursor ()
+        cu.execute (DBM.Q_DELETE_ENTRIES_BY_IFOLDER, (ifolder_id,))
         self.cx.commit ()
 
     def update_mtime_and_digest_by_entry (self, ifolder_id, entry_id, mtime, digest):
