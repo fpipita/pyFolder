@@ -67,6 +67,7 @@ class pyFolder:
                 f.write (base64.b64decode (b64data))
             self.client.service.CloseFile (handle)
         self.debug ('done', nolevel=True)
+
     def path_exists (self, path):
         return os.path.exists (self.__add_prefix (path))
 
@@ -107,7 +108,7 @@ class pyFolder:
         try:
             self.client.service.DeleteEntry (ifolder_id, entry_id)
             self.debug ('pyFolder.remote_delete : ' \
-                            'Deleted remote entry `{0}\''.format (path))
+                            'Deleted remote file `{0}\''.format (path))
         except WebFault, wf:
             self.debug ('pyFolder.remote_delete : ' \
                             '{0}'.format (wf), level='WARNING')
@@ -126,6 +127,15 @@ class pyFolder:
                     break
             self.client.service.CloseFile (handle)
         self.debug ('done', nolevel=True)
+
+    def remote_rmdir (self, ifolder_id, entry_id, path):
+        try:
+            self.client.service.DeleteEntry (ifolder_id, entry_id)
+            self.debug ('pyFolder.remote_rmdir : ' \
+                            'Deleted remote directory `{0}\''.format (path))
+        except WebFault, wf:
+            self.debug ('pyFolder.remote_rmdir : ' \
+                            '{0}'.format (wf), level='WARNING')
 
     def __md5_hash (self, path):
         path = self.__add_prefix (path)
@@ -507,6 +517,9 @@ class pyFolder:
                             update_entry_in_dbm = \
                                 self.conflicts_handler.delete_remote_directory \
                                 (entry_t['ifolder'], entry_t['id'], entry_t['path'])
+                            if update_entry_in_dbm:
+                                self.dbm.delete_entries_by_parent \
+                                    (entry_t['id'])
                         if update_entry_in_dbm:
                             self.dbm.delete_entry (entry_t['ifolder'], entry_t['id'])
                 update_ifolder_in_dbm = update_ifolder_in_dbm or \

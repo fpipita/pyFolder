@@ -141,7 +141,11 @@ class AlwaysKeepLocalChanges (Policy):
         return True
     
     def delete_remote_directory (self, ifolder_id, entry_id, path):
-        return False
+        self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_remote_directory : ' \
+                                 'Directory `{0}\' has been locally deleted. ' \
+                                 'Deleting it remotely'.format (path))
+        self.pyFolder.remote_rmdir (ifolder_id, entry_id, path)
+        return True
 
     def delete_remote_file (self, ifolder_id, entry_id, path):
         self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_remote_file : ' \
