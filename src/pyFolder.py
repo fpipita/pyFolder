@@ -23,7 +23,7 @@ class pyFolder:
                                            password=cm.get_password ())
         self.cm = cm
         self.client = Client (cm.get_ifolderws (), transport=transport)
-        self.dbm = DBM (self.cm.get_pathtodb ())
+        self.dbm = DBM (self.cm.get_pathtodb (), self)
         self.conflicts_handler = ConflictsHandlerFactory.create \
             (cm.get_conflicts (), self)
         self.__action ()
@@ -81,7 +81,7 @@ class pyFolder:
         if self.path_isfile (path):
             path = self.__add_prefix (path)
             self.debug ('pyFolder.delete : ' \
-                            'Deleting file \'{0}\' ...'.format (path), newline=False)
+                            'Deleting file `{0}\' ...'.format (path), newline=False)
             os.remove (path)
             self.debug ('done', nolevel=True)
 
@@ -89,7 +89,7 @@ class pyFolder:
         if self.path_isdir (path):
             path = self.__add_prefix (path)
             self.debug ('pyFolder.rmdir : ' \
-                            'Removing directory \'{0}\' ...'.format (path), newline=False)
+                            'Removing directory `{0}\' ...'.format (path), newline=False)
             shutil.rmtree (path)
             self.debug ('done', nolevel=True)
 
@@ -97,7 +97,7 @@ class pyFolder:
         if not self.path_isdir (path):
             path = self.__add_prefix (path)
             self.debug ('pyFolder.mkdir : ' \
-                        'Adding directory \'{0}\' ...'.format (path), newline=False)
+                        'Adding directory `{0}\' ...'.format (path), newline=False)
             os.makedirs (path)
             self.debug ('done', nolevel=True)
 

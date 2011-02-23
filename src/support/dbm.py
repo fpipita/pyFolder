@@ -110,8 +110,9 @@ class DBM:
         SELECT * from ifolder AS i where i.id=?
         """
 
-    def __init__ (self, pathtodb):
+    def __init__ (self, pathtodb, pyFolder):
         self.pathtodb = pathtodb
+        self.pyFolder = pyFolder
         self.__connect ()
 
     def __create_tables (self):
@@ -140,11 +141,20 @@ class DBM:
     def add_ifolder (self, ifolder_id, mtime, name, entry_id):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime, name, entry_id))
+        self.pyFolder.debug ('DBM.add_ifolder : ' \
+                                 'In table `ifolder\' : added new tuple ' \
+                                 '(id={0}, mtime={1}, name={2}, ' \
+                                 'entry_id={3})'.format \
+                                 (ifolder_id, mtime, name, entry_id))
         self.cx.commit ()
 
     def delete_ifolder (self, ifolder_id):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_DELETE_IFOLDER, (ifolder_id,))
+        self.pyFolder.debug ('DBM.delete_ifolder : ' \
+                                 'In table `ifolder\' : removed tuple ' \
+                                 'with id={0}'.format \
+                                 (ifolder_id))
         self.cx.commit ()
 
     def get_ifolders (self):
@@ -160,17 +170,31 @@ class DBM:
     def update_mtime_by_ifolder (self, ifolder_id, mtime):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
+        self.pyFolder.debug ('DBM.update_mtime_by_ifolder : ' \
+                                 'In table `ifolder\' : updated tuple ' \
+                                 'whose `id\' field is `{0}\' with ' \
+                                 'new mtime value `{1}\''.format (ifolder_id, mtime))
         self.cx.commit ()
 
     def add_entry (self, ifolder_id, entry_id, mtime, digest, parent_id, path):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_ADD_ENTRY, \
                         (ifolder_id, entry_id, mtime, digest, parent_id, path))
+        self.pyFolder.debug ('DBM.add_entry : ' \
+                                 'In table `entry\' : added new tuple ' \
+                                 '(ifolder={0}, id={1}, mtime={2}, ' \
+                                 'digest={3}, parent={4}, path={5})'.format \
+                                 (ifolder_id, entry_id, mtime, digest, \
+                                      parent_id, path))
         self.cx.commit ()
 
     def delete_entry (self, ifolder_id, entry_id):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_DELETE_ENTRY, (ifolder_id, entry_id))
+        self.pyFolder.debug ('DBM.delete_entry : ' \
+                                 'In table `entry\' : removed tuple ' \
+                                 'with ifolder={0} and id={1}'.format \
+                                 (ifolder_id, entry_id))
         self.cx.commit ()
 
     def delete_entries_by_ifolder (self, ifolder_id):
