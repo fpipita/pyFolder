@@ -67,7 +67,6 @@ class pyFolder:
                 f.write (base64.b64decode (b64data))
             self.client.service.CloseFile (handle)
         self.debug ('done', nolevel=True)
-    
     def path_exists (self, path):
         return os.path.exists (self.__add_prefix (path))
 
@@ -80,7 +79,7 @@ class pyFolder:
     def delete (self, path):
         if self.path_isfile (path):
             path = self.__add_prefix (path)
-            self.debug ('pyFolder.delete :' \
+            self.debug ('pyFolder.delete : ' \
                             'Deleting file \'{0}\' ...'.format (path), newline=False)
             os.remove (path)
             self.debug ('done', nolevel=True)
@@ -513,8 +512,9 @@ class pyFolder:
                 update_ifolder_in_dbm = update_ifolder_in_dbm or \
                     update_entry_in_dbm
             if update_ifolder_in_dbm:
-                # Update current iFolder in the db
-                pass
+                ifolder = self.__get_ifolder (ifolder_t['id'])
+                self.dbm.update_mtime_by_ifolder \
+                    (ifolder_t['id'], ifolder.LastModified)
             # 3) Check for new entries that need to be added remotely
 
 if __name__ == '__main__':
