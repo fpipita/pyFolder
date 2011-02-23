@@ -66,8 +66,7 @@ class AlwaysAcceptRemoteChanges (Policy):
         return False
 
     def delete_remote_file (self, ifolder_id, entry_id, path):
-        self.pyFolder.remote_delete (ifolder_id, entry_id, path)
-        return True
+        return False
 
 class AlwaysKeepLocalChanges (Policy):
     def add_directory (self, ifolder_id, entry_id, path):
@@ -86,7 +85,8 @@ class AlwaysKeepLocalChanges (Policy):
 
     def modify_directory (self, ifolder_id, entry_id, path):
         if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('Remote changes detected to the directory ' \
+            self.pyFolder.debug ('AlwaysKeepLocalChanges.modify_directory : ' \
+                                     'Remote changes detected to the directory ' \
                                      '`{0}\'. It has also local changes, so ' \
                                      'it won\'t get updated, according to ' \
                                      'the current policy'.format (path))
@@ -96,7 +96,8 @@ class AlwaysKeepLocalChanges (Policy):
 
     def modify_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('Remote changes detected to the file ' \
+            self.pyFolder.debug ('AlwaysKeepLocalChanges.modify_file : ' \
+                                     'Remote changes detected to the file ' \
                                      '`{0}\'. It has also local changes, so ' \
                                      'it won\'t get updated, according to ' \
                                      'the current policy'.format (path))
@@ -107,7 +108,8 @@ class AlwaysKeepLocalChanges (Policy):
     
     def delete_directory (self, ifolder_id, entry_id, path):
         if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('Directory `{0}\' has been remotely deleted. ' \
+            self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_directory : ' \
+                                     'Directory `{0}\' has been remotely deleted. ' \
                                      'It has also local changes, so it ' \
                                      'won\'t get deleted, according to ' \
                                      'the current policy'.format (path))            
@@ -118,7 +120,8 @@ class AlwaysKeepLocalChanges (Policy):
 
     def delete_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('File `{0}\' has been remotely deleted. ' \
+            self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_file : ' \
+                                     'File `{0}\' has been remotely deleted. ' \
                                      'It has also local changes, so it ' \
                                      'won\'t get deleted, according to ' \
                                      'the current policy'.format (path))
@@ -137,7 +140,11 @@ class AlwaysKeepLocalChanges (Policy):
         return False
 
     def delete_remote_file (self, ifolder_id, entry_id, path):
-        return False
+        self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_remote_file : ' \
+                                 'File `{0}\' has been locally deleted. ' \
+                                 'Deleting it also remotely'.format (path))
+        self.pyFolder.remote_delete (ifolder_id, entry_id, path)
+        return True
 
 class ConflictsHandlerFactory:
     @staticmethod
