@@ -1,4 +1,5 @@
 from optparse import OptionParser
+from conflicts_handler import ConflictsHandlerFactory
 
 import sys
 
@@ -21,21 +22,21 @@ class CfgManager ():
                                     type='string', \
                                     dest='username', \
                                     help='The username that you use to ' \
-                                    'login into your iFolder account')
+                                    'login into your iFolder account (MANDATORY)')
 
         self.parser.add_option ('--password', \
                                     action='store', \
                                     type='string', \
                                     dest='password', \
                                     help='The password that you use to ' \
-                                    'login into your iFolder account')
+                                    'login into your iFolder account (MANDATORY)')
 
         self.parser.add_option ('--ifolderws', \
                                     action='store', \
                                     type='string', \
                                     dest='ifolderws', \
                                     help='Use `IFOLDERWS\' as the iFolder Web ' \
-                                    'Service URI')
+                                    'Service URI (MANDATORY)')
 
         self.parser.add_option ('--prefix', \
                                     action='store', \
@@ -121,10 +122,7 @@ class CfgManager ():
                 ]
     
     def __conflicts (self):
-        return [\
-            'AlwaysAcceptRemoteChanges', \
-                'AlwaysKeepLocalChanges' \
-                ]
+        return ConflictsHandlerFactory.get_factories ()
     
     def get_conflicts (self):
         return self.options.conflicts
