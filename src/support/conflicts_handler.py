@@ -1,6 +1,9 @@
+import logging
+
 class Policy:
     def __init__ (self, pyFolder):
         self.pyFolder = pyFolder
+        self.logger = logging.getLogger ('pyFolder.Policy')
     
     def add_directory (self, ifolder_id, entry_id, path):
         raise NotImplementedError
@@ -85,22 +88,12 @@ class AlwaysKeepLocalChanges (Policy):
 
     def modify_directory (self, ifolder_id, entry_id, path):
         if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('AlwaysKeepLocalChanges.modify_directory : ' \
-                                     'Remote changes detected to the directory ' \
-                                     '`{0}\'. It has also local changes, so ' \
-                                     'it won\'t get updated, according to ' \
-                                     'the current policy'.format (path))
             return False
         else:
             return True
 
     def modify_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('AlwaysKeepLocalChanges.modify_file : ' \
-                                     'Remote changes detected to the file ' \
-                                     '`{0}\'. It has also local changes, so ' \
-                                     'it won\'t get updated, according to ' \
-                                     'the current policy'.format (path))
             return False
         else:
             self.pyFolder.fetch (ifolder_id, entry_id, path)
@@ -108,11 +101,6 @@ class AlwaysKeepLocalChanges (Policy):
     
     def delete_directory (self, ifolder_id, entry_id, path):
         if self.pyFolder.directory_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_directory : ' \
-                                     'Directory `{0}\' has been remotely deleted. ' \
-                                     'It has also local changes, so it ' \
-                                     'won\'t get deleted, according to ' \
-                                     'the current policy'.format (path))            
             return False
         else:
             self.pyFolder.rmdir (path)
@@ -120,11 +108,6 @@ class AlwaysKeepLocalChanges (Policy):
 
     def delete_file (self, ifolder_id, entry_id, path):
         if self.pyFolder.file_has_local_changes (ifolder_id, entry_id, path):
-            self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_file : ' \
-                                     'File `{0}\' has been remotely deleted. ' \
-                                     'It has also local changes, so it ' \
-                                     'won\'t get deleted, according to ' \
-                                     'the current policy'.format (path))
             return False
         else:
             self.pyFolder.delete (path)
@@ -134,23 +117,14 @@ class AlwaysKeepLocalChanges (Policy):
         return False
     
     def modify_remote_file (self, ifolder_id, entry_id, path):
-        self.pyFolder.debug ('AlwaysKeepLocalChanges.modify_remote_file : ' \
-                                 'File `{0}\' has been locally modified. ' \
-                                 'Applying the changes remotely'.format (path))
         self.pyFolder.remote_file_write (ifolder_id, entry_id, path)
         return True
     
     def delete_remote_directory (self, ifolder_id, entry_id, path):
-        self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_remote_directory : ' \
-                                 'Directory `{0}\' has been locally deleted. ' \
-                                 'Deleting it remotely'.format (path))
         self.pyFolder.remote_rmdir (ifolder_id, entry_id, path)
         return True
 
     def delete_remote_file (self, ifolder_id, entry_id, path):
-        self.pyFolder.debug ('AlwaysKeepLocalChanges.delete_remote_file : ' \
-                                 'File `{0}\' has been locally deleted. ' \
-                                 'Deleting it also remotely'.format (path))
         self.pyFolder.remote_delete (ifolder_id, entry_id, path)
         return True
 
