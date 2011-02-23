@@ -134,7 +134,11 @@ class AlwaysKeepLocalChanges (Policy):
         return False
     
     def modify_remote_file (self, ifolder_id, entry_id, path):
-        return False
+        self.pyFolder.debug ('AlwaysKeepLocalChanges.modify_remote_file : ' \
+                                 'File `{0}\' has been locally modified. ' \
+                                 'Applying the changes remotely'.format (path))
+        self.pyFolder.remote_file_write (ifolder_id, entry_id, path)
+        return True
     
     def delete_remote_directory (self, ifolder_id, entry_id, path):
         return False

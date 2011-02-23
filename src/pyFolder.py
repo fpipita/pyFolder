@@ -101,6 +101,9 @@ class pyFolder:
             os.makedirs (path)
             self.debug ('done', nolevel=True)
 
+    def getsize (self, path):
+        return os.path.getsize (self.__add_prefix (path))
+
     def remote_delete (self, ifolder_id, entry_id, path):
         try:
             self.client.service.DeleteEntry (ifolder_id, entry_id)
@@ -110,13 +113,25 @@ class pyFolder:
             self.debug ('pyFolder.remote_delete : ' \
                             '{0}'.format (wf), level='WARNING')
 
+    def remote_file_write (self, ifolder_id, entry_id, path):
+        self.debug ('pyFolder.remote_file_write : ' \
+                        'Updating remote file `{0}\' ...'.format (path), \
+                        newline=False)
+        handle = self.client.service.OpenFileWrite \
+            (ifolder_id, entry_id, self.getsize (path))
+        with open (self.__add_prefix (path), 'rb') as f:
+            while True:
+                data = f.read ()
+                self.client.service.WriteFile (handle, base64.b64encode (data))
+                if len (data) == 0:
+                    break
+            self.client.service.CloseFile (handle)
+        self.debug ('done', nolevel=True)
+
     def __md5_hash (self, path):
         path = self.__add_prefix (path)
         md5_hash = 'DIRECTORY'
         if os.path.isfile (path):
-            self.debug ('pyFolder.__md5_hash : ' \
-                            'MD5 hash for entry `{0}\' is :'.format (path), \
-                            newline=False)
             m = hashlib.md5 ()
             with open (path, 'rb') as f:
                 while True:
@@ -125,7 +140,6 @@ class pyFolder:
                     if len (data) == 0:
                         break
                 md5_hash = m.hexdigest ()
-                self.debug ('{0}'.format (md5_hash), nolevel=True)
         return md5_hash
 
     def directory_has_local_changes (self, ifolder_id, entry_id, path):
@@ -157,11 +171,16 @@ class pyFolder:
             else:
                 old_digest = entry['digest']
                 new_digest = self.__md5_hash (path)
+                self.debug ('pyFolder.file_has_local_changes : ' \
+                                'File `{0}\' : md5sum_old={1}, ' \
+                                'md5sum_new={2}'.format \
+                                (path, old_digest, new_digest))
                 if old_digest != new_digest:
+                    self.debug ('pyFolder.file_has_local_changes : ' \
+                                    'md5 sums differ, file has local changes')
                     return True
                 else:
                     return False
-        return True
         
     def __add_ifolder (self, ifolder_id):
         entry_id = None
@@ -415,9 +434,14 @@ class pyFolder:
         if not self.path_exists (entry_t['path']):
             change_type = cea.Delete
         else:
-            new_digest = self.__md5_hash (entry_t['path'])
-            if new_digest != entry_t['digest']:
-                change_type = cea.Modify
+            if entry_type == iet.File:
+                if self.file_has_local_changes \
+                        (entry_t['ifolder'], entry_t['id'], entry_t['path']):
+                    change_type = cea.Modify
+            elif entry_type == iet.Directory:
+                if self.directory_has_local_changes \
+                        (entry_t['ifolder'], entry_t['id'], entry_t['path']):
+                    change_type = cea.Modify
         if change_type is not None:
             self.debug ('pyFolder.__get_local_changes_on_entry : ' \
                             'Entry `{0}\', ' \
