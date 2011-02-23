@@ -20,6 +20,18 @@ class Policy:
     def delete_file (self, ifolder_id, entry_id, path):
         raise NotImplementedError
 
+    def modify_remote_directory (self, ifolder_id, entry_id, path):
+        raise NotImplementedError
+    
+    def modify_remote_file (self, ifolder_id, entry_id, path):
+        raise NotImplementedError
+
+    def delete_remote_directory (self, ifolder_id, entry_id, path):
+        raise NotImplementedError
+
+    def delete_remote_file (self, ifolder_id, entry_id, path):
+        raise NotImplementedError
+
 class AlwaysAcceptRemoteChanges (Policy):
     def add_directory (self, ifolder_id, entry_id, path):
         self.pyFolder.mkdir (path)
@@ -42,6 +54,19 @@ class AlwaysAcceptRemoteChanges (Policy):
 
     def delete_file (self, ifolder_id, entry_id, path):
         self.pyFolder.delete (path)
+        return True
+
+    def modify_remote_directory (self, ifolder_id, entry_id, path):
+        return False
+    
+    def modify_remote_file (self, ifolder_id, entry_id, path):
+        return False
+    
+    def delete_remote_directory (self, ifolder_id, entry_id, path):
+        return False
+
+    def delete_remote_file (self, ifolder_id, entry_id, path):
+        self.pyFolder.remote_delete (ifolder_id, entry_id, path)
         return True
 
 class AlwaysKeepLocalChanges (Policy):
@@ -102,6 +127,18 @@ class AlwaysKeepLocalChanges (Policy):
             self.pyFolder.delete (path)
             return True
 
+    def modify_remote_directory (self, ifolder_id, entry_id, path):
+        return False
+    
+    def modify_remote_file (self, ifolder_id, entry_id, path):
+        return False
+    
+    def delete_remote_directory (self, ifolder_id, entry_id, path):
+        return False
+
+    def delete_remote_file (self, ifolder_id, entry_id, path):
+        return False
+
 class ConflictsHandlerFactory:
     @staticmethod
     def create (policy, pyFolder):
@@ -109,3 +146,10 @@ class ConflictsHandlerFactory:
             return AlwaysAcceptRemoteChanges (pyFolder)
         elif policy == 'AlwaysKeepLocalChanges':
             return AlwaysKeepLocalChanges (pyFolder)
+    
+    @staticmethod
+    def get_factories ():
+        return [\
+            'AlwaysAcceptRemoteChanges', \
+                'AlwaysKeepLocalChanges' \
+                ]
