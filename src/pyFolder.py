@@ -45,6 +45,9 @@ class pyFolder:
     def __get_ifolder (self, ifolder_id):
         return self.client.service.GetiFolder (ifolder_id)
 
+    def __get_entry (self, ifolder_id, entry_id):
+        return self.client.service.GetEntry (ifolder_id, entry_id)
+
     def __add_prefix (self, path):
         if self.cm.get_prefix () != '':
             return os.path.join (self.cm.get_prefix (), path)
@@ -52,7 +55,8 @@ class pyFolder:
 
     def fetch (self, ifolder_id, entry_id, path):
         path = self.__add_prefix (path)
-        self.debug ('Fetching file \'{0}\' ...'.format (path), False)
+        self.debug ('pyFolder.fetch : ' \
+                        'Fetching file `{0}\' ...'.format (path), newline=False)
         handle = self.client.service.OpenFileRead (ifolder_id, entry_id)
         with open (path, 'wb') as f:
             while True:
@@ -62,7 +66,7 @@ class pyFolder:
                     break
                 f.write (base64.b64decode (b64data))
             self.client.service.CloseFile (handle)
-        self.debug ('done')
+        self.debug ('done', nolevel=True)
     
     def path_exists (self, path):
         return os.path.exists (self.__add_prefix (path))
@@ -76,29 +80,43 @@ class pyFolder:
     def delete (self, path):
         if self.path_isfile (path):
             path = self.__add_prefix (path)
-            self.debug ('Deleting file \'{0}\' ...'.format (path), False)
+            self.debug ('pyFolder.delete :' \
+                            'Deleting file \'{0}\' ...'.format (path), newline=False)
             os.remove (path)
-            self.debug ('done')
+            self.debug ('done', nolevel=True)
 
     def rmdir (self, path):
         if self.path_isdir (path):
             path = self.__add_prefix (path)
-            self.debug ('Removing directory \'{0}\' ...'.format (path), False)
+            self.debug ('pyFolder.rmdir : ' \
+                            'Removing directory \'{0}\' ...'.format (path), newline=False)
             shutil.rmtree (path)
-            self.debug ('done')
+            self.debug ('done', nolevel=True)
 
     def mkdir (self, path):
         if not self.path_isdir (path):
             path = self.__add_prefix (path)
-            self.debug ('Adding directory \'{0}\' ...'.format (path), False)
+            self.debug ('pyFolder.mkdir : ' \
+                        'Adding directory \'{0}\' ...'.format (path), newline=False)
             os.makedirs (path)
-            self.debug ('done')
+            self.debug ('done', nolevel=True)
+
+    def remote_delete (self, ifolder_id, entry_id, path):
+        try:
+            self.client.service.DeleteEntry (ifolder_id, entry_id)
+            self.debug ('pyFolder.remote_delete : ' \
+                            'Deleted remote entry `{0}\''.format (path))
+        except WebFault, wf:
+            self.debug ('pyFolder.remote_delete : ' \
+                            '{0}'.format (wf), level='WARNING')
 
     def __md5_hash (self, path):
         path = self.__add_prefix (path)
         md5_hash = 'DIRECTORY'
         if os.path.isfile (path):
-            self.debug ('MD5SUM (\'{0}\') ->'.format (path), False)
+            self.debug ('pyFolder.__md5_hash : ' \
+                            'MD5 hash for entry `{0}\' is :'.format (path), \
+                            newline=False)
             m = hashlib.md5 ()
             with open (path, 'rb') as f:
                 while True:
@@ -107,7 +125,7 @@ class pyFolder:
                     if len (data) == 0:
                         break
                 md5_hash = m.hexdigest ()
-                self.debug ('{0}'.format (md5_hash, True))
+                self.debug ('{0}'.format (md5_hash), nolevel=True)
         return md5_hash
 
     def directory_has_local_changes (self, ifolder_id, entry_id, path):
@@ -214,9 +232,14 @@ class pyFolder:
         try:
             remote_ifolder = self.__get_ifolder (ifolder_t['id'])
         except WebFault, wf:
+            self.debug ('pyFolder.__ifolder_has_changes : ' \
+                            '{0}'.format (wf), level='WARNING')
             return False
         if remote_ifolder is not None:
             if remote_ifolder.LastModified > ifolder_t['mtime']:
+                self.debug ('pyFolder.__ifolder_has_changes : ' \
+                                'iFolder `{0}\' has remote ' \
+                                'changes'.format (ifolder_t['name']))
                 return True
             else:
                 return False
@@ -227,6 +250,9 @@ class pyFolder:
         if latest_change.Total > 0:
             for change in latest_change.Items.ChangeEntry:
                 if change.Time > entry_t['mtime']:
+                    self.debug ('pyFolder.__entry_has_changes : ' \
+                                    'Entry {0} has remote ' \
+                                    'changes'.format (entry_t['path']))
                     return True
                 else:
                     return False
@@ -236,7 +262,6 @@ class pyFolder:
         update_dbm = False
         for entry_t in entries_t:
             if self.__entry_has_changes (entry_t):
-                self.debug ('Entry {0} has remote changes'.format (entry_t['id']))
                 iet = self.client.factory.create ('iFolderEntryType')
                 cea = self.client.factory.create ('ChangeEntryAction')
                 latest_change = self.__get_latest_change \
@@ -316,7 +341,9 @@ class pyFolder:
         remote_ifolder = None
         try:
             remote_ifolder = self.__get_ifolder (ifolder_t['id'])
-        except WebFault:
+        except WebFault, wf:
+            self.debug ('pyFolder.__check_for_deleted_ifolder : '\
+                            '{0}'.format (wf), level='WARNING')
             return update_dbm
         if remote_ifolder is None:
             update_dbm = \
@@ -332,7 +359,9 @@ class pyFolder:
         remote_ifolder = None
         try:
             remote_ifolder = self.__get_ifolder (ifolder_t['id'])
-        except WebFault:
+        except WebFault, wf:
+            self.debug ('pyFolder.__check_for_deleted_membership : '\
+                            '{0}'.format (wf), level='WARNING')
             update_dbm = \
                 self.conflicts_handler.delete_directory \
                 (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
@@ -346,14 +375,15 @@ class pyFolder:
         try:
             known_ifolders_t = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
-            print 'Could not open the local database. Please, ' \
-                'run the `checkout\' action first or provide a valid ' \
-                'path to the local database using the `--pathtodb\' ' \
-                'command line switch.'
+            self.debug ('pyFolder.update : ' \
+                            'Could not open the local database. Please, ' \
+                            'run the `checkout\' action first or provide a valid ' \
+                            'path to the local database using the `--pathtodb\' ' \
+                            'command line switch.', level='ERROR')
             sys.exit ()
         for ifolder_t in known_ifolders_t:
             if self.__ifolder_has_changes (ifolder_t):
-                self.debug ('iFolder {0} has remote changes'.format (ifolder_t['name']))
+
                 update_dbm = update_dbm or self.__update_ifolder (ifolder_t)
                 update_dbm = update_dbm or self.__add_new_entries (ifolder_t)
                 if update_dbm:
@@ -364,38 +394,103 @@ class pyFolder:
             self.__check_for_deleted_membership (ifolder_t)
         self.__add_new_ifolders ()
 
-    def debug (self, message, newline=True):
+    def debug (self, message, newline=True, nolevel=False, level='INFO'):
         if self.cm.get_verbose ():
+            if not nolevel:
+                message = '{0} : {1}'.format (level, message)
             if newline:
                 print >> sys.stderr, message
             else:
                 print >> sys.stderr, message,
 
     def __get_local_changes_on_entry (self, entry_t):
-        return None, None, None, None
+        iet = self.client.factory.create ('iFolderEntryType')
+        cea = self.client.factory.create ('ChangeEntryAction')
+        change_type = None
+        entry_type = None
+        if entry_t['digest'] == 'DIRECTORY':
+            entry_type = iet.Directory
+        else:
+            entry_type = iet.File
+        if not self.path_exists (entry_t['path']):
+            change_type = cea.Delete
+        else:
+            new_digest = self.__md5_hash (entry_t['path'])
+            if new_digest != entry_t['digest']:
+                change_type = cea.Modify
+        if change_type is not None:
+            self.debug ('pyFolder.__get_local_changes_on_entry : ' \
+                            'Entry `{0}\', ' \
+                            'of type `{1}\', has local ' \
+                            'changes of type `{2}\''.format \
+                            (entry_t['path'], entry_type, change_type))
+        else:
+            self.debug ('pyFolder.__get_local_changes_on_entry : ' \
+                            'Entry `{0}\', ' \
+                            'of type `{1}\', hasn\'t any local ' \
+                            'changes'.format \
+                            (entry_t['path'], entry_type, change_type))
+        return cea, iet, change_type, entry_type
 
     def commit (self):
         try:
             known_ifolders_t = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
-            print 'Could not open the local database. Please, ' \
-                'run the `checkout\' action first or provide a valid ' \
-                'path to the local database using the `--pathtodb\' ' \
-                'command line switch.'
+            self.debug ('pyFolder.commit : ' \
+                            'Could not open the local database. Please, ' \
+                            'run the `checkout\' action first or provide a valid ' \
+                            'path to the local database using the `--pathtodb\' ' \
+                            'command line switch.', level='ERROR')
             sys.exit ()
         # We assume that the pyFolder user isn't allowed to add/delete
-        # iFolders, so the checks should be made just on the entries
+        # iFolders, so we are going to check just the entries
         for ifolder_t in known_ifolders_t:
+            self.debug ('pyFolder.commit : ' \
+                            'Searching for local changes in iFolder ' \
+                            '`{0}\''.format (ifolder_t['name']))
             update_ifolder_in_dbm = False
-            entries_t = self.dbm.get_entries_by_parent (ifolder_t['entry_id'])
+            entries_t = self.dbm.get_entries_by_ifolder (ifolder_t['id'])
             for entry_t in entries_t:
-                # 1) Check for entries which have local changes
-                #    if local changes are detected, delegate the
-                #    conflicts_handler to handle them
-                # 2) Check for deleted entries
-                #    delegate the conflicts_handler like above
+                self.debug ('pyFolder.commit : ' \
+                                'Checking entry `{0}\''.format (entry_t['path']))
+                update_entry_in_dbm = False
                 cea, iet, change_type, entry_type = \
                     self.__get_local_changes_on_entry (entry_t)
+                if change_type is not None:
+                    if change_type == cea.Modify:
+                        if entry_type == iet.File:
+                            update_entry_in_dbm = \
+                                self.conflicts_handler.modify_remote_file \
+                                (entry_t['ifolder'], entry_t['id'], entry_t['path'])
+                        elif entry_type == iet.Directory:
+                            update_entry_in_dbm = \
+                                self.conflicts_handler.modify_remote_directory \
+                                (entry_t['ifolder'], entry_t['id'], entry_t['path'])
+                        if update_entry_in_dbm:
+                            latest_change = self.__get_latest_change \
+                                (entry_t['ifolder'], entry_t['id'])
+                            if latest_change.Total > 0:
+                                for change in latest_change.Items.ChangeEntry:
+                                    self.dbm.update_mtime_and_digest_by_entry \
+                                        (entry_t['ifolder'], change.ID, change.Time, \
+                                             self.__md5_hash (change.Name))
+                                    break
+                    elif change_type == cea.Delete:
+                        if entry_type == iet.File:
+                            update_entry_in_dbm = \
+                                self.conflicts_handler.delete_remote_file \
+                                (entry_t['ifolder'], entry_t['id'], entry_t['path'])
+                        elif entry_type == iet.Directory:
+                            update_entry_in_dbm = \
+                                self.conflicts_handler.delete_remote_directory \
+                                (entry_t['ifolder'], entry_t['id'], entry_t['path'])
+                        if update_entry_in_dbm:
+                            self.dbm.delete_entry (entry_t['ifolder'], entry_t['id'])
+                update_ifolder_in_dbm = update_ifolder_in_dbm or \
+                    update_entry_in_dbm
+            if update_ifolder_in_dbm:
+                # Update current iFolder in the db
+                pass
             # 3) Check for new entries that need to be added remotely
 
 if __name__ == '__main__':
