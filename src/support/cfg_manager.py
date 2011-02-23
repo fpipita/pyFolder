@@ -52,7 +52,8 @@ class CfgManager ():
                                     type='int', \
                                     dest='soapbuflen', \
                                     help='Bufferize up to `SOAPBUFLEN\' ' \
-                                    'bytes before to flush ' \
+                                    'bytes before to flush the buffers ' \
+                                    'during the download/upload ' \
                                     '[ default : %default ]', \
                                     default=soapbuflen)
 
@@ -68,11 +69,10 @@ class CfgManager ():
                                     action='store', \
                                     type='string', \
                                     dest='pathtodb', \
-                                    help='The path to a local sqlite ' \
-                                    'database containing the mapping ' \
-                                    'between the entry-IDs and their ' \
-                                    'modification times [ default : ' \
-                                    '%default ]', \
+                                    help='The path to a local SQLite ' \
+                                    'database on which pyFolder relies ' \
+                                    'to detect local and remote changes ' \
+                                    '[ default : %default ]', \
                                     default=pathtodb)
 
         self.parser.add_option ('--action', \
@@ -91,7 +91,7 @@ class CfgManager ():
                                     help='The way pyFolder will behave ' \
                                     'whether it detects any conflict ' \
                                     'between the local copy of the ' \
-                                    'user\'s tree and the remote one ' \
+                                    'repository and the remote one ' \
                                     '[ default : %default ]', \
                                     choices=self.__conflicts (), \
                                     default=self.__conflicts ()[0])
