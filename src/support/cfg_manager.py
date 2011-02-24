@@ -110,7 +110,7 @@ class CfgManager ():
             self.parser.print_help ()
             sys.exit ()
         if self.options.action == 'checkout' and \
-                self.options.conflicts != 'AlwaysAcceptRemoteChanges':
+                self.options.conflicts != self.__conflicts ()[0]:
             self.parser.error ('You can\'t use the `--conflicts\' switch ' \
                                    'while running the `checkout\' action.')
 

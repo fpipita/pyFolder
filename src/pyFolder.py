@@ -24,30 +24,35 @@ class NullHandler (logging.Handler):
 
 class pyFolder:
     def __init__ (self, cm):
-        transport = HttpAuthenticated (username=cm.get_username (), \
-                                           password=cm.get_password ())
         self.cm = cm
-        self.__create_logger ()
-        self.client = Client (cm.get_ifolderws (), transport=transport)
+        self.__setup_logger ()
+        self.__setup_suds_client ()
+
         self.dbm = DBM (self.cm.get_pathtodb ())
         self.conflicts_handler = ConflictsHandlerFactory.create \
             (cm.get_conflicts (), self)
         self.__action ()
     
-    def __create_logger (self):
+    def __setup_suds_client (self):
+        transport = HttpAuthenticated (username=self.cm.get_username (), \
+                                           password=self.cm.get_password ())
+        self.client = Client (self.cm.get_ifolderws (), transport=transport)
+        logging.getLogger ('suds.client').addHandler (NullHandler ())
+
+    def __setup_logger (self):
         self.logger = logging.getLogger ('pyFolder')
         self.logger.setLevel (logging.DEBUG)
         if self.cm.get_verbose ():
-            handler = logging.StreamHandler ()
+            self.handler = logging.StreamHandler ()
         else:
-            handler = NullHandler ()
-        handler.setLevel (logging.DEBUG)
+            self.handler = NullHandler ()
+        self.handler.setLevel (logging.DEBUG)
         formatter = logging.Formatter ('%(asctime)s [%(name)s] ' \
                                            '%(levelname)s ' \
                                            '%(module)s.%(funcName)s - ' \
                                            '%(message)s')
-        handler.setFormatter (formatter)
-        self.logger.addHandler (handler)
+        self.handler.setFormatter (formatter)
+        self.logger.addHandler (self.handler)
 
     def __action (self):
         pyFolder.__dict__[self.cm.get_action ()] (self)
@@ -68,6 +73,17 @@ class pyFolder:
 
     def __get_entry (self, ifolder_id, entry_id):
         return self.client.service.GetEntry (ifolder_id, entry_id)
+
+    def __get_entry_by_path (self, ifolder_id, path):
+        try:
+            self.logger.debug ('Getting remote entry `{0}\' '\
+                                   'by iFolderID and Path'.format (path))
+            entry = self.client.service.GetEntryByPath (ifolder_id, path)
+            self.logger.debug ('Got entry with ID={0}'.format (entry.ID))
+            return entry
+        except WebFault, wf:
+            self.logger.error (wf)
+            return None
 
     def __add_prefix (self, path):
         if self.cm.get_prefix () != '':
@@ -171,10 +187,36 @@ class pyFolder:
             self.logger.error (wf)
             return False
 
+    def remote_mkdir (self, ifolder_id, parent_id, path):
+        iet = self.client.factory.create ('iFolderEntryType')
+        name = os.path.split (path)[1]
+        try:
+            self.logger.debug ('Creating remote directory `{0}\''.format (name))
+            self.client.service.CreateEntry (ifolder_id, parent_id, \
+                                                 iet.Directory, name)
+            self.logger.debug ('Done')
+            return True
+        except WebFault, wf:
+            self.logger.error (wf)
+            return False
+
     def remote_rmdir (self, ifolder_id, entry_id, path):
         try:
             self.logger.debug ('Deleting remote directory `{0}\''.format (path))
             self.client.service.DeleteEntry (ifolder_id, entry_id)
+            self.logger.debug ('Done')
+            return True
+        except WebFault, wf:
+            self.logger.error (wf)
+            return False
+
+    def remote_create_file (self, ifolder_id, parent_id, path):
+        iet = self.client.factory.create ('iFolderEntryType')
+        name = os.path.split (path)[1]
+        try:
+            self.logger.debug ('Creating remote file `{0}\''.format (name))
+            self.client.service.CreateEntry (ifolder_id, parent_id, \
+                                                 iet.File, name)
             self.logger.debug ('Done')
             return True
         except WebFault, wf:
@@ -262,13 +304,13 @@ class pyFolder:
                 if latest_change.Total > 0:
                     for change in latest_change.Items.ChangeEntry:
                         self.__apply_change \
-                            (ifolder_id, entry.ParentID, change)
+                            (ifolder_id, entry.ParentID, change, entry.Name)
                         break
                 entries_count = entries_count - 1
                 if entries_count == 0:
                     break
 
-    def __apply_change (self, ifolder_id, parent_id, change):
+    def __apply_change (self, ifolder_id, parent_id, change, entry_name):
         update_dbm = False
         iet = self.client.factory.create ('iFolderEntryType')
         cea = self.client.factory.create ('ChangeEntryAction')
@@ -285,7 +327,7 @@ class pyFolder:
                 self.dbm.add_entry \
                     (ifolder_id, change.ID, change.Time, \
                          self.__md5_hash (change.Name), parent_id, \
-                         change.Name)
+                         change.Name, entry_name)
         return update_dbm
         
     def checkout (self):
@@ -400,7 +442,7 @@ class pyFolder:
                     if latest_change.Total > 0:
                         for change in latest_change.Items.ChangeEntry:
                             update_dbm = self.__apply_change \
-                                (ifolder_t['id'], entry.ParentID, change)
+                                (ifolder_t['id'], entry.ParentID, change, entry.Name)
                             break
                 entries_count = entries_count - 1
                 if entries_count == 0:
@@ -508,6 +550,98 @@ class pyFolder:
                                    (entry_t['path'], entry_type, change_type))
         return cea, iet, change_type, entry_type
 
+    def __remove_prefix (self, path):
+        if self.cm.get_prefix () != '':
+            prefix = os.path.join (self.cm.get_prefix (), '')
+            return path.replace ('{0}'.format (prefix), '')
+        return path
+
+    def __is_new_local_entry (self, ifolder_id, path, isdir):
+        entry_t = self.dbm.get_entry_by_ifolder_and_path (ifolder_id, path)
+        if entry_t is None:
+            if isdir:
+                self.logger.debug ('Found new local directory `{0}\''.format (path))
+            else:
+                self.logger.debug ('Found new local file `{0}\''.format (path))
+            return True
+        return False
+
+    def __is_new_local_directory (self, ifolder_id, path):
+        return self.__is_new_local_entry (ifolder_id, path, isdir=True)
+
+    def __is_new_local_file (self, ifolder_id, path):
+        return self.__is_new_local_entry (ifolder_id, path, isdir=False)
+
+    def __find_parent (self, ifolder_id, path):
+        parent_path = os.path.split (path)[0]
+        entry_t = self.dbm.get_entry_by_ifolder_and_path (ifolder_id, parent_path)
+        if entry_t is None:
+            ifolder_t = self.dbm.get_ifolder (ifolder_id)
+            if parent_path == ifolder_t['name']:
+                self.logger.debug ('Entry `{0}\' has ' \
+                                       'parent iFolder ' \
+                                       '`{1}\''.format (path, ifolder_t['name']))
+                return ifolder_t['entry_id']
+            else:
+                self.logger.error ('Could not find parent for ' \
+                                       'entry `{0}\''.format (path))
+                return None
+        self.logger.debug ('Entry `{0}\' has ' \
+                               'parent entry `{1}\''.format (path, entry_t['path']))
+        return entry_t['id']
+
+    def __add_to_dbm (self, ifolder_id, path):
+        try:
+            self.logger.debug ('Getting remote entry `{0}\' '\
+                                   'by iFolderID and Path'.format (path))
+            entry = self.client.service.GetEntryByPath (ifolder_id, path)
+            self.logger.debug ('Got entry with ID={0}'.format (entry.ID))
+            latest_change = self.__get_latest_change (ifolder_id, entry.ID)
+            if latest_change.Total > 0:
+                for change in latest_change.Items.ChangeEntry:
+                    self.dbm.add_entry (entry.iFolderID, entry.ID, \
+                                            change.Time, \
+                                            self.__md5_hash (change.Name), \
+                                            entry.ParentID, \
+                                            entry.Path, \
+                                            entry.Name)
+                    break
+            return True
+        except WebFault, wf:
+            self.logger.error (wf)
+            return False
+    
+    def __commit_new_entries (self):
+        known_ifolders_t = self.dbm.get_ifolders ()
+        for ifolder_t in known_ifolders_t:
+            self.logger.debug ('Searching for new entries in iFolder `{0}\''.format \
+                                   (ifolder_t['name']))
+            for root, dirs, files in os.walk (self.__add_prefix (ifolder_t['name'])):
+                for name in dirs:
+                    path = os.path.join (self.__remove_prefix (root), name)
+                    if self.__is_new_local_directory (ifolder_t['id'], path):
+                        parent_id = self.__find_parent (ifolder_t['id'], path)
+                        if parent_id is not None:
+                            if self.conflicts_handler.add_remote_directory \
+                                    (ifolder_t['id'], parent_id, path):
+                                self.__add_to_dbm (ifolder_t['id'], path)
+
+                for name in files:
+                    path = os.path.join (self.__remove_prefix (root), name)
+                    if self.__is_new_local_file (ifolder_t['id'], path):
+                        parent_id = self.__find_parent (ifolder_t['id'], path)
+                        if parent_id is not None:
+                            if self.conflicts_handler.add_remote_file \
+                                    (ifolder_t['id'], parent_id, path):
+                                entry = self.__get_entry_by_path \
+                                    (ifolder_t['id'], path)
+                                if entry is not None:
+                                    if self.conflicts_handler.modify_remote_file \
+                                            (ifolder_t['id'], entry.ID, path):
+                                        self.__add_to_dbm (ifolder_t['id'], path)
+            # Remember to update the iFolder in the database if any new
+            # entry is committed
+
     def commit (self):
         try:
             known_ifolders_t = self.dbm.get_ifolders ()
@@ -569,7 +703,7 @@ class pyFolder:
                 ifolder = self.__get_ifolder (ifolder_t['id'])
                 self.dbm.update_mtime_by_ifolder \
                     (ifolder_t['id'], ifolder.LastModified)
-            # 3) Check for new entries that need to be added remotely
+        self.__commit_new_entries ()
 
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \

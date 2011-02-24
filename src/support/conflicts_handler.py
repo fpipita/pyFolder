@@ -23,6 +23,12 @@ class Policy:
     def delete_file (self, ifolder_id, entry_id, path):
         raise NotImplementedError
 
+    def add_remote_directory (self, ifolder_id, parent_id, path):
+        raise NotImplementedError
+    
+    def add_remote_file (self, ifolder_id, parent_id, path):
+        raise NotImplementedError
+
     def modify_remote_directory (self, ifolder_id, entry_id, path):
         raise NotImplementedError
     
@@ -70,6 +76,12 @@ class DEFAULT (Policy):
 
     def delete_file (self, ifolder_id, entry_id, path):
         return self.pyFolder.delete (path)
+
+    def add_remote_directory (self, ifolder_id, parent_id, path):
+        return self.pyFolder.remote_mkdir (ifolder_id, parent_id, path)
+    
+    def add_remote_file (self, ifolder_id, parent_id, path):
+        return self.pyFolder.remote_create_file (ifolder_id, parent_id, path)
 
     def modify_remote_directory (self, ifolder_id, entry_id, path):
         return False
