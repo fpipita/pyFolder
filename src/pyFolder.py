@@ -42,9 +42,10 @@ class pyFolder:
         else:
             handler = NullHandler ()
         handler.setLevel (logging.DEBUG)
-        formatter = logging.Formatter ('%(levelname)s : %(name)s - In function ' \
-                                           '`%(module)s.%(funcName)s\', ' \
-                                           'line %(lineno)d : %(message)s')
+        formatter = logging.Formatter ('%(asctime)s [%(name)s] ' \
+                                           '%(levelname)s ' \
+                                           '%(module)s.%(funcName)s - ' \
+                                           '%(message)s')
         handler.setFormatter (formatter)
         self.logger.addHandler (handler)
 
@@ -75,16 +76,22 @@ class pyFolder:
 
     def fetch (self, ifolder_id, entry_id, path):
         path = self.__add_prefix (path)
-        self.logger.debug ('Fetching file `{0}\' ...'.format (path))
-        handle = self.client.service.OpenFileRead (ifolder_id, entry_id)
-        with open (path, 'wb') as f:
-            while True:
-                b64data = self.client.service.ReadFile \
-                    (handle, cm.get_soapbuflen ())
-                if b64data is None:
-                    break
-                f.write (base64.b64decode (b64data))
-            self.client.service.CloseFile (handle)
+        try:
+            self.logger.debug ('Fetching remote file `{0}\''.format (path))
+            handle = self.client.service.OpenFileRead (ifolder_id, entry_id)
+            with open (path, 'wb') as f:
+                while True:
+                    b64data = self.client.service.ReadFile \
+                        (handle, cm.get_soapbuflen ())
+                    if b64data is None:
+                        break
+                    f.write (base64.b64decode (b64data))
+                self.client.service.CloseFile (handle)
+            self.logger.debug ('Done')
+            return True
+        except WebFault, wf:
+            self.logger.error (wf)
+            return False
 
     def path_exists (self, path):
         return os.path.exists (self.__add_prefix (path))
@@ -98,49 +105,81 @@ class pyFolder:
     def delete (self, path):
         if self.path_isfile (path):
             path = self.__add_prefix (path)
-            self.logger.debug ('Deleting file `{0}\' ...'.format (path))
-            os.remove (path)
+            try:
+                self.logger.debug ('Deleting local file `{0}\''.format (path))
+                os.remove (path)
+                self.logger.debug ('Done')
+                return True
+            except OSError, ose:
+                self.logger.error (ose)
+                return False
 
     def rmdir (self, path):
         if self.path_isdir (path):
             path = self.__add_prefix (path)
-            self.logger.debug ('Removing directory `{0}\' ...'.format (path))
-            shutil.rmtree (path)
+            try:
+                self.logger.debug ('Deleting local directory `{0}\''.format (path))
+                shutil.rmtree (path)
+                self.logger.debug ('Done')
+                return True
+            except OSError, ose:
+                self.logger.error (ose)
+                return False
 
     def mkdir (self, path):
         if not self.path_isdir (path):
             path = self.__add_prefix (path)
-            self.logger.debug ('Adding directory `{0}\' ...'.format (path))
-            os.makedirs (path)
+            try:
+                self.logger.debug ('Adding local directory `{0}\''.format (path))
+                os.makedirs (path)
+                self.logger.debug ('Done')
+                return True
+            except OSError, ose:
+                self.logger.error (ose)
+                return False
+        else:
+            return True
 
     def getsize (self, path):
         return os.path.getsize (self.__add_prefix (path))
 
     def remote_delete (self, ifolder_id, entry_id, path):
         try:
+            self.logger.debug ('Deleting remote file `{0}\''.format (path))
             self.client.service.DeleteEntry (ifolder_id, entry_id)
-            self.logger.debug ('Deleted remote file `{0}\''.format (path))
+            self.logger.debug ('Done')
+            return True
         except WebFault, wf:
             self.logger.warning (wf)
+            return False
 
     def remote_file_write (self, ifolder_id, entry_id, path):
-        self.logger.debug ('Updating remote file `{0}\' ...'.format (path))
-        handle = self.client.service.OpenFileWrite \
-            (ifolder_id, entry_id, self.getsize (path))
-        with open (self.__add_prefix (path), 'rb') as f:
-            while True:
-                data = f.read ()
-                self.client.service.WriteFile (handle, base64.b64encode (data))
-                if len (data) == 0:
-                    break
-            self.client.service.CloseFile (handle)
+        try:
+            self.logger.debug ('Updating remote file `{0}\''.format (path))
+            handle = self.client.service.OpenFileWrite \
+                (ifolder_id, entry_id, self.getsize (path))
+            with open (self.__add_prefix (path), 'rb') as f:
+                while True:
+                    data = f.read ()
+                    self.client.service.WriteFile (handle, base64.b64encode (data))
+                    if len (data) == 0:
+                        break
+                self.client.service.CloseFile (handle)
+                self.logger.debug ('Done')
+            return True
+        except WebFault, wf:
+            self.logger.error (wf)
+            return False
 
     def remote_rmdir (self, ifolder_id, entry_id, path):
         try:
+            self.logger.debug ('Deleting remote directory `{0}\''.format (path))
             self.client.service.DeleteEntry (ifolder_id, entry_id)
-            self.logger.debug ('Deleted remote directory `{0}\''.format (path))
+            self.logger.debug ('Done')
+            return True
         except WebFault, wf:
-            self.logger.warning (wf)
+            self.logger.error (wf)
+            return False
 
     def __md5_hash (self, path):
         path = self.__add_prefix (path)
@@ -183,16 +222,18 @@ class pyFolder:
             if entry is None:
                 return True
             else:
+                self.logger.debug ('Comparing MD5 sums for file `{0}\''.format (path))
                 old_digest = entry['digest']
                 new_digest = self.__md5_hash (path)
-                self.logger.debug ('File `{0}\' : md5sum_old={1}, ' \
-                                       'md5sum_new={2}'.format \
-                                (path, old_digest, new_digest))
+                self.logger.debug ('old_digest={0}, new_digest={1}'.format \
+                                       (old_digest, new_digest))
                 if old_digest != new_digest:
                     self.logger.debug ('MD5 sums differ, file `{0}\' ' \
                                            'has local changes'.format (path))
                     return True
                 else:
+                    self.logger.debug ('MD5 sums coincide, file `{0}\' ' \
+                                           'hasn\'t any local changes'.format (path))
                     return False
         
     def __add_ifolder (self, ifolder_id):
@@ -260,6 +301,8 @@ class pyFolder:
                     break
 
     def __ifolder_has_changes (self, ifolder_t):
+        self.logger.debug ('Checking whether iFolder `{0}\' has remote ' \
+                               'changes'.format (ifolder_t['name']))
         remote_ifolder = None
         try:
             remote_ifolder = self.__get_ifolder (ifolder_t['id'])
@@ -270,20 +313,31 @@ class pyFolder:
             if remote_ifolder.LastModified > ifolder_t['mtime']:
                 self.logger.debug ('iFolder `{0}\' has remote ' \
                                 'changes'.format (ifolder_t['name']))
+                self.logger.debug ('local_mtime={0}, remote_mtime={1}'.format \
+                                       (ifolder_t['mtime'], \
+                                            remote_ifolder.LastModified))
                 return True
             else:
+                self.logger.debug ('iFolder `{0}\' hasn\'t any remote ' \
+                                       'changes'.format (ifolder_t['name']))
                 return False
         return False
 
     def __entry_has_changes (self, entry_t):
+        self.logger.debug ('Checking for remote changes in entry `{0}\''.format \
+                               (entry_t['path']))
         latest_change = self.__get_latest_change (entry_t['ifolder'], entry_t['id'])
         if latest_change.Total > 0:
             for change in latest_change.Items.ChangeEntry:
                 if change.Time > entry_t['mtime']:
                     self.logger.debug ('Entry {0} has remote ' \
                                            'changes'.format (entry_t['path']))
+                    self.logger.debug ('local_mtime={0}, remote_mtime={1}'.format \
+                                           (entry_t['mtime'], change.Time))
                     return True
                 else:
+                    self.logger.debug ('Entry {0} hasn\'t any remote ' \
+                                           'changes'.format (entry_t['path']))
                     return False
 
     def __update_ifolder (self, ifolder_t):
@@ -421,6 +475,8 @@ class pyFolder:
         self.__add_new_ifolders ()
 
     def __get_local_changes_on_entry (self, entry_t):
+        self.logger.debug ('Checking for local changes on entry `{0}\''.format \
+                               (entry_t['path']))
         iet = self.client.factory.create ('iFolderEntryType')
         cea = self.client.factory.create ('ChangeEntryAction')
         change_type = None
