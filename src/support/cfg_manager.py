@@ -1,5 +1,5 @@
 from optparse import OptionParser
-from conflicts_handler import ConflictsHandlerFactory
+from policy import PolicyFactory
 
 import sys
 
@@ -84,17 +84,17 @@ class CfgManager ():
                                     choices=self.__actions (), \
                                     default=self.__actions ()[0])
 
-        self.parser.add_option ('--conflicts', \
+        self.parser.add_option ('--policy', \
                                     action='store', \
                                     type='choice', \
-                                    dest='conflicts', \
+                                    dest='policy', \
                                     help='The way pyFolder will behave ' \
                                     'whether it detects any conflict ' \
                                     'between the local copy of the ' \
                                     'repository and the remote one ' \
                                     '[ default : %default ]', \
-                                    choices=self.__conflicts (), \
-                                    default=self.__conflicts ()[0])
+                                    choices=self.__policies (), \
+                                    default=self.__policies ()[0])
                                 
         self.parser.add_option ('--verbose', '-v', \
                                     action='store_true', \
@@ -110,8 +110,8 @@ class CfgManager ():
             self.parser.print_help ()
             sys.exit ()
         if self.options.action == 'checkout' and \
-                self.options.conflicts != self.__conflicts ()[0]:
-            self.parser.error ('You can\'t use the `--conflicts\' switch ' \
+                self.options.policy != self.__policies ()[0]:
+            self.parser.error ('You can\'t use the `--policy\' switch ' \
                                    'while running the `checkout\' action.')
 
     def __actions (self):
@@ -121,11 +121,11 @@ class CfgManager ():
                 'commit' \
                 ]
     
-    def __conflicts (self):
-        return ConflictsHandlerFactory.get_factories ()
+    def __policies (self):
+        return PolicyFactory.get_factories ()
     
-    def get_conflicts (self):
-        return self.options.conflicts
+    def get_policy (self):
+        return self.options.policy
 
     def get_action (self):
         return self.options.action
