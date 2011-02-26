@@ -175,7 +175,7 @@ class DBM:
     def update_mtime_by_ifolder (self, ifolder_id, mtime):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
-        self.logger.info ('Updated iFolder withID={0}'.format (ifolder_id))
+        self.logger.info ('Updated iFolder with ID={0}'.format (ifolder_id))
         self.logger.debug ('new_mtime={0}'.format (mtime))
         self.cx.commit ()
 
