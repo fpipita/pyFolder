@@ -58,8 +58,9 @@ class pyFolder:
 
     def remote_rmdir (self, iFolderID, iFolderEntryID, Path):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+        Name = os.path.split (Path)[1]
         return self.ifolderws.delete_entry \
-            (iFolderID, iFolderEntryID, Path, iFolderEntryType.Directory)
+            (iFolderID, iFolderEntryID, Name, iFolderEntryType.Directory)
 
     def remote_create_file (self, iFolderID, ParentID, Path):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
@@ -69,8 +70,9 @@ class pyFolder:
 
     def remote_mkdir (self, iFolderID, ParentID, Path):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+        Name = os.path.split (Path)[1]
         return self.ifolderws.create_entry \
-            (iFolderID, ParentID, Path, iFolderEntryType.Directory)
+            (iFolderID, ParentID, Name, iFolderEntryType.Directory)
 
     def fetch (self, iFolderID, EntryID, Path):
         Path = self.__add_prefix (Path)
