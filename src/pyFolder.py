@@ -196,45 +196,45 @@ class pyFolder:
             mtime = iFolder.LastModified
             self.dbm.update_mtime_by_ifolder (iFolderID, mtime)
 
-    def __handle_add_action (self, iFolderID, EntryID, ChangeEntry):
+    def __handle_add_action (self, iFolderID, iFolderEntryID, ChangeEntry):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
         if ChangeEntry.Type == iFolderEntryType.Directory:
             Updated = self.policy.add_directory \
-                (iFolderID, EntryID, ChangeEntry.Name)
+                (iFolderID, iFolderEntryID, ChangeEntry.Name)
         elif ChangeEntry.Type == iFolderEntryType.File:
             Updated = self.policy.add_file \
-                (iFolderID, EntryID, ChangeEntry.Name)
+                (iFolderID, iFolderEntryID, ChangeEntry.Name)
         if Updated:
-            self.__update_entry_in_dbm (iFolderID, EntryID, ChangeEntry)
+            self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
         return Updated
 
-    def __handle_modify_action (self, iFolderID, EntryID, ChangeEntry):
+    def __handle_modify_action (self, iFolderID, iFolderEntryID, ChangeEntry):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
         if ChangeEntry.Type == iFolderEntryType.Directory:
             Updated = self.policy.modify_directory \
-                (iFolderID, EntryID, ChangeEntry.Name)
+                (iFolderID, iFolderEntryID, ChangeEntry.Name)
         elif ChangeEntry.Type == iFolderEntryType.File:
             Updated = self.policy.modify_file \
-                (iFolderID, EntryID, ChangeEntry.Name)
+                (iFolderID, iFolderEntryID, ChangeEntry.Name)
         if Updated:
-            self.__update_entry_in_dbm (iFolderID, EntryID, ChangeEntry)
+            self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
         return Updated
 
-    def __handle_delete_action (self, iFolderID, EntryID, ChangeEntry):
+    def __handle_delete_action (self, iFolderID, iFolderEntryID, ChangeEntry):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
         if ChangeEntry.Type == iFolderEntryType.Directory:
             Updated = self.policy.delete_directory \
-                (iFolderID, EntryID, ChangeEntry.Name)
+                (iFolderID, iFolderEntryID, ChangeEntry.Name)
                 # Optimization : delete also all the entries
                 # from the DB that have EntryID as ParentID
         elif ChangeEntry.Type == iFolderEntryType.File:
             Updated = self.policy.delete_file \
-                (iFolderID, EntryID, ChangeEntry.Name)
+                (iFolderID, iFolderEntryID, ChangeEntry.Name)
         if Updated:
-            self.__delete_entry_from_dbm (iFolderID, EntryID)
+            self.__delete_entry_from_dbm (iFolderID, iFolderEntryID)
         return Updated
 
     def __update_ifolder (self, iFolderID):
@@ -309,23 +309,18 @@ class pyFolder:
                 self.dbm.delete_ifolder (ifolder_t['id'])
             return Updated
 
-    def __add_entry_to_dbm (self, iFolderID, Path):
-        iFolderEntry = self.ifolderws.get_entry_by_path (iFolderID, Path)
-        if iFolderEntry is not None:
-            ChangeEntry = self.ifolderws.get_latest_change \
-                (iFolderID, iFolderEntry.ID)
-            if ChangeEntry is not None:
-                self.dbm.add_entry (\
-                    iFolderEntry.iFolderID, \
-                        iFolderEntry.ID, \
-                        ChangeEntry.Time, \
-                        self.__md5_hash (ChangeEntry.Name), \
-                        iFolderEntry.ParentID, \
-                        iFolderEntry.Path, \
-                        iFolderEntry.Name)
-                return True
-            return False
-        return False
+    def __add_entry_to_dbm (self, iFolderEntry):
+        ChangeEntry = self.ifolderws.get_latest_change \
+            (iFolderEntry.iFolderID, iFolderEntry.ID)
+        if ChangeEntry is not None:
+            self.dbm.add_entry (\
+                iFolderEntry.iFolderID, \
+                    iFolderEntry.ID, \
+                    ChangeEntry.Time, \
+                    self.__md5_hash (iFolderEntry.Path), \
+                    iFolderEntry.ParentID, \
+                    iFolderEntry.Path, \
+                    iFolderEntry.Name)
 
     def __add_prefix (self, path):
         if self.cm.get_prefix () != '':
@@ -351,8 +346,8 @@ class pyFolder:
         if self.path_isfile (path):
             path = self.__add_prefix (path)
             try:
-                self.logger.info ('Deleting local file `{0}\''.format (path))
                 os.remove (path)
+                self.logger.info ('Deleted local file `{0}\''.format (path))
                 return True
             except OSError, ose:
                 self.logger.error (ose)
@@ -363,8 +358,8 @@ class pyFolder:
         if self.path_isdir (path):
             path = self.__add_prefix (path)
             try:
-                self.logger.info ('Deleting local directory `{0}\''.format (path))
                 shutil.rmtree (path)
+                self.logger.info ('Deleted local directory `{0}\''.format (path))
                 return True
             except OSError, ose:
                 self.logger.error (ose)
@@ -375,8 +370,8 @@ class pyFolder:
         if not self.path_isdir (path):
             path = self.__add_prefix (path)
             try:
-                self.logger.info ('Adding local directory `{0}\''.format (path))
                 os.makedirs (path)
+                self.logger.info ('Added local directory `{0}\''.format (path))
                 return True
             except OSError, ose:
                 self.logger.error (ose)
@@ -442,10 +437,13 @@ class pyFolder:
                                            'hasn\'t any local changes'.format (path))
                     return False
         
-    def __update_entry_in_dbm (self, iFolderID, EntryID, ChangeEntry):
-        self.dbm.update_mtime_and_digest_by_entry \
-            (iFolderID, EntryID, ChangeEntry.Time, \
-             self.__md5_hash (ChangeEntry.Name))
+    def __update_entry_in_dbm (self, iFolderID, iFolderEntryID):
+        ChangeEntry = self.ifolderws.get_latest_change (\
+            iFolderID, iFolderEntryID)
+        if ChangeEntry is not None:
+            self.dbm.update_mtime_and_digest_by_entry (\
+                iFolderID, iFolderEntryID, ChangeEntry.Time, \
+                    self.__md5_hash (ChangeEntry.Name))
 
     def __delete_entry_from_dbm (self, iFolderID, EntryID):
         self.dbm.delete_entry (iFolderID, EntryID)
@@ -541,38 +539,53 @@ class pyFolder:
                                (entry_t['path']))
         return entry_t['id']
 
-    def __commit_new_entries (self):
+    def __commit_added_directories (self, Root, Dirs, iFolderID):
+        Updated = False
+        for Dir in Dirs:
+            Path = os.path.join (self.__remove_prefix (Root), Dir)
+            if self.__is_new_local_directory (iFolderID, Path):
+                ParentID = self.__find_parent (iFolderID, Path)
+                if ParentID is not None:
+                    iFolderEntry = self.policy.add_remote_directory (\
+                        iFolderID, ParentID, Path)
+                    if iFolderEntry is not None:
+                        Updated = True
+                        self.__add_entry_to_dbm (iFolderEntry)
+        return Updated
+
+    def __commit_added_files (self, Root, Files, iFolderID):
+        Updated = False
+        for File in Files:
+            Path = os.path.join (self.__remove_prefix (Root), File)
+            if self.__is_new_local_file (iFolderID, Path):
+                ParentID = self.__find_parent (iFolderID, Path)
+                if ParentID is not None:
+                    iFolderEntry = self.policy.add_remote_file \
+                        (iFolderID, ParentID, Path)
+                    if iFolderEntry is not None:
+                        self.__add_entry_to_dbm (iFolderEntry)
+                        Updated = True
+                        if self.policy.modify_remote_file \
+                                (iFolderEntry.iFolderID, \
+                                     iFolderEntry.ID, \
+                                     iFolderEntry.Path):
+                            self.__update_entry_in_dbm (\
+                                iFolderEntry.iFolderID, iFolderEntry.ID)
+        return Updated
+
+    def __commit_added_entries (self):
         known_ifolders_t = self.dbm.get_ifolders ()
         for ifolder_t in known_ifolders_t:
+            Updated = False
             iFolderID = ifolder_t['id']
             Name = ifolder_t['name']
-            self.logger.debug \
-                ('Searching for new entries in iFolder `{0}\''.format (Name))
             for Root, Dirs, Files in os.walk (self.__add_prefix (Name)):
-                for Dir in Dirs:
-                    Path = os.path.join (self.__remove_prefix (Root), Dir)
-                    if self.__is_new_local_directory (iFolderID, Path):
-                        ParentID = self.__find_parent (iFolderID, Path)
-                        if ParentID is not None:
-                            if self.policy.add_remote_directory \
-                                    (iFolderID, ParentID, Path):
-                                self.__add_entry_to_dbm (iFolderID, Path)
-
-                for File in Files:
-                    Path = os.path.join (self.__remove_prefix (Root), File)
-                    if self.__is_new_local_file (iFolderID, Path):
-                        ParentID = self.__find_parent (iFolderID, Path)
-                        if ParentID is not None:
-                            iFolderEntry = self.policy.add_remote_file \
-                                (iFolderID, ParentID, Path)
-                            if iFolderEntry is not None:
-                                if self.policy.modify_remote_file \
-                                            (iFolderEntry.iFolderID, \
-                                                 iFolderEntry.ID, \
-                                                 iFolderEntry.Path):
-                                    self.__add_entry_to_dbm (iFolderID, Path)
-            # Remember to update the iFolder in the database if any new
-            # entry is committed
+                Updated = self.__commit_added_directories (\
+                    Root, Dirs, iFolderID) or Updated
+                Updated = self.__commit_added_files (\
+                    Root, Files, iFolderID) or Updated
+            if Updated:
+                self.__update_ifolder_in_dbm (iFolderID)
 
     def commit (self):
         try:
@@ -633,7 +646,7 @@ class pyFolder:
                     update_entry_in_dbm
             if update_ifolder_in_dbm:
                 self.__update_ifolder_in_dbm (ifolder_t['id'])
-        self.__commit_new_entries ()
+        self.__commit_added_entries ()
 
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
