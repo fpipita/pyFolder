@@ -226,13 +226,13 @@ class iFolderWS:
                 self.client.service.CreateEntry \
                 (iFolderID, ParentID, Type, Name)
             if iFolderEntry is not None:
-                self.logger.info ('{0} `{1}\'' \
+                self.logger.info ('{0} `{1}\', ' \
                                       'has been remotely ' \
                                       'created'.format (Type, Name))
                 return iFolderEntry
             else:
                 self.logger.warning ('Could not create ' \
-                                         'iFolderEntry `{0}\''.format (Name))
+                                         '`{0}\' remotely'.format (Name))
             return None
         except WebFault, wf:
             self.logger.error (wf)
