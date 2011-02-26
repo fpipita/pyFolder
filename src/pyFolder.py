@@ -153,9 +153,10 @@ class pyFolder:
     def checkout (self):
         self.dbm.create_schema ()
         ArrayOfiFolder = self.ifolderws.get_all_ifolders ()
-        for iFolder in ArrayOfiFolder:
-            self.__add_ifolder (iFolder.ID)
-            self.__add_entries (iFolder.ID)
+        if ArrayOfiFolder is not None:
+            for iFolder in ArrayOfiFolder:
+                self.__add_ifolder (iFolder.ID)
+                self.__add_entries (iFolder.ID)
 
     def __ifolder_has_changes (self, iFolderID, mtime):
         iFolder = self.ifolderws.get_ifolder (iFolderID)
@@ -280,10 +281,11 @@ class pyFolder:
 
     def __add_new_ifolders (self):
         ArrayOfiFolder = self.ifolderws.get_all_ifolders ()
-        for iFolder in ArrayOfiFolder:
-            if self.dbm.get_ifolder (iFolder.ID) is None:
-                self.__add_ifolder (iFolder.ID)
-                self.__add_entries (iFolder.ID)
+        if ArrayOfiFolder is not None:
+            for iFolder in ArrayOfiFolder:
+                if self.dbm.get_ifolder (iFolder.ID) is None:
+                    self.__add_ifolder (iFolder.ID)
+                    self.__add_entries (iFolder.ID)
 
     def __check_for_deleted_ifolder (self, ifolder_t):
         Updated = False
