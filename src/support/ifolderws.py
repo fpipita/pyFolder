@@ -37,7 +37,7 @@ class iFolderWS:
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def get_ifolder_entry_id (self, iFolderID):
         try:
@@ -53,7 +53,7 @@ class iFolderWS:
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def get_latest_change (self, iFolderID, iFolderEntryID):
         try:
@@ -73,7 +73,7 @@ class iFolderWS:
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
         
     def get_entry_by_path (self, iFolderID, Path):
         try:
@@ -90,7 +90,7 @@ class iFolderWS:
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def get_children_by_ifolder (self, iFolderID):
         try:
@@ -111,7 +111,7 @@ class iFolderWS:
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def get_ifolder (self, iFolderID):
         try:
@@ -129,7 +129,7 @@ class iFolderWS:
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def get_entry (self, iFolderID, iFolderEntryID):
         try:
@@ -144,34 +144,28 @@ class iFolderWS:
                                        (iFolderEntry.Name))
                 return iFolderEntry
             else:
-                self.logger.debug ('Could not get iFolderEntry with ID={0} ' \
-                                       'and iFolderID={1}'.format \
-                                       (iFolderID, iFolderEntryID))
+                self.logger.debug ('Could not get iFolderEntry')
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
         
     def open_file_read (self, iFolderID, iFolderEntryID):
         try:
             Handle = self.client.service.OpenFileRead \
                 (iFolderID, iFolderEntryID)
             if Handle is not None:
-                self.logger.info ('Remote File (iFolderID={0}, ' \
-                                       'ID={0}) has been ' \
-                                       'successfully ' \
-                                       'opened for reading'.format \
-                                       (iFolderID, iFolderEntryID))
+                self.logger.info (\
+                    'Remote File has been successfully ' \
+                        'opened for reading')
                 return Handle
             else:
-                self.logger.warning ('Could not open remote File ' \
-                                         '(iFolderID={0}, ' \
-                                         'ID={0}) for reading'.format \
-                                         (iFolderID, iFolderEntryID))
+                self.logger.warning (\
+                    'Could not open remote File for reading')
             return None
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def read_file (self, Handle):
         try:
@@ -179,28 +173,24 @@ class iFolderWS:
                 (Handle, self.cm.get_soapbuflen ())
         except WebFault, wf:
             self.logger.error (wf)
-            return None
+            raise
 
     def open_file_write (self, iFolderID, iFolderEntryID, Size):
         try :
             Handle = self.client.service.OpenFileWrite \
                 (iFolderID, iFolderEntryID, Size)
             if Handle is not None:
-                self.logger.info ('Remote File (iFolderID={0}, ' \
-                                       'ID={0}) has been ' \
-                                       'successfully ' \
-                                       'opened for writing'.format \
-                                       (iFolderID, iFolderEntryID))
+                self.logger.info (\
+                    'Remote File has beend successfully ' \
+                        'opened for writing')
                 return Handle
             else:
-                self.logger.warning ('Could not open remote File ' \
-                                         '(iFolderID={0}, ' \
-                                         'ID={0}) for writing'.format \
-                                         (iFolderID, iFolderEntryID))
+                self.logger.warning (\
+                    'Could not open remote File for writing')
             return None
         except WebFault, wf:
             self.logger.debug (wf)
-            return None
+            raise
     
     def write_file (self, Handle, Data):
         try:
@@ -208,7 +198,7 @@ class iFolderWS:
             return True
         except WebFault, wf:
             self.logger.error (wf)
-            return False
+            raise
 
     def close_file (self, Handle):
         try:
@@ -218,7 +208,7 @@ class iFolderWS:
             return True
         except WebFault, wf:
             self.logger.error (wf)
-            return False
+            raise
 
     def create_entry (self, iFolderID, ParentID, Name, Type):
         try:
