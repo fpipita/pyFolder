@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import logging
 from suds.client import Client
 from suds.transport.https import HttpAuthenticated
