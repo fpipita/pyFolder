@@ -3,10 +3,6 @@ from suds.client import Client
 from suds.transport.https import HttpAuthenticated
 from suds import WebFault
 
-class NullHandler (logging.Handler):
-    def emit (self, record):
-        pass
-
 class iFolderWS:
     def __init__ (self, cm):
         self.cm = cm
@@ -20,7 +16,6 @@ class iFolderWS:
         transport = HttpAuthenticated (username=self.cm.get_username (), \
                                            password=self.cm.get_password ())
         self.client = Client (self.cm.get_ifolderws (), transport=transport)
-        logging.getLogger ('suds.client').addHandler (NullHandler ())
 
     def get_all_ifolders (self):
         try:
