@@ -16,7 +16,23 @@ class iFolderWS:
         transport = HttpAuthenticated (username=self.cm.get_username (), \
                                            password=self.cm.get_password ())
         self.client = Client (self.cm.get_ifolderws (), transport=transport)
+        
+    def create_ifolder (self, Name, Description='', SSL=False, \
+                            EncryptionAlgorithm='', PassPhrase=''):
+        try:
+            return self.client.service.CreateiFolder (\
+                Name, Description, SSL, EncryptionAlgorithm, PassPhrase)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
+    def delete_ifolder (self, iFolderID):
+        try:
+            self.client.service.DeleteiFolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+    
     def get_all_ifolders (self):
         try:
             self.logger.debug ('Retrieving available ' \
