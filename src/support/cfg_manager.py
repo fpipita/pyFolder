@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from optparse import OptionParser
 from policy import PolicyFactory
 
@@ -8,7 +10,10 @@ class CfgManager ():
         def __init__ (self, ifcm):
             pass
 
-    def __init__ (self, configfile, pathtodb, soapbuflen):
+    def __init__ (self, configfile=None, \
+                      pathtodb=None, \
+                      soapbuflen=None, \
+                      runfromtest=False):
 
         # Try to read the configuration file
         CfgManager.CfgFile (self)
@@ -105,6 +110,10 @@ class CfgManager ():
                                     default=False)
         
         (self.options, self.args) = self.parser.parse_args ()
+
+        if runfromtest:
+            return
+
         if self.options.username is None or self.options.password is None \
                 or self.options.ifolderws is None:
             self.parser.print_help ()
