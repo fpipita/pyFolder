@@ -19,7 +19,7 @@ IFOLDERWS = 'http://192.168.56.3/simias10/iFolderWeb.asmx?wsdl=0'
 IFOLDER_NAME = 'TestUpdate'
 PREFIX = '/tmp/pyFolder'
 
-WAIT_FOR_SIMIAS_TO_UPDATE = 2
+WAIT_FOR_SIMIAS_TO_UPDATE = 5
 
 class TestUpdate (unittest.TestCase):
     def setUp (self):
@@ -63,6 +63,14 @@ class TestUpdate (unittest.TestCase):
         LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
 
         self.assertTrue (os.path.isfile (LocalPath))
+
+        iFolder = self.pyFolder.ifolderws.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        ifolder_t = self.pyFolder.dbm.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
     
     def testModifyFile (self):
         Name = 'foo'
@@ -99,6 +107,14 @@ class TestUpdate (unittest.TestCase):
         
         with open (LocalPath, 'rb') as File:
             self.assertEqual (File.readlines ()[0], Data)
+
+        iFolder = self.pyFolder.ifolderws.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        ifolder_t = self.pyFolder.dbm.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
         
     def testDeleteFile (self):
         Name = 'foo'
@@ -127,6 +143,14 @@ class TestUpdate (unittest.TestCase):
         
         self.assertFalse (os.path.isfile (LocalPath))
 
+        iFolder = self.pyFolder.ifolderws.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        ifolder_t = self.pyFolder.dbm.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
+
     def testAddDirectory (self):
         Name = 'foo'
 
@@ -148,6 +172,14 @@ class TestUpdate (unittest.TestCase):
         LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
         
         self.assertTrue (os.path.isdir (LocalPath))
+
+        iFolder = self.pyFolder.ifolderws.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        ifolder_t = self.pyFolder.dbm.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
     
     # def testModifyDirectory (self):
     #     pass
@@ -178,6 +210,14 @@ class TestUpdate (unittest.TestCase):
         LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
         
         self.assertFalse (os.path.isdir (LocalPath))
+
+        iFolder = self.pyFolder.ifolderws.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        ifolder_t = self.pyFolder.dbm.get_ifolder (\
+            iFolderEntry.iFolderID)
+        
+        self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
 
     def tearDown (self):
         shutil.rmtree (PREFIX)
