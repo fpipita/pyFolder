@@ -631,7 +631,7 @@ class pyFolder:
                                 self.policy.modify_remote_directory \
                                 (entry_t['ifolder'], entry_t['id'], entry_t['path'])
                         if update_entry_in_dbm:
-                            ChangeEntry = self.__get_latest_change \
+                            ChangeEntry = self.ifolderws.get_latest_change \
                                 (entry_t['ifolder'], entry_t['id'])
                             if ChangeEntry is not None:
                                 self.dbm.update_mtime_and_digest_by_entry \
