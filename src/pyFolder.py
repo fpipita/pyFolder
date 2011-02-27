@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
+
 from support.dbm import DBM
 from support.cfg_manager import CfgManager
 from support.policy import PolicyFactory
@@ -11,24 +13,32 @@ import shutil
 import sqlite3
 import sys
 
+
 DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 
+class NullHandler (logging.Handler):
+    def emit (self, record):
+        pass
+
 class pyFolder:
-    def __init__ (self, cm):
+    def __init__ (self, cm, runfromtest=False):
         self.cm = cm
         self.__setup_logger ()
         self.__setup_ifolderws ()
         self.__setup_dbm ()
         self.__setup_policy ()
-        self.__action ()
+
+        if not runfromtest:
+            self.__action ()
 
     def __setup_policy (self):
-        self.policy = PolicyFactory.create (cm.get_policy (), self)
+        self.policy = PolicyFactory.create (self.cm.get_policy (), self)
 
     def __setup_ifolderws (self):
         self.ifolderws = iFolderWS (self.cm)
+        logging.getLogger ('suds.client').addHandler (NullHandler ())
 
     def __setup_dbm (self):
         self.dbm = DBM (self.cm.get_pathtodb ())
@@ -84,6 +94,8 @@ class pyFolder:
                     if Base64Data is None:
                         break
                     f.write (base64.b64decode (Base64Data))
+            self.logger.info ('Local File `{0}\' ' \
+                                  'successfully updated.'.format (Path))
             return self.ifolderws.close_file (Handle)
         return False
 
@@ -101,7 +113,7 @@ class pyFolder:
                     Fine = Fine and self.ifolderws.write_file \
                         (Handle, base64.b64encode (Data))
             if Fine:
-                self.logger.info ('File `{0}\' has been ' \
+                self.logger.info ('Remote File `{0}\' has been ' \
                                        'successfully updated'.format (Path))
             else:
                 self.logger.warning ('Error while updating `{0}\''.format (Path))
@@ -449,7 +461,6 @@ class pyFolder:
         self.dbm.delete_entry (iFolderID, EntryID)
 
     def update (self):
-        Updated = False
         try:
             known_ifolders_t = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
@@ -460,6 +471,7 @@ class pyFolder:
                                    'command line switch.')
             sys.exit ()
         for ifolder_t in known_ifolders_t:
+            Updated = False
             iFolderID = ifolder_t['id']
             mtime = ifolder_t['mtime']
             if self.__ifolder_has_changes (iFolderID, mtime):
