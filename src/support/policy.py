@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from suds import WebFault
 import logging
 
 class Policy:
@@ -91,11 +92,19 @@ class DEFAULT (Policy):
     def modify_remote_file (self, ifolder_id, entry_id, path):
         return self.pyFolder.remote_file_write (ifolder_id, entry_id, path)
     
-    def delete_remote_directory (self, ifolder_id, entry_id, path):
-        return self.pyFolder.remote_rmdir (ifolder_id, entry_id, path)
+    def delete_remote_directory (self, iFolderID, iFolderEntryID, Path):
+        try:
+            self.pyFolder.remote_rmdir (iFolderID, iFolderEntryID, Path)
+        except WebFault, wf:
+            pass
+        return True
 
-    def delete_remote_file (self, ifolder_id, entry_id, path):
-        return self.pyFolder.remote_delete (ifolder_id, entry_id, path)
+    def delete_remote_file (self, iFolderID, iFolderEntryID, Path):
+        try:
+            self.pyFolder.remote_delete (iFolderID, iFolderEntryID, Path)
+        except WebFault, wf:
+            pass
+        return True
 
 class PolicyFactory:
     @staticmethod
