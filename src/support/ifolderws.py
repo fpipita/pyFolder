@@ -109,9 +109,9 @@ class iFolderWS:
         try:
             self.logger.debug ('Getting all the children for ' \
                                    'iFolder with ID={0}'.format (iFolderID))
-            operation = self.client.factory.create ('SearchOperation')
+            SearchOperation = self.get_search_operation ()
             iFolderEntrySet = self.client.service.GetEntriesByName \
-                (iFolderID, iFolderID, operation.Contains, '.', 0, 0)
+                (iFolderID, iFolderID, SearchOperation.Contains, '.', 0, 0)
             if iFolderEntrySet.Total > 0:
                 iFolderEntry = iFolderEntrySet.Items.iFolderEntry
                 self.logger.debug ('Found {0} ' \
@@ -251,8 +251,38 @@ class iFolderWS:
             self.logger.error (wf)
             raise
         
+    def add_member (self, iFolderID, UserID, Rights):
+        try:
+            self.client.service.AddMember (\
+                iFolderID, UserID, Rights)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+    def get_users_by_search (self, Property, Operation, Pattern, \
+                                 Index, Max):
+        try:
+            iFolderUserSet = self.client.service.GetUsersBySearch (\
+                Property, Operation, Pattern, Index, Max)
+            if iFolderUserSet.Total > 0:
+                ArrayOfiFolderUser = iFolderUserSet.Items.iFolderUser
+                return ArrayOfiFolderUser
+            return None
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
     def get_ifolder_entry_type (self):
         return self.client.factory.create ('iFolderEntryType')
         
     def get_change_entry_action (self):
         return self.client.factory.create ('ChangeEntryAction')
+    
+    def get_rights (self):
+        return self.client.factory.create ('Rights')
+
+    def get_search_property (self):
+        return self.client.factory.create ('SearchProperty')
+    
+    def get_search_operation (self):
+        return self.client.factory.create ('SearchOperation')
