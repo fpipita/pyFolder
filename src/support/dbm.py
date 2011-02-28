@@ -247,9 +247,9 @@ class DBM:
         cu.execute (DBM.Q_GET_ENTRIES_BY_IFOLDER, (ifolder_id,))
         return cu.fetchall ()
     
-    def get_entries_by_parent (self, parent_id):
+    def get_entries_by_parent (self, ParentID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRIES_BY_PARENT, (parent_id,))
+        cu.execute (DBM.Q_GET_ENTRIES_BY_PARENT, (ParentID,))
         return cu.fetchall ()
 
     def get_entry_by_ifolder_and_path (self, ifolder_id, path):
