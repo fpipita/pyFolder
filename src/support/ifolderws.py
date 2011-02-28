@@ -247,7 +247,6 @@ class iFolderWS:
             self.logger.info ('{0} `{1}\', ' \
                                   'has been remotely ' \
                                   'deleted'.format (Type, Name))
-            return True
         except WebFault, wf:
             self.logger.error (wf)
             raise
