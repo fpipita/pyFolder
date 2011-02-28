@@ -649,6 +649,9 @@ class pyFolder:
             Path = EntryTuple['path']
             LocalPath = EntryTuple['localpath']
 
+            if self.dbm.get_entry (iFolderID, iFolderEntryID) is None:
+                continue
+            
             self.logger.debug ('Checking entry `{0}\''.format (LocalPath))
 
             ChangeType, EntryType = self.__get_local_changes_on_entry (\
