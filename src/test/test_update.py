@@ -22,6 +22,7 @@ PREFIX = '/tmp/pyFolder'
 WAIT_FOR_SIMIAS_TO_UPDATE = 5
 
 class TestUpdate (unittest.TestCase):
+
     def setUp (self):
         self.cm = CfgManager (\
             pathtodb=':memory:', \
@@ -41,6 +42,10 @@ class TestUpdate (unittest.TestCase):
         self.ChangeEntryAction = \
             self.pyFolder.ifolderws.get_change_entry_action ()
         self.pyFolder.checkout ()
+
+    def tearDown (self):
+        shutil.rmtree (PREFIX)
+        self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
 
     def testAddFile (self):
         Name = 'foo'
@@ -218,10 +223,6 @@ class TestUpdate (unittest.TestCase):
             iFolderEntry.iFolderID)
         
         self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
-
-    def tearDown (self):
-        shutil.rmtree (PREFIX)
-        self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         
 if __name__ == '__main__':
     unittest.main ()
