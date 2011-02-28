@@ -15,7 +15,7 @@ class DBM:
            digest         TEXT,
            parent         TEXT,
            path           TEXT,
-           name           TEXT,
+           localpath      TEXT,
            PRIMARY KEY    (ifolder, id)
         )
         """
@@ -71,6 +71,12 @@ class DBM:
         """
         SELECT * FROM entry AS e
         WHERE e.ifolder=? AND e.path=?
+        """
+
+    Q_GET_ENTRY_BY_IFOLDER_AND_LOCALPATH = \
+        """
+        SELECT * FROM entry AS e
+        WHERE e.ifolder=? AND e.localpath=?
         """
 
     Q_GET_MTIME_BY_ENTRY = \
@@ -181,11 +187,21 @@ class DBM:
         self.logger.debug ('new_mtime={0}'.format (mtime))
         self.cx.commit ()
 
-    def add_entry (self, ifolder_id, entry_id, mtime, digest, parent_id, path, name):
+    def add_entry (self, iFolderID, iFolderEntryID, mtime, \
+                       Digest, ParentID, Path, LocalPath):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_ENTRY, \
-                        (ifolder_id, entry_id, mtime, digest, parent_id, path, name))
-        self.logger.info ('Added entry `{0}\''.format (path))
+
+        cu.execute (\
+            DBM.Q_ADD_ENTRY, (\
+                iFolderID, \
+                    iFolderEntryID, \
+                    mtime, \
+                    Digest, \
+                    ParentID, \
+                    Path, \
+                    LocalPath))
+
+        self.logger.info ('Added entry `{0}\''.format (Path))
         self.cx.commit ()
 
     def delete_entry (self, ifolder_id, entry_id):
@@ -239,6 +255,16 @@ class DBM:
     def get_entry_by_ifolder_and_path (self, ifolder_id, path):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_GET_ENTRY_BY_IFOLDER_AND_PATH, (ifolder_id, path))
+        return cu.fetchone ()
+
+    def get_entry_by_ifolder_and_localpath (self, iFolderID, LocalPath):
+        cu = self.cx.cursor ()
+
+        cu.execute (\
+            DBM.Q_GET_ENTRY_BY_IFOLDER_AND_LOCALPATH, (\
+                iFolderID, \
+                    LocalPath))
+
         return cu.fetchone ()
 
     def __del__ (self):
