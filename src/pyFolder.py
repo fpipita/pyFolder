@@ -480,11 +480,11 @@ class pyFolder:
         try:
             known_ifolders_t = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
-            self.logger.error ('Could not open the local database. Please, ' \
-                                   'run the `checkout\' action first ' \
-                                   'or provide a valid path to the local ' \
-                                   'database using the `--pathtodb\' ' \
-                                   'command line switch.')
+            print >> sys.stderr, 'Could not open the local database. Please, ' \
+                'run the `checkout\' action first ' \
+                'or provide a valid path to the local ' \
+                'database using the `--pathtodb\' ' \
+                'command line switch.')
             sys.exit ()
         for ifolder_t in known_ifolders_t:
             Updated = False
@@ -622,7 +622,7 @@ class pyFolder:
             self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
         return Updated
 
-    def __delete_hierarchy_in_dbm (self, iFolderID, iFolderEntryID):
+    def __delete_hierarchy_from_dbm (self, iFolderID, iFolderEntryID):
         ListOfEntryTuple = self.dbm.get_entries_by_parent (iFolderEntryID)
         if len (ListOfEntryTuple) == 0:
             self.dbm.delete_entry (iFolderID, iFolderEntryID)
@@ -643,7 +643,7 @@ class pyFolder:
             Updated = self.policy.delete_remote_directory (\
                 iFolderID, iFolderEntryID, Path)
             if Updated:
-                self.__delete_hierarchy_in_dbm (iFolderID, iFolderEntryID)
+                self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
         if Updated:
             self.dbm.delete_entry (iFolderID, iFolderEntryID)
         return Updated
