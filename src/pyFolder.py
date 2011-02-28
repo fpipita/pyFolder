@@ -62,14 +62,14 @@ class pyFolder:
     def remote_delete (self, iFolderID, iFolderEntryID, Path):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        return self.ifolderws.delete_entry \
-            (iFolderID, iFolderEntryID, Name, iFolderEntryType.File)
+        self.ifolderws.delete_entry (\
+            iFolderID, iFolderEntryID, Name, iFolderEntryType.File)
 
     def remote_rmdir (self, iFolderID, iFolderEntryID, Path):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        return self.ifolderws.delete_entry \
-            (iFolderID, iFolderEntryID, Name, iFolderEntryType.Directory)
+        self.ifolderws.delete_entry (\
+            iFolderID, iFolderEntryID, Name, iFolderEntryType.Directory)
 
     def remote_create_file (self, iFolderID, ParentID, Path):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
@@ -621,6 +621,17 @@ class pyFolder:
         if Updated:
             self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
         return Updated
+
+    def __delete_hierarchy_in_dbm (self, iFolderID, iFolderEntryID):
+        ListOfEntryTuple = self.dbm.get_entries_by_parent (iFolderEntryID)
+        if len (ListOfEntryTuple) == 0:
+            self.dbm.delete_entry (iFolderID, iFolderEntryID)
+            return
+        for EntryTuple in ListOfEntryTuple:
+            ChildrenID = EntryTuple['id']
+            if EntryTuple['digest'] == 'DIRECTORY':
+                self.__delete_hierarchy_in_dbm (iFolderID, ChildrenID)
+            self.dbm.delete_entry (iFolderID, ChildrenID)
     
     def __commit_deleted_entry (self, iFolderID, iFolderEntryID, \
                                     Path, EntryType, iFolderEntryType):
@@ -632,7 +643,7 @@ class pyFolder:
             Updated = self.policy.delete_remote_directory (\
                 iFolderID, iFolderEntryID, Path)
             if Updated:
-                self.dbm.delete_entries_by_parent (iFolderEntryID)
+                self.__delete_hierarchy_in_dbm (iFolderID, iFolderEntryID)
         if Updated:
             self.dbm.delete_entry (iFolderID, iFolderEntryID)
         return Updated
