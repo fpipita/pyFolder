@@ -155,10 +155,13 @@ class pyFolder:
                 Updated = self.policy.add_directory \
                     (iFolderID, ChangeEntry.ID, ChangeEntry.Name)
             if Updated:
-                self.dbm.add_entry \
-                    (iFolderID, ChangeEntry.ID, ChangeEntry.Time, \
-                         self.__md5_hash (ChangeEntry.Name), ParentID, \
-                         ChangeEntry.Name, Name)
+                self.__add_entry_to_dbm (\
+                    None, \
+                        iFolderID, \
+                        ChangeEntry.ID, \
+                        ChangeEntry.Time, \
+                        ParentID, \
+                        ChangeEntry.Name)
         return Updated
 
     def checkout (self):
@@ -320,18 +323,32 @@ class pyFolder:
                 self.dbm.delete_ifolder (ifolder_t['id'])
             return Updated
 
-    def __add_entry_to_dbm (self, iFolderEntry):
-        ChangeEntry = self.ifolderws.get_latest_change \
-            (iFolderEntry.iFolderID, iFolderEntry.ID)
-        if ChangeEntry is not None:
-            self.dbm.add_entry (\
-                iFolderEntry.iFolderID, \
-                    iFolderEntry.ID, \
-                    ChangeEntry.Time, \
-                    self.__md5_hash (iFolderEntry.Path), \
-                    iFolderEntry.ParentID, \
-                    iFolderEntry.Path, \
-                    iFolderEntry.Name)
+    # *args = (iFolderID, iFolderEntryID, ChangeTime, ParentID, Path)
+    def __add_entry_to_dbm (self, iFolderEntry, *args):
+
+        iFolderID = None
+        iFolderEntryID = None
+        ChangeTime = None
+        ParentID = None
+        Path = None
+
+        if iFolderEntry is None:
+            iFolderID, iFolderEntryID, ChangeTime, ParentID, Path = args
+        else:
+            ChangeEntry = self.ifolderws.get_latest_change \
+                (iFolderEntry.iFolderID, iFolderEntry.ID)
+            if ChangeEntry is not None:
+                iFolderID = iFolderEntry.iFolderID
+                iFolderEntryID = iFolderEntry.ID
+                ChangeTime = ChangeEntry.Time
+                ParentID = iFolderEntry.ParentID
+                Path = iFolderEntry.Path
+
+        Hash = self.__md5_hash (Path)
+        LocalPath = os.path.normpath (Path)            
+        self.dbm.add_entry (\
+            iFolderID, iFolderEntryID, ChangeTime, Hash, ParentID, \
+                Path, LocalPath)
 
     def __add_prefix (self, path):
         if self.cm.get_prefix () != '':
@@ -516,7 +533,7 @@ class pyFolder:
         return ChangeEntryAction, iFolderEntryType, Action, Type
 
     def __is_new_local_entry (self, iFolderID, Path, Isdir):
-        entry_t = self.dbm.get_entry_by_ifolder_and_path (iFolderID, Path)
+        entry_t = self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Path)
         if entry_t is None:
             if Isdir:
                 self.logger.info ('Found new local directory `{0}\''.format (Path))
@@ -525,7 +542,7 @@ class pyFolder:
             return True
         return False
 
-    def __is_new_local_directory (self, iFolderID, Path):
+    def is_new_local_directory (self, iFolderID, Path):
         return self.__is_new_local_entry (iFolderID, Path, Isdir=True)
 
     def __is_new_local_file (self, iFolderID, Path):
@@ -534,8 +551,8 @@ class pyFolder:
     def __find_parent (self, iFolderID, Path):
         self.logger.debug ('Finding parent for {0}'.format (Path))
         ParentPath = os.path.split (Path)[0]
-        entry_t = self.dbm.get_entry_by_ifolder_and_path \
-            (iFolderID, ParentPath)
+        entry_t = self.dbm.get_entry_by_ifolder_and_localpath (\
+            iFolderID, ParentPath)
         if entry_t is None:
             ifolder_t = self.dbm.get_ifolder (iFolderID)
             if ParentPath == ifolder_t['name']:
@@ -554,7 +571,7 @@ class pyFolder:
         Updated = False
         for Dir in Dirs:
             Path = os.path.join (self.__remove_prefix (Root), Dir)
-            if self.__is_new_local_directory (iFolderID, Path):
+            if self.is_new_local_directory (iFolderID, Path):
                 ParentID = self.__find_parent (iFolderID, Path)
                 if ParentID is not None:
                     iFolderEntry = self.policy.add_remote_directory (\
