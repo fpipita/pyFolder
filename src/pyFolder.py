@@ -483,7 +483,8 @@ class pyFolder:
         try:
             known_ifolders_t = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
-            print >> sys.stderr, 'Could not open the local database. Please, ' \
+            print >> sys.stderr, 'Could not open the local database. '
+            'Please, ' \
                 'run the `checkout\' action first ' \
                 'or provide a valid path to the local ' \
                 'database using the `--pathtodb\' ' \
@@ -538,7 +539,8 @@ class pyFolder:
         entry_t = self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Path)
         if entry_t is None:
             if Isdir:
-                self.logger.info ('Found new local directory `{0}\''.format (Path))
+                self.logger.info ('Found new local ' \
+                                      'directory `{0}\''.format (Path))
             else:
                 self.logger.info ('Found new local file `{0}\''.format (Path))
             return True
