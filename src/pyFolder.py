@@ -239,41 +239,44 @@ class pyFolder:
     def __handle_delete_action (self, iFolderID, iFolderEntryID, ChangeEntry):
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
-        if ChangeEntry.Type == iFolderEntryType.Directory:
-            Updated = self.policy.delete_directory \
-                (iFolderID, iFolderEntryID, ChangeEntry.Name)
-                # Optimization : delete also all the entries
-                # from the DB that have EntryID as ParentID
-        elif ChangeEntry.Type == iFolderEntryType.File:
-            Updated = self.policy.delete_file \
-                (iFolderID, iFolderEntryID, ChangeEntry.Name)
+        if ChangeEntry.Type == iFolderEntryType.File:
+            Updated = self.policy.delete_file (\
+                iFolderID, iFolderEntryID, ChangeEntry.Name)
+        elif ChangeEntry.Type == iFolderEntryType.Directory:
+            Updated = self.policy.delete_directory (\
+                iFolderID, iFolderEntryID, ChangeEntry.Name)
+            if Updated:
+                self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
         if Updated:
             self.__delete_entry_from_dbm (iFolderID, iFolderEntryID)
         return Updated
 
     def __update_ifolder (self, iFolderID):
-        entries_t = self.dbm.get_entries_by_ifolder (iFolderID)
+        ListOfEntryTuple = self.dbm.get_entries_by_ifolder (iFolderID)
         ChangeEntryAction = self.ifolderws.get_change_entry_action ()
         Updated = False
-        for entry_t in entries_t:
-            # Optimization : check for entries deleted from the
-            # DB in the meanwhile and skip the checks about them 
-            # (useful when removing a directory with many children)
-            iFolderID = entry_t['ifolder']
-            EntryID = entry_t['id']
-            Path = entry_t['path']
-            mtime = entry_t['mtime']
-            ChangeEntry = self.__get_change (iFolderID, EntryID, Path, mtime)
+
+        for EntryTuple in ListOfEntryTuple:
+            iFolderID = EntryTuple['ifolder']
+            iFolderEntryID = EntryTuple['id']
+            Path = EntryTuple['path']
+            mtime = EntryTuple['mtime']
+
+            if self.dbm.get_entry (iFolderID, iFolderEntryID) is None:
+                continue
+            
+            ChangeEntry = self.__get_change (\
+                iFolderID, iFolderEntryID, Path, mtime)
             if ChangeEntry is not None:
                 if ChangeEntry.Action == ChangeEntryAction.Add:
                     Updated = self.__handle_add_action \
-                        (iFolderID, EntryID, ChangeEntry) or Updated
+                        (iFolderID, iFolderEntryID, ChangeEntry) or Updated
                 elif ChangeEntry.Action == ChangeEntryAction.Modify:
                     Updated = self.__handle_modify_action \
-                        (iFolderID, EntryID, ChangeEntry) or Updated
+                        (iFolderID, iFolderEntryID, ChangeEntry) or Updated
                 elif ChangeEntry.Action == ChangeEntryAction.Delete:
                     Updated = self.__handle_delete_action \
-                        (iFolderID, EntryID, ChangeEntry) or Updated
+                        (iFolderID, iFolderEntryID, ChangeEntry) or Updated
         return Updated
 
     def __add_new_entries (self, iFolderID):
@@ -473,8 +476,8 @@ class pyFolder:
                 iFolderID, iFolderEntryID, ChangeEntry.Time, \
                     self.__md5_hash (ChangeEntry.Name))
 
-    def __delete_entry_from_dbm (self, iFolderID, EntryID):
-        self.dbm.delete_entry (iFolderID, EntryID)
+    def __delete_entry_from_dbm (self, iFolderID, iFolderEntryID):
+        self.dbm.delete_entry (iFolderID, iFolderEntryID)
 
     def update (self):
         try:
@@ -484,7 +487,7 @@ class pyFolder:
                 'run the `checkout\' action first ' \
                 'or provide a valid path to the local ' \
                 'database using the `--pathtodb\' ' \
-                'command line switch.')
+                'command line switch.'
             sys.exit ()
         for ifolder_t in known_ifolders_t:
             Updated = False
@@ -630,7 +633,7 @@ class pyFolder:
         for EntryTuple in ListOfEntryTuple:
             ChildrenID = EntryTuple['id']
             if EntryTuple['digest'] == 'DIRECTORY':
-                self.__delete_hierarchy_in_dbm (iFolderID, ChildrenID)
+                self.__delete_hierarchy_from_dbm (iFolderID, ChildrenID)
             self.dbm.delete_entry (iFolderID, ChildrenID)
     
     def __commit_deleted_entry (self, iFolderID, iFolderEntryID, \
@@ -645,7 +648,7 @@ class pyFolder:
             if Updated:
                 self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
         if Updated:
-            self.dbm.delete_entry (iFolderID, iFolderEntryID)
+            self.__delete_entry_from_dbm (iFolderID, iFolderEntryID)
         return Updated
     
     def __commit_existing_entries (self, iFolderID):
