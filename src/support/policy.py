@@ -63,31 +63,60 @@ class DEFAULT (Policy):
       that they will be available for all the users at the next update.
     """
     def add_directory (self, ifolder_id, entry_id, path):
-        return self.pyFolder.mkdir (path)
+        try:
+            self.pyFolder.mkdir (path)
+        except OSError:
+            pass
+        return True
 
     def add_file (self, ifolder_id, entry_id, path):
-        return self.pyFolder.fetch (ifolder_id, entry_id, path)
+        self.pyFolder.fetch (ifolder_id, entry_id, path)
+        return True
 
     def modify_directory (self, ifolder_id, entry_id, path):
         return True
 
     def modify_file (self, ifolder_id, entry_id, path):
-        return self.pyFolder.fetch (ifolder_id, entry_id, path)
+        self.pyFolder.fetch (ifolder_id, entry_id, path)
+        return True
     
     def delete_directory (self, ifolder_id, entry_id, path):
-        return self.pyFolder.rmdir (path)
+        try:
+            self.pyFolder.rmdir (path)
+        except OSError:
+            pass
+        return True
 
     def delete_file (self, ifolder_id, entry_id, path):
-        return self.pyFolder.delete (path)
+        try:
+            self.pyFolder.delete (path)
+        except OSError:
+            pass
+        return True
 
     def add_remote_directory (self, ifolder_id, parent_id, path):
-        return self.pyFolder.remote_mkdir (ifolder_id, parent_id, path)
+        try:
+            iFolderEntry = \
+                self.pyFolder.remote_mkdir (ifolder_id, parent_id, path)
+            return iFolderEntry
+        except WebFault, wf:
+            raise
     
-    def add_remote_file (self, ifolder_id, parent_id, path):
-        return self.pyFolder.remote_create_file (ifolder_id, parent_id, path)
+    def add_remote_file (self, iFolderID, ParentID, Path):
+        try:
+            iFolderEntry = \
+                self.pyFolder.remote_create_file (iFolderID, ParentID, Path)
+            return iFolderEntry
+        except WebFault, wf:
+            NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
+            self.pyFolder.rename (Path, NewPath)
+            iFolderEntry = \
+                self.pyFolder.remote_create_file (\
+                iFolderID, ParentID, NewPath)
+            return iFolderEntry
 
     def modify_remote_directory (self, ifolder_id, entry_id, path):
-        return False
+        return True
     
     def modify_remote_file (self, ifolder_id, entry_id, path):
         return self.pyFolder.remote_file_write (ifolder_id, entry_id, path)
