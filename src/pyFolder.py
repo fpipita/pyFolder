@@ -372,42 +372,43 @@ class pyFolder:
 
     def path_isdir (self, path):
         return os.path.isdir (self.__add_prefix (path))
+    
+    def rename (self, src, dst):
+        src = self.__add_prefix (src)
+        dst = self.__add_prefix (dst)
+        try:
+            os.rename (src, dst)
+            self.logger.info ('Renamed `{0}\' to `{1}\''.format (src, dst))
+        except OSError, ose:
+            self.logger.error (ose)
+            raise
 
     def delete (self, path):
-        if self.path_isfile (path):
-            path = self.__add_prefix (path)
-            try:
-                os.remove (path)
-                self.logger.info ('Deleted local file `{0}\''.format (path))
-                return True
-            except OSError, ose:
-                self.logger.error (ose)
-                return False
-        return True
+        path = self.__add_prefix (path)
+        try:
+            os.remove (path)
+            self.logger.info ('Deleted local file `{0}\''.format (path))
+        except OSError, ose:
+            self.logger.error (ose)
+            raise
 
     def rmdir (self, path):
-        if self.path_isdir (path):
-            path = self.__add_prefix (path)
-            try:
-                shutil.rmtree (path)
-                self.logger.info ('Deleted local directory `{0}\''.format (path))
-                return True
-            except OSError, ose:
-                self.logger.error (ose)
-                return False
-        return True
+        path = self.__add_prefix (path)
+        try:
+            shutil.rmtree (path)
+            self.logger.info ('Deleted local directory `{0}\''.format (path))
+        except OSError, ose:
+            self.logger.error (ose)
+            raise
 
     def mkdir (self, path):
-        if not self.path_isdir (path):
-            path = self.__add_prefix (path)
-            try:
-                os.makedirs (path)
-                self.logger.info ('Added local directory `{0}\''.format (path))
-                return True
-            except OSError, ose:
-                self.logger.error (ose)
-                return False
-        return True
+        path = self.__add_prefix (path)
+        try:
+            os.makedirs (path)
+            self.logger.info ('Added local directory `{0}\''.format (path))
+        except OSError, ose:
+            self.logger.error (ose)
+            raise
 
     def getsize (self, path):
         return os.path.getsize (self.__add_prefix (path))
