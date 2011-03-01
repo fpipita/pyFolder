@@ -94,13 +94,17 @@ class DEFAULT (Policy):
             pass
         return True
 
-    def add_remote_directory (self, ifolder_id, parent_id, path):
+    def add_remote_directory (self, iFolderID, ParentID, Path):
         try:
             iFolderEntry = \
-                self.pyFolder.remote_mkdir (ifolder_id, parent_id, path)
+                self.pyFolder.remote_mkdir (iFolderID, ParentID, Path)
             return iFolderEntry
         except WebFault, wf:
-            raise
+            NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
+            self.pyFolder.rename (Path, NewPath)
+            iFolderEntry = \
+                self.pyFolder.remote_mkdir (iFolderID, ParentID, NewPath)
+            return iFolderEntry
     
     def add_remote_file (self, iFolderID, ParentID, Path):
         try:
