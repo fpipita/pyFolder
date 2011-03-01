@@ -167,12 +167,14 @@ class pyFolder:
         SearchOperation = self.ifolderws.get_search_operation ()
         Name = os.path.split (Path)[1]
 
+        iFolderEntry = None
         ArrayOfiFolderEntry = self.ifolderws.get_entries_by_name (\
             iFolderID, ParentID, SearchOperation.Contains, Name, \
                 0, 1)
         
         if ArrayOfiFolderEntry is not None:
-            for iFolderEntry in ArrayOfiFolderEntry:
+            for _iFolderEntry in ArrayOfiFolderEntry:
+                iFolderEntry = _iFolderEntry
                 ChangeEntry = self.ifolderws.get_latest_change (\
                     iFolderEntry.iFolderID, iFolderEntry.ID)
                 if ChangeEntry is not None:
@@ -180,6 +182,26 @@ class pyFolder:
                         iFolderEntry.iFolderID, \
                             iFolderEntry.ParentID, \
                             ChangeEntry)
+                break
+        return iFolderEntry
+            
+    def add_hierarchy_locally (self, iFolderID, ParentID, Path):
+        SearchOperation = self.ifolderws.get_search_operation ()
+
+        iFolderEntry = self.add_entry_locally (iFolderID, ParentID, Path)
+
+        ArrayOfiFolderEntry = self.ifolderws.get_entries_by_name (\
+            iFolderEntry.iFolderID, iFolderEntry.ID, \
+                SearchOperation.Contains, '.', 0, 0)
+
+        if ArrayOfiFolderEntry is not None:
+            for _iFolderEntry in ArrayOfiFolderEntry:
+                ChangeEntry = self.ifolderws.get_latest_change (\
+                    _iFolderEntry.iFolderID, _iFolderEntry.ID)
+                if ChangeEntry is not None:
+                    self.__add_entry_locally (\
+                        _iFolderEntry.iFolderID, _iFolderEntry.ParentID, \
+                            _ChangeEntry)
                 break
 
     def checkout (self):

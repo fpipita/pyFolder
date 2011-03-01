@@ -102,6 +102,7 @@ class DEFAULT (Policy):
         except WebFault, wf:
             NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
             self.pyFolder.rename (Path, NewPath)
+            self.pyFolder.add_hierarchy_locally (iFolderID, ParentID, Path)
             iFolderEntry = \
                 self.pyFolder.remote_mkdir (iFolderID, ParentID, NewPath)
             return iFolderEntry
