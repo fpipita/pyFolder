@@ -162,9 +162,9 @@ class TestCommit (unittest.TestCase):
         self.assertTrue (os.path.isfile ('{0}-{1}'.format (LocalPath, USERNAME)))
         self.assertTrue (os.path.isfile (LocalPath))
         
-    def test_modify_file (self):
-        FileName = 'test_modify_file'
-        FileData = 'test_modify_file'
+    def test_get_local_changes_on_file (self):
+        FileName = 'test_get_local_changes_on_file'
+        FileData = 'test_get_local_changes_on_file'
         
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
             self.iFolder.ID, self.iFolderEntry.ID, FileName, \
@@ -174,25 +174,44 @@ class TestCommit (unittest.TestCase):
         
         self.pyFolder.update ()
         
-        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
-
-        with open (LocalPath, 'wb') as File:
-            File.write (FileData)
-        
         EntryTuple = self.pyFolder.dbm.get_entry (\
             iFolderEntry.iFolderID, iFolderEntry.ID)
 
         iFolderID = EntryTuple['ifolder']
         iFolderEntryID = EntryTuple['id']
-        Path = EntryTuple['path']
+        LocalPath = EntryTuple['localpath']
         Digest = EntryTuple['digest']
+
+        Action, Type = \
+            self.pyFolder.get_local_changes_on_entry (\
+            iFolderID, iFolderEntryID, LocalPath, Digest, \
+                self.iFolderEntryType, self.ChangeEntryAction)
+        
+        self.assertEqual (Action, None)
+        self.assertEqual (Type, self.iFolderEntryType.File)
+
+        _LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+
+        with open (_LocalPath, 'wb') as File:
+            File.write (FileData)
         
         Action, Type = \
             self.pyFolder.get_local_changes_on_entry (\
-            iFolderID, iFolderEntryID, Path, Digest, \
+            iFolderID, iFolderEntryID, LocalPath, Digest, \
                 self.iFolderEntryType, self.ChangeEntryAction)
         
         self.assertEqual (Action, self.ChangeEntryAction.Modify)
+        self.assertEqual (Type, self.iFolderEntryType.File)
+        
+        os.remove (_LocalPath)
+        
+        Action, Type = \
+            self.pyFolder.get_local_changes_on_entry (\
+            iFolderID, iFolderEntryID, LocalPath, Digest, \
+                self.iFolderEntryType, self.ChangeEntryAction)
+
+        self.assertEqual (Action, self.ChangeEntryAction.Delete)
+        self.assertEqual (Type, self.iFolderEntryType.File)
         
 if __name__ == '__main__':
     unittest.main ()
