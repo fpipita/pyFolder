@@ -47,7 +47,7 @@ class TestUpdate (unittest.TestCase):
         shutil.rmtree (PREFIX)
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
 
-    def testAddFile (self):
+    def test_add_file (self):
         Name = 'foo'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
@@ -77,7 +77,7 @@ class TestUpdate (unittest.TestCase):
         
         self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
     
-    def testModifyFile (self):
+    def test_modify_file (self):
         Name = 'foo'
         Data = 'bar'
 
@@ -121,7 +121,7 @@ class TestUpdate (unittest.TestCase):
         
         self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
         
-    def testDeleteFile (self):
+    def test_delete_file (self):
         Name = 'foo'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
@@ -156,7 +156,7 @@ class TestUpdate (unittest.TestCase):
         
         self.assertEqual (ifolder_t['mtime'], iFolder.LastModified)
 
-    def testAddDirectory (self):
+    def test_add_directory (self):
         Name = 'foo'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
@@ -189,7 +189,7 @@ class TestUpdate (unittest.TestCase):
     # def testModifyDirectory (self):
     #     pass
 
-    def testDeleteDirectory (self):
+    def test_delete_directory (self):
         Name = 'foo'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
