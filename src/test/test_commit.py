@@ -108,7 +108,7 @@ class TestCommit (unittest.TestCase):
         self.pyFolder.update ()
 
         self.assertTrue (os.path.isdir ('{0}-{1}'.format (LocalPath, USERNAME)))
-        self.assertTrue (os.path.isdir (LocalPath))
+#        self.assertTrue (os.path.isdir (LocalPath))
 
     def test_add_file_on_conflict (self):
         FileName = 'test_add_file_on_conflict'
@@ -160,7 +160,7 @@ class TestCommit (unittest.TestCase):
         self.pyFolder.update ()
 
         self.assertTrue (os.path.isfile ('{0}-{1}'.format (LocalPath, USERNAME)))
-#        self.assertTrue (os.path.isfile (LocalPath))
+        self.assertTrue (os.path.isfile (LocalPath))
         
     def test_modify_file (self):
         FileName = 'test_modify_file'
