@@ -498,7 +498,7 @@ class pyFolder:
 
     def update (self):
         try:
-            known_ifolders_t = self.dbm.get_ifolders ()
+            ListOfiFolderTuple = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
             print >> sys.stderr, 'Could not open the local database. '
             'Please, ' \
@@ -507,17 +507,21 @@ class pyFolder:
                 'database using the `--pathtodb\' ' \
                 'command line switch.'
             sys.exit ()
-        for ifolder_t in known_ifolders_t:
+        for iFolderTuple in ListOfiFolderTuple:
+            iFolderID = iFolderTuple['id']
+            mtime = iFolderTuple['mtime']
+
             Updated = False
-            iFolderID = ifolder_t['id']
-            mtime = ifolder_t['mtime']
+
             if self.__ifolder_has_changes (iFolderID, mtime):
                 Updated = self.__update_ifolder (iFolderID) or Updated
                 Updated = self.__add_new_entries (iFolderID) or Updated
-                if Updated:
-                    self.__update_ifolder_in_dbm (iFolderID)
-            self.__check_for_deleted_ifolder (ifolder_t)
-            self.__check_for_deleted_membership (ifolder_t)
+
+            if Updated:
+                self.__update_ifolder_in_dbm (iFolderID)
+
+            self.__check_for_deleted_ifolder (iFolderTuple)
+            self.__check_for_deleted_membership (iFolderTuple)
         self.__add_new_ifolders ()
 
     def __get_local_changes_on_entry (self, entry_t, iFolderEntryType, \
