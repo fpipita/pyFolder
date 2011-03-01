@@ -201,7 +201,7 @@ class pyFolder:
                 if ChangeEntry is not None:
                     self.__add_entry_locally (\
                         _iFolderEntry.iFolderID, _iFolderEntry.ParentID, \
-                            _ChangeEntry)
+                            ChangeEntry)
                 break
 
     def checkout (self):
