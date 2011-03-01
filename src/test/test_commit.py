@@ -45,7 +45,7 @@ class TestCommit (unittest.TestCase):
         shutil.rmtree (PREFIX)
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
 
-    def testNoNewLocalDirectories (self):
+    def test_is_new_local_directory (self):
         Name = 'foo'
         
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
@@ -59,7 +59,7 @@ class TestCommit (unittest.TestCase):
         self.assertFalse (self.pyFolder.is_new_local_directory (\
                 iFolderEntry.iFolderID, os.path.normpath (iFolderEntry.Path)))
         
-    def testAddEntryWhosePathHasAlreadyBeenAdded (self):
+    def test_add_file_on_conflict (self):
         Name = 'foo'
         Data = 'bar'
 
