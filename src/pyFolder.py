@@ -443,46 +443,47 @@ class pyFolder:
                 md5_hash = m.hexdigest ()
         return md5_hash
 
-    def directory_has_local_changes (self, ifolder_id, entry_id, path):
-        has_local_changes = False
-        entries = self.dbm.get_entries_by_parent (entry_id)
-        for entry in entries:
-            if entry['digest'] == 'DIRECTORY':
-                # Check the or's
-                has_local_changes = self.directory_has_local_changes \
-                    (entry['ifolder'], entry['id'], entry['path']) or \
-                    has_local_changes
-            else:
-                has_local_changes = self.file_has_local_changes \
-                    (entry['ifolder'], entry['id'], entry['path']) or \
-                    has_local_changes
-                if has_local_changes:
-                    return True
-        return has_local_changes
+    def directory_has_local_changes (self, iFolderID, iFolderEntryID, \
+                                         LocalPath):
+        Changed = False
+        ListOfEntryTuple = self.dbm.get_entries_by_parent (iFolderEntryID)
 
-    def file_has_local_changes (self, ifolder_id, entry_id, path):
-        entry = self.dbm.get_entry (ifolder_id, entry_id)
-        if not self.path_exists (path):
-            if entry is None:
+        for EntryTuple in ListOfEntryTuple:
+            _iFolderID = EntryTuple['ifolder']
+            _iFolderEntryID = EntryTuple['id']
+            _LocalPath = EntryTuple['localpath']
+            Digest = EntryTuple['digest']
+
+            if Digest == 'DIRECTORY':
+                Changed = self.directory_has_local_changes (\
+                    _iFolderID, _iFolderEntryID, _LocalPath) or Changed
+            else:
+                Changed = self.file_has_local_changes (\
+                    _iFolderID, _iFolderEntryID, _LocalPath) or Changed
+                if Changed:
+                    return Changed
+        return Changed
+
+    def file_has_local_changes (self, iFolderID, iFolderEntryID, LocalPath):
+        EntryTuple = self.dbm.get_entry (iFolderID, iFolderEntryID)
+        if not self.path_exists (LocalPath):
+            if EntryTuple is None:
                 return False
             else:
                 return True
         else:
-            if entry is None:
+            if EntryTuple is None:
                 return True
             else:
-                self.logger.debug ('Comparing MD5 sums for file `{0}\''.format (path))
-                old_digest = entry['digest']
-                new_digest = self.__md5_hash (path)
-                self.logger.debug ('old_digest={0}, new_digest={1}'.format \
-                                       (old_digest, new_digest))
-                if old_digest != new_digest:
-                    self.logger.debug ('MD5 sums differ, file `{0}\' ' \
-                                           'has local changes'.format (path))
+
+                OldDigest = EntryTuple['digest']
+                NewDigest = self.__md5_hash (LocalPath)
+
+                if OldDigest != NewDigest:
+                    self.logger.info ('File `{0}\' has local ' \
+                                          'changes'.format (LocalPath))
                     return True
                 else:
-                    self.logger.debug ('MD5 sums coincide, file `{0}\' ' \
-                                           'hasn\'t any local changes'.format (path))
                     return False
         
     def __update_entry_in_dbm (self, iFolderID, iFolderEntryID):
@@ -525,29 +526,26 @@ class pyFolder:
         self.__add_new_ifolders ()
 
     def get_local_changes_on_entry (self, iFolderID, iFolderEntryID, \
-                                          Path, Digest, iFolderEntryType, \
-                                          ChangeEntryAction):
+                                          LocalPath, Digest, \
+                                        iFolderEntryType, \
+                                        ChangeEntryAction):
         Action = None
         Type = None
         if Digest == 'DIRECTORY':
             Type = iFolderEntryType.Directory
         else:
             Type = iFolderEntryType.File
-        if not self.path_exists (Path):
+        if not self.path_exists (LocalPath):
             Action = ChangeEntryAction.Delete
         else:
             if Type == iFolderEntryType.File:
                 if self.file_has_local_changes (\
-                    iFolderID, iFolderEntryID, Path):
+                    iFolderID, iFolderEntryID, LocalPath):
                     Action = ChangeEntryAction.Modify
             elif Type == iFolderEntryType.Directory:
                 if self.directory_has_local_changes (\
-                    iFolderID, iFolderEntryID, Path):
+                    iFolderID, iFolderEntryID, LocalPath):
                     Action = ChangeEntryAction.Modify
-        if Action is not None:
-            self.logger.debug ('{0} `{1}\', has local ' \
-                                   'changes of ' \
-                                   'type `{2}\''.format (Type, Path, Action))
         return Action, Type
 
     def __is_new_local_entry (self, iFolderID, Path, Isdir):
@@ -687,7 +685,7 @@ class pyFolder:
             self.logger.debug ('Checking entry `{0}\''.format (LocalPath))
 
             ChangeType, EntryType = self.get_local_changes_on_entry (\
-                iFolderID, iFolderEntryID, Path, Digest, \
+                iFolderID, iFolderEntryID, LocalPath, Digest, \
                     iFolderEntryType, ChangeEntryAction)
 
             if ChangeType is not None:
