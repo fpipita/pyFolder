@@ -104,6 +104,20 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.error (wf)
             raise
+        
+    def get_entries_by_name (self, iFolderID, ParentID, Operation, Pattern, \
+                                 Index, Max):
+        try:
+            iFolderEntrySet = \
+                self.client.service.GetEntriesByName (\
+                iFolderID, ParentID, Operation, Pattern, \
+                                 Index, Max)
+            if iFolderEntrySet.Total > 0:
+                return iFolderEntrySet.Items.iFolderEntry
+            return None
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
     def get_children_by_ifolder (self, iFolderID):
         try:
