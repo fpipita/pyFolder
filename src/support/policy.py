@@ -110,6 +110,7 @@ class DEFAULT (Policy):
         except WebFault, wf:
             NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
             self.pyFolder.rename (Path, NewPath)
+            self.pyFolder.add_entry_locally (iFolderID, Path)
             iFolderEntry = \
                 self.pyFolder.remote_create_file (\
                 iFolderID, ParentID, NewPath)
