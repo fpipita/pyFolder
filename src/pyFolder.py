@@ -524,36 +524,30 @@ class pyFolder:
             self.__check_for_deleted_membership (iFolderTuple)
         self.__add_new_ifolders ()
 
-    def __get_local_changes_on_entry (self, entry_t, iFolderEntryType, \
+    def __get_local_changes_on_entry (self, iFolderID, iFolderEntryID, \
+                                          Path, Digest, iFolderEntryType, \
                                           ChangeEntryAction):
-        self.logger.debug ('Checking for local changes ' \
-                               'on entry `{0}\''.format \
-                               (entry_t['path']))
         Action = None
         Type = None
-        if entry_t['digest'] == 'DIRECTORY':
+        if Digest == 'DIRECTORY':
             Type = iFolderEntryType.Directory
         else:
             Type = iFolderEntryType.File
-        if not self.path_exists (entry_t['path']):
+        if not self.path_exists (Path):
             Action = ChangeEntryAction.Delete
         else:
             if Type == iFolderEntryType.File:
-                if self.file_has_local_changes \
-                        (entry_t['ifolder'], entry_t['id'], entry_t['path']):
+                if self.file_has_local_changes (\
+                    iFolderID, iFolderEntryID, Path):
                     Action = ChangeEntryAction.Modify
             elif Type == iFolderEntryType.Directory:
-                if self.directory_has_local_changes \
-                        (entry_t['ifolder'], entry_t['id'], entry_t['path']):
+                if self.directory_has_local_changes (\
+                    iFolderID, iFolderEntryID, Path):
                     Action = ChangeEntryAction.Modify
         if Action is not None:
-            self.logger.debug ('{0} `{1}\', has local changes ' \
-                                   'of type `{2}\''.format \
-                                   (Type, entry_t['path'], Action))
-        else:
-            self.logger.debug ('{0} `{1}\', hasn\'t any ' \
-                                   'local changes.'.format \
-                                   (Type, entry_t['path']))
+            self.logger.debug ('{0} `{1}\', has local ' \
+                                   'changes of ' \
+                                   'type `{2}\''.format (Type, Path, Action))
         return Action, Type
 
     def __is_new_local_entry (self, iFolderID, Path, Isdir):
@@ -685,6 +679,7 @@ class pyFolder:
             iFolderEntryID = EntryTuple['id']
             Path = EntryTuple['path']
             LocalPath = EntryTuple['localpath']
+            Digest = EntryTuple['digest']
 
             if self.dbm.get_entry (iFolderID, iFolderEntryID) is None:
                 continue
@@ -692,7 +687,8 @@ class pyFolder:
             self.logger.debug ('Checking entry `{0}\''.format (LocalPath))
 
             ChangeType, EntryType = self.__get_local_changes_on_entry (\
-                EntryTuple, iFolderEntryType, ChangeEntryAction)
+                iFolderID, iFolderEntryID, Path, Digest, \
+                    iFolderEntryType, ChangeEntryAction)
 
             if ChangeType is not None:
                 if ChangeType == ChangeEntryAction.Modify:
