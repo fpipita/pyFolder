@@ -16,7 +16,7 @@ from support.cfg_manager import CfgManager
 USERNAME = 'francesco'
 PASSWORD = 'foo'
 IFOLDERWS = 'http://192.168.56.3/simias10/iFolderWeb.asmx?wsdl=0'
-IFOLDER_NAME = 'TestUpdate'
+IFOLDER_NAME = 'TestCommit'
 PREFIX = '/tmp/pyFolder'
 
 WAIT_FOR_SIMIAS_TO_UPDATE = 5
