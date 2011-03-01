@@ -17,7 +17,7 @@ USERNAME = 'francesco'
 PASSWORD = 'foo'
 IFOLDERWS = 'http://192.168.56.3/simias10/iFolderWeb.asmx?wsdl=0'
 IFOLDER_NAME = 'TestCommit'
-PREFIX = 'test/pyFolder'
+PREFIX = '/tmp/pyFolder'
 
 WAIT_FOR_SIMIAS_TO_UPDATE = 5
 
@@ -33,6 +33,7 @@ class TestCommit (unittest.TestCase):
         self.cm.options.verbose = False
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
+        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
         self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_entry_id (\
             self.iFolder.ID)
         self.iFolderEntryType = \
@@ -106,8 +107,8 @@ class TestCommit (unittest.TestCase):
 
         self.pyFolder.update ()
 
-        self.assertTrue (os.path.exists ('{0}-{1}'.format (LocalPath, USERNAME)))
-        # self.assertTrue (os.path.exists (LocalPath))
+        self.assertTrue (os.path.isdir ('{0}-{1}'.format (LocalPath, USERNAME)))
+        self.assertTrue (os.path.isdir (LocalPath))
 
     def test_add_file_on_conflict (self):
         FileName = 'test_add_file_on_conflict'
@@ -158,8 +159,8 @@ class TestCommit (unittest.TestCase):
 
         self.pyFolder.update ()
 
-        self.assertTrue (os.path.exists ('{0}-{1}'.format (LocalPath, USERNAME)))
-        self.assertTrue (os.path.exists (LocalPath))
+        self.assertTrue (os.path.isfile ('{0}-{1}'.format (LocalPath, USERNAME)))
+        self.assertTrue (os.path.isfile (LocalPath))
         
 if __name__ == '__main__':
     unittest.main ()
