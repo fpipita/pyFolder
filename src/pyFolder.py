@@ -524,7 +524,7 @@ class pyFolder:
             self.__check_for_deleted_membership (iFolderTuple)
         self.__add_new_ifolders ()
 
-    def __get_local_changes_on_entry (self, iFolderID, iFolderEntryID, \
+    def get_local_changes_on_entry (self, iFolderID, iFolderEntryID, \
                                           Path, Digest, iFolderEntryType, \
                                           ChangeEntryAction):
         Action = None
@@ -686,7 +686,7 @@ class pyFolder:
             
             self.logger.debug ('Checking entry `{0}\''.format (LocalPath))
 
-            ChangeType, EntryType = self.__get_local_changes_on_entry (\
+            ChangeType, EntryType = self.get_local_changes_on_entry (\
                 iFolderID, iFolderEntryID, Path, Digest, \
                     iFolderEntryType, ChangeEntryAction)
 

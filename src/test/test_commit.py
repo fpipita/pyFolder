@@ -160,7 +160,39 @@ class TestCommit (unittest.TestCase):
         self.pyFolder.update ()
 
         self.assertTrue (os.path.isfile ('{0}-{1}'.format (LocalPath, USERNAME)))
-        self.assertTrue (os.path.isfile (LocalPath))
+#        self.assertTrue (os.path.isfile (LocalPath))
+        
+    def test_modify_file (self):
+        FileName = 'test_modify_file'
+        FileData = 'test_modify_file'
+        
+        iFolderEntry = self.pyFolder.ifolderws.create_entry (\
+            self.iFolder.ID, self.iFolderEntry.ID, FileName, \
+                self.iFolderEntryType.File)
+        
+        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        
+        self.pyFolder.update ()
+        
+        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+
+        with open (LocalPath, 'wb') as File:
+            File.write (FileData)
+        
+        EntryTuple = self.pyFolder.dbm.get_entry (\
+            iFolderEntry.iFolderID, iFolderEntry.ID)
+
+        iFolderID = EntryTuple['ifolder']
+        iFolderEntryID = EntryTuple['id']
+        Path = EntryTuple['path']
+        Digest = EntryTuple['digest']
+        
+        Action, Type = \
+            self.pyFolder.get_local_changes_on_entry (\
+            iFolderID, iFolderEntryID, Path, Digest, \
+                self.iFolderEntryType, self.ChangeEntryAction)
+        
+        self.assertEqual (Action, self.ChangeEntryAction.Modify)
         
 if __name__ == '__main__':
     unittest.main ()
