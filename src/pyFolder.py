@@ -138,11 +138,10 @@ class pyFolder:
                 ChangeEntry = self.ifolderws.get_latest_change \
                     (iFolderID, iFolderEntry.ID)
                 if ChangeEntry is not None:
-                    self.__apply_change \
-                        (iFolderID, iFolderEntry.ParentID, ChangeEntry, \
-                             iFolderEntry.Name)
+                    self.__add_entry_locally (\
+                        iFolderID, iFolderEntry.ParentID, ChangeEntry)
 
-    def __apply_change (self, iFolderID, ParentID, ChangeEntry, Name):
+    def __add_entry_locally (self, iFolderID, ParentID, ChangeEntry):
         Updated = False
         iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
         ChangeEntryAction = self.ifolderws.get_change_entry_action ()
@@ -289,11 +288,9 @@ class pyFolder:
                     ChangeEntry = self.ifolderws.get_latest_change \
                         (iFolderID, iFolderEntry.ID)
                     if ChangeEntry is not None:
-                        Updated = self.__apply_change \
-                            (iFolderID, \
-                                 iFolderEntry.ParentID, \
-                                 ChangeEntry, \
-                                 iFolderEntry.Name) or Updated
+                        Updated = self.__add_entry_locally (\
+                            iFolderID, iFolderEntry.ParentID, \
+                                ChangeEntry) or Updated
         return Updated
 
     def __add_new_ifolders (self):
