@@ -162,6 +162,18 @@ class pyFolder:
                         ParentID, \
                         ChangeEntry.Name)
         return Updated
+    
+    def add_entry_locally (self, iFolderID, Path):
+        iFolderEntry = self.ifolderws.get_entry_by_path (\
+            iFolderID, Path)
+        if iFolderEntry is not None:
+            ChangeEntry = self.ifolderws.get_latest_change (\
+                iFolderEntry.iFolderID, iFolderEntry.ID)
+            if ChangeEntry is not None:
+                self.__add_entry_locally (\
+                    iFolderEntry.iFolderID, \
+                        iFolderEntry.ParentID, \
+                        ChangeEntry)
 
     def checkout (self):
         self.dbm.create_schema ()
