@@ -16,12 +16,19 @@ from support.cfg_manager import CfgManager
 from setup import Setup
 
 IFOLDER_NAME = 'TestCommit'
+FAIL_REASON = 'Error: the `prefix\' setting in the `USERDATA_A\' ' \
+    'section is an already existing path or it is empty.'
 
 class TestCommitConflicts (unittest.TestCase):
 
     def setUp (self):
         self.setup = Setup ()
-
+        try:
+            os.makedirs (self.setup.USERDATA_A['prefix'])
+        except:
+            self.setup = None
+            return
+        
         self.cm_A = CfgManager (runfromtest=True, **self.setup.USERDATA_A)
         self.cm_B = CfgManager (runfromtest=True, **self.setup.USERDATA_B)
 
@@ -59,10 +66,14 @@ class TestCommitConflicts (unittest.TestCase):
         self.pyFolder.checkout ()
 
     def tearDown (self):
-        shutil.rmtree (self.setup.USERDATA_A['prefix'], True)
-        self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
+        if self.setup is not None:
+            shutil.rmtree (self.setup.USERDATA_A['prefix'], True)
+            self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
 
     def test_add_directory_on_conflict (self):
+        if self.setup == None:
+            self.fail (FAIL_REASON)
+
         DirectoryName = 'test_add_directory_on_conflict'
         
         iFolderEntry = self.ifolderws.create_entry (\
@@ -89,6 +100,9 @@ class TestCommitConflicts (unittest.TestCase):
         self.assertTrue (os.path.isdir (LocalPath))
 
     def test_add_file_on_conflict (self):
+        if self.setup == None:
+            self.fail (FAIL_REASON)
+
         FileName = 'test_add_file_on_conflict'
         FileData = 'test_add_file_on_conflict'
 

@@ -5,35 +5,34 @@ import os
 import sys
 
 class Setup:
-    SETUP_INI = 'setup.ini'
-
-    USERDATA_A = {\
-        'username':'', \
-            'password':'', \
-            'ifolderws':'', \
-            'pathtodb':'', \
-            'soapbuflen':'', \
-            'prefix':'', \
-            'config':'', \
-            'policy':'', \
-            'verbose':'' \
-        }
-
-    USERDATA_B = {\
-        'username':'', \
-            'password':'', \
-            'ifolderws':'', \
-            'pathtodb':'', \
-            'soapbuflen':'', \
-            'prefix':'', \
-            'config':'', \
-            'policy':'', \
-            'verbose':'' \
-        }
-
-    WAIT_FOR_SIMIAS_TO_UPDATE = 5
-
     def __init__ (self):
+        self.SETUP_INI = 'setup.ini'
+        self.WAIT_FOR_SIMIAS_TO_UPDATE = 5
+
+        self.USERDATA_A = {\
+            'username': lambda p: p, \
+                'password': lambda p: p, \
+                'ifolderws': lambda p: p, \
+                'pathtodb': lambda p: os.path.join (self.__dict__['USERDATA_A']['prefix'], p), \
+                'soapbuflen': lambda p: int (p), \
+                'prefix': lambda p: p, \
+                'config': lambda p: os.path.join (self.__dict__['USERDATA_A']['prefix'], p), \
+                'policy': lambda p: p, \
+                'verbose': lambda p: p == 'True' \
+            }
+
+        self.USERDATA_B = {\
+            'username': lambda p: p, \
+                'password': lambda p: p, \
+                'ifolderws': lambda p: p, \
+                'pathtodb': lambda p: os.path.join (self.__dict__['USERDATA_B']['prefix'], p), \
+                'soapbuflen': lambda p: int (p), \
+                'prefix': lambda p: p, \
+                'config': lambda p: os.path.join (self.__dict__['USERDATA_B']['prefix'], p), \
+                'policy': lambda p: p, \
+                'verbose': lambda p: p == 'True' \
+            }
+
         self.load_configuration ()
 
     def load_configuration (self):
@@ -45,22 +44,21 @@ class Setup:
 
             for USER in USERDATA:
                 if config.has_section (USER):
-                    for key in Setup.__dict__[USER].keys ():
+                    keys = self.__dict__[USER].keys ()
+                    keys.insert (0, keys.pop (keys.index ('prefix')))
+                    for key in keys:
                         if config.has_option (USER, key):
-                            Setup.__dict__[USER][key] = config.get (USER, key)
+                            try:
+                                self.__dict__[USER][key] = self.__dict__[USER][key] (config.get (USER, key))
+                            except Exception, e:
+                                print >> sys.stderr, e
+                                sys.exit ()
                         else:
                             print >> sys.stderr, \
                                 'Error : could not find ' \
                                 'configuration parameter `{0}\' in ' \
                                 'section `{1}\'. Aborting.'.format (key, USER)
                             sys.exit ()
-                    try:
-                        Setup.__dict__[USER]['soapbuflen'] = \
-                            config.getint (USER, 'soapbuflen')
-                        Setup.__dict__[USER]['verbose'] = \
-                            config.getboolean (USER, 'verbose')
-                    except ConfigParser.Error, cpe:
-                        print >> sys.stderr, cpe
                 else:
                     print >> sys.stderr, \
                         'Error : could not find ' \
