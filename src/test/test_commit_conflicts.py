@@ -41,7 +41,7 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
 
-        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.iFolderAsEntry = \
             self.pyFolder.ifolderws.get_ifolder_as_entry (self.iFolder.ID)
@@ -55,7 +55,7 @@ class TestCommitConflicts (unittest.TestCase):
                 self.pyFolder.ifolderws.add_member (\
                     self.iFolder.ID, iFolderUser.ID, self.Rights.ReadWrite)
 
-        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.checkout ()
 
@@ -71,7 +71,7 @@ class TestCommitConflicts (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
         
-        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         LocalPath = os.path.join (\
             TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
@@ -80,7 +80,7 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
         
-        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 
@@ -98,7 +98,7 @@ class TestCommitConflicts (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
         
-        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         LocalPath = os.path.join (\
             TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
@@ -108,7 +108,7 @@ class TestCommitConflicts (unittest.TestCase):
             
         self.pyFolder.commit ()
         
-        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 

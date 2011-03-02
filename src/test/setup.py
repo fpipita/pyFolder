@@ -7,7 +7,7 @@ import sys
 class Setup:
     def __init__ (self):
         self.SETUP_INI = 'setup.ini'
-        self.WAIT_FOR_SIMIAS_TO_UPDATE = 5
+        self.SIMIAS_REFRESH = 5
 
         self.USERDATA_A = {\
             'username': lambda p: p, \
@@ -55,13 +55,13 @@ class Setup:
                                 sys.exit ()
                         else:
                             print >> sys.stderr, \
-                                'Error : could not find ' \
+                                'ERROR : could not find ' \
                                 'configuration parameter `{0}\' in ' \
                                 'section `{1}\'. Aborting.'.format (key, USER)
                             sys.exit ()
                 else:
                     print >> sys.stderr, \
-                        'Error : could not find ' \
+                        'ERROR : could not find ' \
                         'configuration section `{0}\'. ' \
                         'Aborting.'.format (USER)
                     sys.exit ()
@@ -69,22 +69,22 @@ class Setup:
             if os.path.exists (self.USERDATA_A['prefix']) or \
                     self.USERDATA_A['prefix'] == '':
                 print >> sys.stderr, 'ERROR: the `prefix\' setting in the',
-                print >> sys.stderr, '`USERDATA_A\' section can\'t be an',
-                print >> sys.stderr, 'already existing path or empty.',
+                print >> sys.stderr, '`USERDATA_A\' section can\'t either be an',
+                print >> sys.stderr, 'already existing path or an empty one.',
                 print >> sys.stderr, 'Aborting.'
                 sys.exit ()
 
             if config.has_section ('Options'):
                 if config.has_option ('Options', 'SIMIAS_REFRESH'):
                     try:
-                        self.WAIT_FOR_SIMIAS_TO_UPDATE = \
+                        self.SIMIAS_REFRESH = \
                             config.getfloat ('Options', 'SIMIAS_REFRESH')
                     except ConfigParser.Error:
                         print >> sys.stderr, \
-                        'Warning : The SIMIAS_REFRESH option ' \
+                        'WARNING : The SIMIAS_REFRESH option ' \
                         'does not contain a valid value, defaulting ' \
                         'to {0} seconds'.format (\
-                            self.WAIT_FOR_SIMIAS_TO_UPDATE)
+                            self.SIMIAS_REFRESH)
         else:
             print >> sys.stderr, \
                 'Error : could not read the ' \
