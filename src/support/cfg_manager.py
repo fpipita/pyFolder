@@ -10,10 +10,8 @@ class CfgManager ():
         def __init__ (self, ifcm):
             pass
 
-    def __init__ (self, configfile=None, \
-                      pathtodb=None, \
-                      soapbuflen=None, \
-                      runfromtest=False):
+    def __init__ (self, configfile=None, pathtodb=None, soapbuflen=None, \
+                      runfromtest=False, **kwargs):
 
         # Try to read the configuration file
         CfgManager.CfgFile (self)
@@ -110,7 +108,10 @@ class CfgManager ():
                                     default=False)
         
         (self.options, self.args) = self.parser.parse_args ()
-
+        
+        for key in kwargs.keys ():
+            self.options.__dict__[key] = kwargs[key]
+            
         if runfromtest:
             return
 
