@@ -121,7 +121,7 @@ class pyFolder:
 
     def __add_ifolder (self, iFolderID):
         iFolderEntryID = None
-        iFolderiFolderEntry = self.ifolderws.get_ifolder_entry_id (iFolderID)
+        iFolderiFolderEntry = self.ifolderws.get_ifolder_as_entry (iFolderID)
         iFolder = self.ifolderws.get_ifolder (iFolderID)
         if iFolderiFolderEntry is not None and iFolder is not None:
             iFolderEntryID = iFolderiFolderEntry.ID

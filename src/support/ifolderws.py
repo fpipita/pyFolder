@@ -52,7 +52,7 @@ class iFolderWS:
             self.logger.error (wf)
             raise
 
-    def get_ifolder_entry_id (self, iFolderID):
+    def get_ifolder_as_entry (self, iFolderID):
         try:
             self.logger.debug ('Getting iFolderEntryID for iFolder with ' \
                                    'ID={0}'.format (iFolderID))
