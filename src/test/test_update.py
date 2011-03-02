@@ -36,7 +36,7 @@ class TestUpdate (unittest.TestCase):
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
         time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
-        self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_entry_id (\
+        self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (\
             self.iFolder.ID)
         self.iFolderEntryType = \
             self.pyFolder.ifolderws.get_ifolder_entry_type ()
