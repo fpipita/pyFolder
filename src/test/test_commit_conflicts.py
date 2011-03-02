@@ -67,8 +67,9 @@ class TestCommitConflicts (unittest.TestCase):
 
     def tearDown (self):
         if self.setup is not None:
-            shutil.rmtree (self.setup.USERDATA_A['prefix'], True)
+            self.pyFolder.dbm = None
             self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
+            shutil.rmtree (self.setup.USERDATA_A['prefix'], True)
 
     def test_add_directory_on_conflict (self):
         if self.setup == None:
