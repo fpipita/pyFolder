@@ -1,0 +1,24 @@
+[USERDATA_A]
+username = user_a
+password = pass_a
+ifolderws = http://myhost/simias10/iFolderWeb.asmx?wsdl=0
+pathtodb = .ifolderdb-user_a
+soapbuflen = 65536
+prefix = /tmp/pyFolder
+config = .ifolderrc-user_a
+policy = DEFAULT
+verbose = False
+
+[USERDATA_B]
+username = user_b
+password = pass_b
+ifolderws = http://myhost/simias10/iFolderWeb.asmx?wsdl=0
+pathtodb = .ifolderdb-user_b
+soapbuflen = 65536
+prefix = /tmp/pyFolder
+config = .ifolderrc-user_b
+policy = DEFAULT
+verbose = False
+
+[Options]
+SIMIAS_REFRESH = 5
