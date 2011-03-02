@@ -65,6 +65,14 @@ class Setup:
                         'configuration section `{0}\'. ' \
                         'Aborting.'.format (USER)
                     sys.exit ()
+                    
+            if os.path.exists (self.USERDATA_A['prefix']) or \
+                    self.USERDATA_A['prefix'] == '':
+                print >> sys.stderr, 'ERROR: the `prefix\' setting in the',
+                print >> sys.stderr, '`USERDATA_A\' section can\'t be an',
+                print >> sys.stderr, 'already existing path or empty.',
+                print >> sys.stderr, 'Aborting.'
+                sys.exit ()
 
             if config.has_section ('Options'):
                 if config.has_option ('Options', 'SIMIAS_REFRESH'):

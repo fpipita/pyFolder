@@ -13,49 +13,46 @@ from pyFolder import *
 from support.dbm import DBM
 from support.cfg_manager import CfgManager
 
-USERNAME = 'francesco'
-PASSWORD = 'foo'
-IFOLDERWS = 'http://192.168.56.3/simias10/iFolderWeb.asmx?wsdl=0'
-IFOLDER_NAME = 'TestUpdate'
-PREFIX = '/tmp/pyFolder'
+from setup import Setup
 
-WAIT_FOR_SIMIAS_TO_UPDATE = 5
+IFOLDER_NAME = 'TestUpdate'
+TEST_CONFIG = Setup ()
 
 class TestUpdate (unittest.TestCase):
 
     def setUp (self):
-        self.cm = CfgManager (\
-            pathtodb=':memory:', \
-            soapbuflen=DEFAULT_SOAP_BUFLEN, \
-                runfromtest=True)
-        self.cm.options.username = USERNAME
-        self.cm.options.password = PASSWORD
-        self.cm.options.ifolderws = IFOLDERWS
-        self.cm.options.prefix = PREFIX
-        self.cm.options.verbose = False
+        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
+
+        self.cm = CfgManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
+
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
-        self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (\
+
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
+
+        self.iFolderAsEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (\
             self.iFolder.ID)
+
         self.iFolderEntryType = \
             self.pyFolder.ifolderws.get_ifolder_entry_type ()
         self.ChangeEntryAction = \
             self.pyFolder.ifolderws.get_change_entry_action ()
+
         self.pyFolder.checkout ()
 
     def tearDown (self):
-        shutil.rmtree (PREFIX)
+        self.pyFolder.dbm = None
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
+        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
 
     def test_add_file (self):
         FileName = 'test_add_file'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, FileName, \
+            self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
 
         self.pyFolder.update ()
         
@@ -66,7 +63,8 @@ class TestUpdate (unittest.TestCase):
         self.assertEqual (EntryTuple['ifolder'], iFolderEntry.iFolderID)
         self.assertNotEqual (EntryTuple['digest'], 'DIRECTORY')
         
-        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+        LocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
 
         self.assertTrue (os.path.isfile (LocalPath))
 
@@ -83,10 +81,10 @@ class TestUpdate (unittest.TestCase):
         FileData = 'test_modify_file'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, FileName, \
+            self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
 
         self.pyFolder.update ()
 
@@ -96,7 +94,7 @@ class TestUpdate (unittest.TestCase):
             Handle, base64.b64encode (FileData))
         self.pyFolder.ifolderws.close_file (Handle)
         
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
 
         self.pyFolder.update ()
         
@@ -108,7 +106,8 @@ class TestUpdate (unittest.TestCase):
         
         self.assertEqual (EntryTuple['mtime'], ChangeEntry.Time)
 
-        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+        LocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
         
         self.assertTrue (os.path.isfile (LocalPath))
         
@@ -127,17 +126,17 @@ class TestUpdate (unittest.TestCase):
         FileName = 'test_delete_file'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, FileName, \
+            self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
         
         self.pyFolder.update ()
 
         self.pyFolder.ifolderws.delete_entry (\
             iFolderEntry.iFolderID, iFolderEntry.ID, None, None)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
 
         self.pyFolder.update ()
         
@@ -146,7 +145,8 @@ class TestUpdate (unittest.TestCase):
         
         self.assertEqual (EntryTuple, None)
         
-        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+        LocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
         
         self.assertFalse (os.path.isfile (LocalPath))
 
@@ -162,10 +162,10 @@ class TestUpdate (unittest.TestCase):
         DirectoryName = 'test_add_directory'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, DirectoryName, \
+            self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
         
         self.pyFolder.update ()
 
@@ -176,7 +176,8 @@ class TestUpdate (unittest.TestCase):
         self.assertEqual (EntryTuple['ifolder'], iFolderEntry.iFolderID)
         self.assertEqual (EntryTuple['digest'], 'DIRECTORY')
         
-        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+        LocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
         
         self.assertTrue (os.path.isdir (LocalPath))
 
@@ -195,17 +196,17 @@ class TestUpdate (unittest.TestCase):
         DirectoryName = 'test_delete_directory'
 
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, DirectoryName, \
+            self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
         
         self.pyFolder.update ()
 
         self.pyFolder.ifolderws.delete_entry (\
             iFolderEntry.iFolderID, iFolderEntry.ID, None, None)
 
-        time.sleep (WAIT_FOR_SIMIAS_TO_UPDATE)
+        time.sleep (TEST_CONFIG.WAIT_FOR_SIMIAS_TO_UPDATE)
 
         self.pyFolder.update ()
 
@@ -214,7 +215,8 @@ class TestUpdate (unittest.TestCase):
         
         self.assertEqual (EntryTuple, None)
 
-        LocalPath = os.path.join (PREFIX, iFolderEntry.Path)
+        LocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
         
         self.assertFalse (os.path.isdir (LocalPath))
 
