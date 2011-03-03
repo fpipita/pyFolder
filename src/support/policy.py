@@ -124,8 +124,12 @@ class DEFAULT (Policy):
     def modify_remote_directory (self, ifolder_id, entry_id, path):
         return True
     
-    def modify_remote_file (self, ifolder_id, entry_id, path):
-        return self.pyFolder.remote_file_write (ifolder_id, entry_id, path)
+    def modify_remote_file (self, iFolderID, EntryID, Path):
+        try:
+            self.pyFolder.remote_file_write (iFolderID, EntryID, Path)
+            return True
+        except WebFault, wf:
+            return False
     
     def delete_remote_directory (self, iFolderID, iFolderEntryID, Path):
         try:
