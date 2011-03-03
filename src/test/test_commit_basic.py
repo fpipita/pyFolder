@@ -53,6 +53,7 @@ class TestCommitBasic (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
         self.assertFalse (self.pyFolder.is_new_local_directory (\
@@ -65,7 +66,8 @@ class TestCommitBasic (unittest.TestCase):
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
-        
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)        
         self.pyFolder.update ()
         
         EntryTuple = self.pyFolder.dbm.get_entry (\

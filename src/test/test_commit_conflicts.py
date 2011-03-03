@@ -80,6 +80,7 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
         
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         ExpectedLocalPath = '{0}-{1}'.format (\
@@ -103,7 +104,8 @@ class TestCommitConflicts (unittest.TestCase):
             File.write (FileData)
             
         self.pyFolder.commit ()
-        
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)        
         self.pyFolder.update ()
 
         self.assertTrue (os.path.isfile ('{0}-{1}'.format (\
@@ -122,6 +124,7 @@ class TestCommitConflicts (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileB, \
                 self.iFolderEntryType.File)
         
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         TupleAbeforeCommit = self.pyFolder.dbm.get_entry (\

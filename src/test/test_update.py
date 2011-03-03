@@ -52,6 +52,7 @@ class TestUpdate (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
         EntryTuple = self.pyFolder.dbm.get_entry (\
@@ -82,6 +83,7 @@ class TestUpdate (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         Handle = self.pyFolder.ifolderws.open_file_write (\
@@ -90,6 +92,7 @@ class TestUpdate (unittest.TestCase):
             Handle, base64.b64encode (FileData))
         self.pyFolder.ifolderws.close_file (Handle)
         
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
         EntryTuple = self.pyFolder.dbm.get_entry (\
@@ -123,11 +126,13 @@ class TestUpdate (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         self.pyFolder.ifolderws.delete_entry (\
             iFolderEntry.iFolderID, iFolderEntry.ID, None, None)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
         EntryTuple = self.pyFolder.dbm.get_entry (\
@@ -155,6 +160,7 @@ class TestUpdate (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         EntryTuple = self.pyFolder.dbm.get_entry (\
@@ -187,11 +193,13 @@ class TestUpdate (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         self.pyFolder.ifolderws.delete_entry (\
             iFolderEntry.iFolderID, iFolderEntry.ID, None, None)
 
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         EntryTuple = self.pyFolder.dbm.get_entry (\
