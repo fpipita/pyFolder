@@ -12,10 +12,12 @@ import os
 import shutil
 import sqlite3
 import sys
+import time
 
 DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
+SIMIAS_SYNC = 5
 
 class NullHandler (logging.Handler):
     def emit (self, record):
@@ -519,8 +521,18 @@ class pyFolder:
                     return False
         
     def __update_entry_in_dbm (self, iFolderID, iFolderEntryID):
-        ChangeEntry = self.ifolderws.get_latest_change (\
+        iFolderEntryTuple = self.dbm.get_entry (\
             iFolderID, iFolderEntryID)
+        ChangeEntry = None
+
+        while True:
+            ChangeEntry = self.ifolderws.get_latest_change (\
+                iFolderID, iFolderEntryID)
+            if ChangeEntry is not None and \
+                    ChangeEntry.Time != iFolderEntryTuple['mtime']:
+                break
+            time.sleep (SIMIAS_SYNC)
+
         if ChangeEntry is not None:
             self.dbm.update_mtime_and_digest_by_entry (\
                 iFolderID, iFolderEntryID, ChangeEntry.Time, \
