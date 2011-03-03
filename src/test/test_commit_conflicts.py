@@ -13,6 +13,8 @@ from pyFolder import *
 from support.dbm import DBM
 from support.cfg_manager import CfgManager
 
+from suds import WebFault
+
 from setup import Setup
 
 IFOLDER_NAME = 'TestCommitConflicts'
@@ -71,8 +73,6 @@ class TestCommitConflicts (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
         
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
-
         LocalPath = os.path.join (\
             TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
 
@@ -80,8 +80,6 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
         
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
-
         self.pyFolder.update ()
 
         ExpectedLocalPath = '{0}-{1}'.format (\
@@ -98,8 +96,6 @@ class TestCommitConflicts (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
         
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
-
         LocalPath = os.path.join (\
             TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
 
@@ -108,13 +104,69 @@ class TestCommitConflicts (unittest.TestCase):
             
         self.pyFolder.commit ()
         
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
-
         self.pyFolder.update ()
 
         self.assertTrue (os.path.isfile ('{0}-{1}'.format (\
                     LocalPath, TEST_CONFIG.USERDATA_A['username'])))
         self.assertTrue (os.path.isfile (LocalPath))
+        
+    def test_modify_file_on_update (self):
+        FileA = 'FileA'
+        FileB = 'FileB'
+
+        iFolderEntryA = self.ifolderws.create_entry (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, FileA, \
+                self.iFolderEntryType.File)
+
+        iFolderEntryB = self.ifolderws.create_entry (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, FileB, \
+                self.iFolderEntryType.File)
+        
+        self.pyFolder.update ()
+
+        TupleAbeforeCommit = self.pyFolder.dbm.get_entry (\
+            iFolderEntryA.iFolderID, iFolderEntryA.ID)
+        self.assertNotEqual (TupleAbeforeCommit, None)
+
+        TupleBbeforeCommit = self.pyFolder.dbm.get_entry (\
+            iFolderEntryB.iFolderID, iFolderEntryB.ID)
+        self.assertNotEqual (TupleBbeforeCommit, None)
+
+        Handle = self.ifolderws.open_file_read (\
+            iFolderEntryA.iFolderID, iFolderEntryA.ID)
+        
+        FileALocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryA.Path)
+        FileBLocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryB.Path)
+
+        with open (FileALocalPath, 'wb') as File:
+            File.write (FileA)
+            
+        with open (FileBLocalPath, 'wb') as File:
+            File.write (FileB)
+            
+        self.pyFolder.commit ()
+
+        TupleAafterCommit = self.pyFolder.dbm.get_entry (\
+            iFolderEntryA.iFolderID, iFolderEntryA.ID)
+        TupleBafterCommit = self.pyFolder.dbm.get_entry (\
+            iFolderEntryB.iFolderID, iFolderEntryB.ID)
+        
+        self.assertEqual (\
+            TupleAbeforeCommit['mtime'], TupleAafterCommit['mtime'])
+        self.assertNotEqual (\
+            TupleBbeforeCommit['mtime'], TupleBafterCommit['mtime'])
+        
+        self.ifolderws.close_file (Handle)
+        
+        self.pyFolder.commit ()
+        
+        TupleAafterCommit = self.pyFolder.dbm.get_entry (\
+            iFolderEntryA.iFolderID, iFolderEntryA.ID)
+        
+        self.assertNotEqual (\
+            TupleAbeforeCommit['mtime'], TupleAafterCommit['mtime'])
 
 if __name__ == '__main__':
     unittest.main ()

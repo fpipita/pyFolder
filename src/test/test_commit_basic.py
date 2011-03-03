@@ -37,6 +37,7 @@ class TestCommitBasic (unittest.TestCase):
             self.pyFolder.ifolderws.get_ifolder_entry_type ()
         self.ChangeEntryAction = \
             self.pyFolder.ifolderws.get_change_entry_action ()
+        self.SearchOperation = self.pyFolder.ifolderws.get_search_operation ()
 
         self.pyFolder.checkout ()
 
@@ -52,8 +53,6 @@ class TestCommitBasic (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
                 self.iFolderEntryType.Directory)
 
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
-        
         self.pyFolder.update ()
         
         self.assertFalse (self.pyFolder.is_new_local_directory (\
@@ -66,8 +65,6 @@ class TestCommitBasic (unittest.TestCase):
         iFolderEntry = self.pyFolder.ifolderws.create_entry (\
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
-        
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         
         self.pyFolder.update ()
         
@@ -110,6 +107,89 @@ class TestCommitBasic (unittest.TestCase):
 
         self.assertEqual (Action, self.ChangeEntryAction.Delete)
         self.assertEqual (Type, self.iFolderEntryType.File)
+        
+    def test_add_file (self):
+        FileName = 'File'
+        
+        FileLocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], self.iFolder.Name)
+        FileLocalPath = os.path.join (FileLocalPath, FileName)
+        
+        with open (FileLocalPath, 'wb') as File:
+            File.write (FileName)
+            
+        self.pyFolder.commit ()
+        
+        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, \
+                self.SearchOperation.Contains, FileName, 0, 1)
+        
+        if ArrayOfiFolderEntry is None:
+            self.fail ('ArrayOfiFolderEntry can\'t be of `NoneType\'')
+            return
+        
+        iFolderEntry = ArrayOfiFolderEntry[0]
+        ChangeEntry = self.pyFolder.ifolderws.get_latest_change (\
+            iFolderEntry.iFolderID, iFolderEntry.ID)
+
+        if ChangeEntry is None:
+            self.fail ('ChangeEntry can\'t be of `NoneType\'')
+            return
+
+        FileTuple = self.pyFolder.dbm.get_entry (\
+            iFolderEntry.iFolderID, iFolderEntry.ID)
+        
+        if FileTuple is None:
+            self.fail ('FileTuple can\'t be of `NoneType\'')
+            return
+
+        self.assertEqual (ChangeEntry.Time, FileTuple['mtime'])
+        
+    def test_modify_file (self):
+        FileName = 'File'
+        
+        FileLocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], self.iFolder.Name)
+        FileLocalPath = os.path.join (FileLocalPath, FileName)
+        
+        with open (FileLocalPath, 'wb') as File:
+            File.write (FileName)
+            
+        self.pyFolder.commit ()
+
+        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, \
+                self.SearchOperation.Contains, FileName, 0, 1)
+        
+        if ArrayOfiFolderEntry is None:
+            self.fail ('ArrayOfiFolderEntry can\'t be of `NoneType\'')
+            return
+        
+        iFolderEntry = ArrayOfiFolderEntry[0]
+
+        FileTupleBeforeModify = self.pyFolder.dbm.get_entry (\
+            iFolderEntry.iFolderID, iFolderEntry.ID)
+        
+        if FileTupleBeforeModify is None:
+            self.fail ('FileTupleBeforeModify can\'t be of `NoneType\'')
+            return
+
+        with open (FileLocalPath, 'wb') as File:
+            File.write ('{0}{1}'.format (FileName, FileName))
+
+        self.pyFolder.commit ()
+        
+        FileTupleAfterModify = self.pyFolder.dbm.get_entry (\
+            iFolderEntry.iFolderID, iFolderEntry.ID)
+        
+        if FileTupleAfterModify is None:
+            self.fail ('FileTupleAfterModify can\'t be of `NoneType\'')
+            return
+
+        self.assertNotEqual (\
+            FileTupleBeforeModify['mtime'], FileTupleAfterModify['mtime'])
+        self.assertNotEqual (\
+            FileTupleBeforeModify['digest'], FileTupleAfterModify['digest'])
         
 if __name__ == '__main__':
     unittest.main ()
