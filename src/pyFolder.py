@@ -342,27 +342,37 @@ class pyFolder:
                     self.__add_ifolder (iFolder.ID)
                     self.__add_entries (iFolder.ID)
 
-    def __check_for_deleted_ifolder (self, ifolder_t):
+    def __check_for_deleted_ifolder (self, iFolderTuple):
         Updated = False
-        iFolder = self.ifolderws.get_ifolder (ifolder_t['id'])
+        iFolderID = iFolderTuple['id']
+        iFolderAsEntryID = iFolderTuple['entry_id']
+        Name = iFolderTuple['name']
+
+        iFolder = self.ifolderws.get_ifolder (iFolderID)
+
         if iFolder is None:
-            Updated = self.policy.delete_directory \
-                (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
+            Updated = self.policy.delete_directory (\
+                iFolderID, iFolderAsEntryID, Name)
             if Updated:
-                self.dbm.delete_entries_by_ifolder (ifolder_t['id'])
-                self.dbm.delete_ifolder (ifolder_t['id'])
+                self.dbm.delete_entries_by_ifolder (iFolderID)
+                self.dbm.delete_ifolder (iFolderID)
         return Updated
 
-    def __check_for_deleted_membership (self, ifolder_t):
+    def __check_for_deleted_membership (self, iFolderTuple):
         Updated = False
-        iFolder = self.ifolderws.get_ifolder (ifolder_t['id'])
+        iFolderID = iFolderTuple['id']
+        iFolderAsEntryID = iFolderTuple['entry_id']
+        Name = iFolderTuple['name']
+
+        iFolder = self.ifolderws.get_ifolder (iFolderID)
+
         if iFolder is None:
             Updated = self.policy.delete_directory \
-                (ifolder_t['id'], ifolder_t['entry_id'], ifolder_t['name'])
+                (iFolderID, iFolderAsEntryID, Name)
             if Updated:
-                self.dbm.delete_entries_by_ifolder (ifolder_t['id'])
-                self.dbm.delete_ifolder (ifolder_t['id'])
-            return Updated
+                self.dbm.delete_entries_by_ifolder (iFolderID)
+                self.dbm.delete_ifolder (iFolderID)
+        return Updated
 
     # *args = (iFolderID, iFolderEntryID, ChangeTime, ParentID, Path)
     def __add_entry_to_dbm (self, iFolderEntry, *args):
