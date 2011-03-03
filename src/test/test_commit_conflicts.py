@@ -170,6 +170,42 @@ class TestCommitConflicts (unittest.TestCase):
         
         self.assertNotEqual (\
             TupleAbeforeCommit['mtime'], TupleAafterCommit['mtime'])
+    
+    def test_add_file_on_parent_deletion (self):
+        DirectoryName = 'Directory'
+        FileName = 'File'
+        
+        iFolderEntryDirectory = self.ifolderws.create_entry (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
+                self.iFolderEntryType.Directory)
+        
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+        self.pyFolder.update ()
+        
+        FileLocalPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryDirectory.Path)
+        FileLocalPath = os.path.join (FileLocalPath, FileName)
+        
+        with open (FileLocalPath, 'wb') as File:
+            File.write (FileName)
+        
+        self.ifolderws.delete_entry (\
+            iFolderEntryDirectory.iFolderID, \
+                iFolderEntryDirectory.ID, None, None)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+        
+        self.pyFolder.commit ()
+        
+        ConflictedDirectoryPath = os.path.join (\
+            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryDirectory.Path)
+        ConflictedDirectoryPath = \
+            '{0}-conflicted'.format (ConflictedDirectoryPath)
+        
+        ConflictedFilePath = os.path.join (ConflictedDirectoryPath, FileName)
+
+        self.assertTrue (os.path.isdir (ConflictedDirectoryPath))
+        self.assertTrue (os.path.isfile (ConflictedFilePath))
 
 if __name__ == '__main__':
     unittest.main ()

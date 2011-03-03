@@ -103,9 +103,7 @@ class DEFAULT (Policy):
             NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
             self.pyFolder.rename (Path, NewPath)
             self.pyFolder.add_hierarchy_locally (iFolderID, ParentID, Path)
-            iFolderEntry = \
-                self.pyFolder.remote_mkdir (iFolderID, ParentID, NewPath)
-            return iFolderEntry
+            return self.add_remote_directory (iFolderID, ParentID, NewPath)
     
     def add_remote_file (self, iFolderID, ParentID, Path):
         try:
@@ -113,13 +111,17 @@ class DEFAULT (Policy):
                 self.pyFolder.remote_create_file (iFolderID, ParentID, Path)
             return iFolderEntry
         except WebFault, wf:
-            NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
-            self.pyFolder.rename (Path, NewPath)
-            self.pyFolder.add_entry_locally (iFolderID, ParentID, Path)
-            iFolderEntry = \
-                self.pyFolder.remote_create_file (\
-                iFolderID, ParentID, NewPath)
-            return iFolderEntry
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+
+            if OriginalException == \
+                    'iFolder.WebService.EntryAlreadyExistException':
+                NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
+                self.pyFolder.rename (Path, NewPath)
+                self.pyFolder.add_entry_locally (iFolderID, ParentID, Path)
+                return self.add_remote_file (iFolderID, ParentID, NewPath)
+
+            elif OriginalException == 'System.NullReferenceException':
+                return None
 
     def modify_remote_directory (self, ifolder_id, entry_id, path):
         return True
