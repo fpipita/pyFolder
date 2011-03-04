@@ -606,10 +606,12 @@ class pyFolder:
         return False
 
     def is_new_local_directory (self, iFolderID, Path):
-        return self.__is_new_local_entry (iFolderID, Path, Isdir=True)
+        return self.path_isdir (Path) and \
+            self.__is_new_local_entry (iFolderID, Path, Isdir=True)
 
     def __is_new_local_file (self, iFolderID, Path):
-        return self.__is_new_local_entry (iFolderID, Path, Isdir=False)
+        return self.path_isfile (Path) and \
+            self.__is_new_local_entry (iFolderID, Path, Isdir=False)
 
     def __find_parent (self, iFolderID, Path):
         self.logger.debug ('Finding parent for {0}'.format (Path))
@@ -652,8 +654,9 @@ class pyFolder:
                     'iFolder.WebService.EntryDoesNotExistException':
                 return self.find_closest_ancestor_remotely_alive (\
                     iFolderID, Head)
-            
-
+            else:
+                raise
+    
     def __commit_added_directories (self, Root, Dirs, iFolderID):
         Updated = False
         for Dir in Dirs:
