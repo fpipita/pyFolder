@@ -196,7 +196,7 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         
         self.pyFolder.commit ()
-        
+
         ConflictedDirectoryPath = os.path.join (\
             TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryDirectory.Path)
         ConflictedDirectoryPath = \
@@ -206,6 +206,31 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.assertTrue (os.path.isdir (ConflictedDirectoryPath))
         self.assertTrue (os.path.isfile (ConflictedFilePath))
+        
+        ConflictedFilePathInDBM = ConflictedFilePath.replace (\
+            os.path.join (TEST_CONFIG.USERDATA_A['prefix'], ''), '')
 
+        iFolderEntryTuple = \
+            self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (\
+            self.iFolder.ID, ConflictedFilePathInDBM)
+        
+        self.assertNotEqual (iFolderEntryTuple, None)
+
+        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, \
+                self.SearchOperation.Contains, \
+                os.path.split (ConflictedDirectoryPath)[1], 0, 1)
+        
+        self.assertNotEqual (ArrayOfiFolderEntry, None)
+
+        ConflictedDirectoryiFolderEntry = ArrayOfiFolderEntry[0]
+        
+        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
+            self.iFolder.ID, ConflictedDirectoryiFolderEntry.ID, \
+                self.SearchOperation.Contains, \
+                os.path.split (ConflictedFilePath)[1], 0, 1)
+        
+        self.assertNotEqual (ArrayOfiFolderEntry, None)
+        
 if __name__ == '__main__':
     unittest.main ()

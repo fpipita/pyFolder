@@ -3,6 +3,8 @@
 from suds import WebFault
 import logging
 
+CONFLICTED_SUFFIX = 'conflicted'
+
 class Policy:
     def __init__ (self, pyFolder):
         self.pyFolder = pyFolder
@@ -100,10 +102,16 @@ class DEFAULT (Policy):
                 self.pyFolder.remote_mkdir (iFolderID, ParentID, Path)
             return iFolderEntry
         except WebFault, wf:
-            NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
-            self.pyFolder.rename (Path, NewPath)
-            self.pyFolder.add_hierarchy_locally (iFolderID, ParentID, Path)
-            return self.add_remote_directory (iFolderID, ParentID, NewPath)
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+
+            if OriginalException == \
+                    'iFolder.WebService.EntryAlreadyExistException':
+                NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
+                self.pyFolder.rename (Path, NewPath)
+                self.pyFolder.add_hierarchy_locally (iFolderID, ParentID, Path)
+                return self.add_remote_directory (iFolderID, ParentID, NewPath)
+            else:
+                raise
     
     def add_remote_file (self, iFolderID, ParentID, Path):
         try:
@@ -121,30 +129,16 @@ class DEFAULT (Policy):
                 return self.add_remote_file (iFolderID, ParentID, NewPath)
 
             elif OriginalException == 'System.NullReferenceException':
-                # AncestoriFolderEntry = \
-                #     self.pyFolder.find_closest_ancestor_remotely_alive (\
-                #     iFolderID, Path)
-                # ex. Suppose we have the hierarchy `/foo/bar/bla' and
-                #     `bar' gets remotely removed.
-                #
-                #     We have to find the closest ancestor to `bla' which
-                #     is still remotely `alive'. In this case, it is `/foo'.
-                #     Then, we rename locally the part of the hierarchy 
-                #     which is direct descendant of `foo' adding the 
-                #     `conflicted' prefix.
-                #     So, locally, we would have:
-                #
-                #               /foo/bar-conflicted/bla
-                #
-                #     Finally, we add the hierarchy remotely. We may take
-                #     advantage of the `pyFolder.__commit_added_entries'
-                #     method.
-                #     We should also OPTIONALLY remove from the local database
-                #     the old hierarchy. The latter part, could also be done
-                #     at the next update, since pyFolder will detect the 
-                #     deletions and apply the changes locally.
-
+                PathToRename, AncestoriFolderEntry = \
+                    self.pyFolder.find_closest_ancestor_remotely_alive (\
+                    iFolderID, Path)
+                NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
+                self.pyFolder.rename (PathToRename, NewParentPath)
+                self.pyFolder.add_remote_hierarchy (\
+                    AncestoriFolderEntry, NewParentPath)
                 return None
+            else:
+                raise
 
     def modify_remote_directory (self, ifolder_id, entry_id, path):
         return True

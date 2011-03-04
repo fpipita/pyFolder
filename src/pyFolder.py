@@ -631,6 +631,13 @@ class pyFolder:
         self.logger.debug ('Parent is iFolderEntry `{0}\''.format \
                                (entry_t['path']))
         return entry_t['id']
+
+    def add_remote_hierarchy (self, AncestoriFolderEntry, NewParentPath):
+        Head, Tail = os.path.split (NewParentPath)
+        iFolderID = AncestoriFolderEntry.iFolderID
+
+        self.__commit_added_directories (Head, [Tail,], iFolderID)
+        self.__commit_added_entries (iFolderID, NewParentPath)
     
     def find_closest_ancestor_remotely_alive (self, iFolderID, LocalPath):
         SearchOperation = self.ifolderws.get_search_operation ()
