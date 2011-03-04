@@ -183,7 +183,8 @@ class TestCommitConflicts (unittest.TestCase):
         self.pyFolder.update ()
         
         FileLocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryDirectory.Path)
+            TEST_CONFIG.USERDATA_A['prefix'], \
+                os.path.normpath (iFolderEntryDirectory.Path))
         FileLocalPath = os.path.join (FileLocalPath, FileName)
         
         with open (FileLocalPath, 'wb') as File:
@@ -198,7 +199,9 @@ class TestCommitConflicts (unittest.TestCase):
         self.pyFolder.commit ()
 
         ConflictedDirectoryPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntryDirectory.Path)
+            TEST_CONFIG.USERDATA_A['prefix'], \
+                os.path.normpath (iFolderEntryDirectory.Path))
+
         ConflictedDirectoryPath = \
             '{0}-conflicted'.format (ConflictedDirectoryPath)
         
