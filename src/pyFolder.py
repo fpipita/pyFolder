@@ -14,6 +14,8 @@ import sqlite3
 import sys
 import time
 
+from suds import WebFault
+
 DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
@@ -627,6 +629,30 @@ class pyFolder:
         self.logger.debug ('Parent is iFolderEntry `{0}\''.format \
                                (entry_t['path']))
         return entry_t['id']
+    
+    def find_closest_ancestor_remotely_alive (self, iFolderID, LocalPath):
+        SearchOperation = self.ifolderws.get_search_operation ()
+        Head, Tail = os.path.split (LocalPath)
+
+        iFolderEntryTuple = \
+            self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Head)
+
+        if iFolderEntryTuple == None:
+            return LocalPath, self.ifolderws.get_ifolder_as_entry (iFolderID)
+
+        ParentID = iFolderEntryTuple['id']
+        
+        try:
+            iFolderEntry = self.ifolderws.get_entry (iFolderID, ParentID)
+            return LocalPath, iFolderEntry
+        except WebFault, wf:
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+
+            if OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
+                return self.find_closest_ancestor_remotely_alive (\
+                    iFolderID, Head)
+            
 
     def __commit_added_directories (self, Root, Dirs, iFolderID):
         Updated = False

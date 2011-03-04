@@ -121,6 +121,29 @@ class DEFAULT (Policy):
                 return self.add_remote_file (iFolderID, ParentID, NewPath)
 
             elif OriginalException == 'System.NullReferenceException':
+                # AncestoriFolderEntry = \
+                #     self.pyFolder.find_closest_ancestor_remotely_alive (\
+                #     iFolderID, Path)
+                # ex. Suppose we have the hierarchy `/foo/bar/bla' and
+                #     `bar' gets remotely removed.
+                #
+                #     We have to find the closest ancestor to `bla' which
+                #     is still remotely `alive'. In this case, it is `/foo'.
+                #     Then, we rename locally the part of the hierarchy 
+                #     which is direct descendant of `foo' adding the 
+                #     `conflicted' prefix.
+                #     So, locally, we would have:
+                #
+                #               /foo/bar-conflicted/bla
+                #
+                #     Finally, we add the hierarchy remotely. We may take
+                #     advantage of the `pyFolder.__commit_added_entries'
+                #     method.
+                #     We should also OPTIONALLY remove from the local database
+                #     the old hierarchy. The latter part, could also be done
+                #     at the next update, since pyFolder will detect the 
+                #     deletions and apply the changes locally.
+
                 return None
 
     def modify_remote_directory (self, ifolder_id, entry_id, path):

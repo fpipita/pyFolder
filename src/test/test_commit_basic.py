@@ -67,7 +67,7 @@ class TestCommitBasic (unittest.TestCase):
             self.iFolder.ID, self.iFolderAsEntry.ID, FileName, \
                 self.iFolderEntryType.File)
 
-        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)        
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
         EntryTuple = self.pyFolder.dbm.get_entry (\
@@ -192,6 +192,62 @@ class TestCommitBasic (unittest.TestCase):
             FileTupleBeforeModify['mtime'], FileTupleAfterModify['mtime'])
         self.assertNotEqual (\
             FileTupleBeforeModify['digest'], FileTupleAfterModify['digest'])
+        
+    def test_find_closest_ancestor_remotely_alive (self):
+        Ancestor = 'Ancestor'
+        Parent = 'Parent'
+        Child = 'Child'
+        
+        AncestoriFolderEntry = self.pyFolder.ifolderws.create_entry (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, Ancestor, \
+                self.iFolderEntryType.Directory)
+        
+        ParentiFolderEntry = self.pyFolder.ifolderws.create_entry (\
+            self.iFolder.ID, AncestoriFolderEntry.ID, Parent, \
+                self.iFolderEntryType.Directory)
+        
+        ChildiFolderEntry = self.pyFolder.ifolderws.create_entry (\
+            self.iFolder.ID, ParentiFolderEntry.ID, Child, \
+                self.iFolderEntryType.File)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+        self.pyFolder.update ()
+        
+        ChildEntryTuple = self.pyFolder.dbm.get_entry (\
+            self.iFolder.ID, ChildiFolderEntry.ID)
+
+        PathToRename, iFolderEntry = \
+            self.pyFolder.find_closest_ancestor_remotely_alive (\
+            self.iFolder.ID, ChildEntryTuple['localpath'])
+        
+        self.assertEqual (PathToRename, os.path.normpath (\
+                'TestCommitBasic/Ancestor/Parent/Child'))
+        self.assertEqual (iFolderEntry.ID, ParentiFolderEntry.ID)
+        
+        self.pyFolder.ifolderws.delete_entry (\
+            self.iFolder.ID, ParentiFolderEntry.ID, None, None)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        PathToRename, iFolderEntry = \
+            self.pyFolder.find_closest_ancestor_remotely_alive (\
+            self.iFolder.ID, ChildEntryTuple['localpath'])
+
+        self.assertEqual (PathToRename, os.path.normpath (\
+                'TestCommitBasic/Ancestor/Parent'))
+        self.assertEqual (iFolderEntry.ID, AncestoriFolderEntry.ID)
+        
+        self.pyFolder.ifolderws.delete_entry (\
+            self.iFolder.ID, AncestoriFolderEntry.ID, None, None)
+        
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+        
+        PathToRename, iFolderEntry = \
+            self.pyFolder.find_closest_ancestor_remotely_alive (\
+            self.iFolder.ID, ChildEntryTuple['localpath'])
+        self.assertEqual (PathToRename, os.path.normpath (\
+                'TestCommitBasic/Ancestor'))
+        self.assertEqual (self.iFolderAsEntry.ID, iFolderEntry.ID)
         
 if __name__ == '__main__':
     unittest.main ()
