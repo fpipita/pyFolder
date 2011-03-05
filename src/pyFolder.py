@@ -158,7 +158,7 @@ class pyFolder:
                 Updated = self.policy.add_directory \
                     (iFolderID, ChangeEntry.ID, ChangeEntry.Name)
             if Updated:
-                self.__add_entry_to_dbm (\
+                self.add_entry_to_dbm (\
                     None, \
                         iFolderID, \
                         ChangeEntry.ID, \
@@ -379,7 +379,7 @@ class pyFolder:
         return Updated
 
     # *args = (iFolderID, iFolderEntryID, ChangeTime, ParentID, Path)
-    def __add_entry_to_dbm (self, iFolderEntry, *args):
+    def add_entry_to_dbm (self, iFolderEntry, *args):
 
         iFolderID = None
         iFolderEntryID = None
@@ -675,7 +675,6 @@ class pyFolder:
                         iFolderID, ParentID, Path)
                     if iFolderEntry is not None:
                         Updated = True
-                        self.__add_entry_to_dbm (iFolderEntry)
         return Updated
 
     def __commit_added_files (self, Root, Files, iFolderID):
@@ -688,7 +687,6 @@ class pyFolder:
                     iFolderEntry = self.policy.add_remote_file \
                         (iFolderID, ParentID, Path)
                     if iFolderEntry is not None:
-                        self.__add_entry_to_dbm (iFolderEntry)
                         Updated = True
                         if self.policy.modify_remote_file \
                                 (iFolderEntry.iFolderID, \

@@ -100,6 +100,7 @@ class DEFAULT (Policy):
         try:
             iFolderEntry = \
                 self.pyFolder.remote_mkdir (iFolderID, ParentID, Path)
+            self.pyFolder.add_entry_to_dbm (iFolderEntry)
             return iFolderEntry
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
@@ -110,6 +111,16 @@ class DEFAULT (Policy):
                 self.pyFolder.rename (Path, NewPath)
                 self.pyFolder.add_hierarchy_locally (iFolderID, ParentID, Path)
                 return self.add_remote_directory (iFolderID, ParentID, NewPath)
+
+            elif OriginalException == 'System.NullReferenceException':
+                PathToRename, AncestoriFolderEntry = \
+                    self.pyFolder.find_closest_ancestor_remotely_alive (\
+                    iFolderID, Path)
+                NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
+                self.pyFolder.rename (PathToRename, NewParentPath)
+                self.pyFolder.add_remote_hierarchy (\
+                    AncestoriFolderEntry, NewParentPath)
+                return None
             else:
                 raise
     
@@ -117,6 +128,7 @@ class DEFAULT (Policy):
         try:
             iFolderEntry = \
                 self.pyFolder.remote_create_file (iFolderID, ParentID, Path)
+            self.pyFolder.add_entry_to_dbm (iFolderEntry)
             return iFolderEntry
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
