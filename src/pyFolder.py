@@ -20,6 +20,7 @@ DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 SIMIAS_SYNC = 5
+CONFLICTED_SUFFIX = 'conflicted'
 
 class NullHandler (logging.Handler):
     def emit (self, record):
@@ -655,14 +656,8 @@ class pyFolder:
             iFolderEntry = self.ifolderws.get_entry (iFolderID, ParentID)
             return LocalPath, iFolderEntry
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
-
-            if OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException':
-                return self.find_closest_ancestor_remotely_alive (\
-                    iFolderID, Head)
-            else:
-                raise
+            return self.find_closest_ancestor_remotely_alive (\
+                iFolderID, Head)
     
     def __commit_added_directories (self, Root, Dirs, iFolderID):
         Updated = False
@@ -717,6 +712,22 @@ class pyFolder:
         if Updated:
             self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
         return Updated
+
+    def rollback (self, iFolderID, Path):
+        PathToRename, AncestoriFolderEntry = \
+            self.find_closest_ancestor_remotely_alive (\
+            iFolderID, Path)
+
+        NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
+        self.rename (PathToRename, NewParentPath)
+
+        DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath(\
+            iFolderID, PathToRename)
+
+        iFolderEntryID = DeadAncestorEntryTuple['id']
+
+        self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
+        self.dbm.delete_entry (iFolderID, iFolderEntryID)
 
     def __delete_hierarchy_from_dbm (self, iFolderID, iFolderEntryID):
         ListOfEntryTuple = self.dbm.get_entries_by_parent (iFolderEntryID)

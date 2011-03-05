@@ -3,8 +3,6 @@
 from suds import WebFault
 import logging
 
-CONFLICTED_SUFFIX = 'conflicted'
-
 class Policy:
     def __init__ (self, pyFolder):
         self.pyFolder = pyFolder
@@ -109,18 +107,13 @@ class DEFAULT (Policy):
                     'iFolder.WebService.EntryAlreadyExistException':
                 NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
                 self.pyFolder.rename (Path, NewPath)
-                self.pyFolder.add_hierarchy_locally (iFolderID, ParentID, Path)
-                return self.add_remote_directory (iFolderID, ParentID, NewPath)
-
-            elif OriginalException == 'System.NullReferenceException':
-                PathToRename, AncestoriFolderEntry = \
-                    self.pyFolder.find_closest_ancestor_remotely_alive (\
-                    iFolderID, Path)
-                NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
-                self.pyFolder.rename (PathToRename, NewParentPath)
-                self.pyFolder.add_remote_hierarchy (\
-                    AncestoriFolderEntry, NewParentPath)
                 return None
+
+            elif OriginalException == 'System.NullReferenceException' or \
+                    'System.IO.DirectoryNotFoundException':
+                self.pyFolder.rollback (iFolderID, Path)
+                return None
+
             else:
                 raise
     
@@ -137,18 +130,13 @@ class DEFAULT (Policy):
                     'iFolder.WebService.EntryAlreadyExistException':
                 NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
                 self.pyFolder.rename (Path, NewPath)
-                self.pyFolder.add_entry_locally (iFolderID, ParentID, Path)
-                return self.add_remote_file (iFolderID, ParentID, NewPath)
-
-            elif OriginalException == 'System.NullReferenceException':
-                PathToRename, AncestoriFolderEntry = \
-                    self.pyFolder.find_closest_ancestor_remotely_alive (\
-                    iFolderID, Path)
-                NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
-                self.pyFolder.rename (PathToRename, NewParentPath)
-                self.pyFolder.add_remote_hierarchy (\
-                    AncestoriFolderEntry, NewParentPath)
                 return None
+
+            elif OriginalException == 'System.NullReferenceException' or \
+                    'System.IO.DirectoryNotFoundException':
+                self.pyFolder.rollback (iFolderID, Path)
+                return None
+
             else:
                 raise
 

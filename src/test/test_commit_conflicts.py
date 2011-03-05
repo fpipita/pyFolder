@@ -12,7 +12,6 @@ sys.path.append ('../')
 from pyFolder import *
 from support.dbm import DBM
 from support.cfg_manager import CfgManager
-from support.policy import CONFLICTED_SUFFIX
 
 from suds import WebFault
 from setup import Setup
@@ -194,6 +193,8 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         
         self.pyFolder.commit ()
+        
+        self.pyFolder.commit ()
 
         ConflictedParentPath = os.path.join (IFOLDER_NAME, Parent)
         ConflictedParentPath = \
@@ -247,6 +248,8 @@ class TestCommitConflicts (unittest.TestCase):
         
         ChildPath = os.path.join (os.path.join (IFOLDER_NAME, Parent), Child)
         self.pyFolder.mkdir (ChildPath)
+        
+        self.pyFolder.commit ()
         
         self.pyFolder.commit ()
 
