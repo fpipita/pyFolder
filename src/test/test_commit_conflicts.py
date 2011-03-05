@@ -12,9 +12,9 @@ sys.path.append ('../')
 from pyFolder import *
 from support.dbm import DBM
 from support.cfg_manager import CfgManager
+from support.policy import CONFLICTED_SUFFIX
 
 from suds import WebFault
-
 from setup import Setup
 
 IFOLDER_NAME = 'TestCommitConflicts'
@@ -172,23 +172,20 @@ class TestCommitConflicts (unittest.TestCase):
             TupleAbeforeCommit['mtime'], TupleAafterCommit['mtime'])
     
     def test_add_file_on_parent_deletion (self):
-        DirectoryName = 'Directory'
-        FileName = 'File'
+        Parent = 'Parent'
+        Child = 'Child'
         
         iFolderEntryDirectory = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderAsEntry.ID, DirectoryName, \
+            self.iFolder.ID, self.iFolderAsEntry.ID, Parent, \
                 self.iFolderEntryType.Directory)
         
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
-        FileLocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], \
-                os.path.normpath (iFolderEntryDirectory.Path))
-        FileLocalPath = os.path.join (FileLocalPath, FileName)
-        
-        with open (FileLocalPath, 'wb') as File:
-            File.write (FileName)
+        ChildPath = os.path.join (os.path.join (IFOLDER_NAME, Parent), Child)
+        ChildPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], ChildPath)
+        with open (ChildPath, 'wb') as File:
+            File.write (Child)
         
         self.ifolderws.delete_entry (\
             iFolderEntryDirectory.iFolderID, \
@@ -198,40 +195,91 @@ class TestCommitConflicts (unittest.TestCase):
         
         self.pyFolder.commit ()
 
-        ConflictedDirectoryPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], \
-                os.path.normpath (iFolderEntryDirectory.Path))
-
-        ConflictedDirectoryPath = \
-            '{0}-conflicted'.format (ConflictedDirectoryPath)
+        ConflictedParentPath = os.path.join (IFOLDER_NAME, Parent)
+        ConflictedParentPath = \
+            '{0}-{1}'.format (ConflictedParentPath, CONFLICTED_SUFFIX)
         
-        ConflictedFilePath = os.path.join (ConflictedDirectoryPath, FileName)
+        ConflictedChildPath = os.path.join (ConflictedParentPath, Child)
 
-        self.assertTrue (os.path.isdir (ConflictedDirectoryPath))
-        self.assertTrue (os.path.isfile (ConflictedFilePath))
+        self.assertTrue (self.pyFolder.path_isdir (ConflictedParentPath))
+        self.assertTrue (self.pyFolder.path_isfile (ConflictedChildPath))
         
-        ConflictedFilePathInDBM = ConflictedFilePath.replace (\
-            os.path.join (TEST_CONFIG.USERDATA_A['prefix'], ''), '')
-
         iFolderEntryTuple = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (\
-            self.iFolder.ID, ConflictedFilePathInDBM)
+            self.iFolder.ID, ConflictedChildPath)
         
         self.assertNotEqual (iFolderEntryTuple, None)
 
+        Head, Tail = os.path.split (ConflictedParentPath)
+
         ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
             self.iFolder.ID, self.iFolderAsEntry.ID, \
-                self.SearchOperation.Contains, \
-                os.path.split (ConflictedDirectoryPath)[1], 0, 1)
+                self.SearchOperation.Contains, Tail, 0, 1)
         
         self.assertNotEqual (ArrayOfiFolderEntry, None)
 
-        ConflictedDirectoryiFolderEntry = ArrayOfiFolderEntry[0]
+        ConflictedParentEntry = ArrayOfiFolderEntry[0]
+
+        Head, Tail = os.path.split (ConflictedChildPath)
+
+        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
+            self.iFolder.ID, ConflictedParentEntry.ID, \
+                self.SearchOperation.Contains, Tail, 0, 1)
+        
+        self.assertNotEqual (ArrayOfiFolderEntry, None)
+
+    def test_add_directory_on_parent_deletion (self):
+        Parent= 'Parent'
+        Child = 'Child'
+        
+        ParentEntry = self.ifolderws.create_entry (\
+            self.iFolder.ID, self.iFolderAsEntry.ID, Parent, \
+                self.iFolderEntryType.Directory)
+        
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+        self.pyFolder.update ()
+        
+        self.ifolderws.delete_entry (\
+            ParentEntry.iFolderID, \
+                ParentEntry.ID, None, None)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+        
+        ChildPath = os.path.join (os.path.join (IFOLDER_NAME, Parent), Child)
+        self.pyFolder.mkdir (ChildPath)
+        
+        self.pyFolder.commit ()
+
+        ConflictedParentPath = os.path.join (IFOLDER_NAME, Parent)
+        ConflictedParentPath = '{0}-{1}'.format (\
+            ConflictedParentPath, CONFLICTED_SUFFIX)
+        
+        ConflictedChildPath = os.path.join (ConflictedParentPath, Child)
+
+        self.assertTrue (self.pyFolder.path_isdir (ConflictedParentPath))
+        self.assertTrue (self.pyFolder.path_isdir (ConflictedChildPath))
+        
+        iFolderEntryTuple = \
+            self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (\
+            self.iFolder.ID, ConflictedChildPath)
+        
+        self.assertNotEqual (iFolderEntryTuple, None)
+
+        Head, Tail = os.path.split (ConflictedParentPath)
         
         ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
-            self.iFolder.ID, ConflictedDirectoryiFolderEntry.ID, \
-                self.SearchOperation.Contains, \
-                os.path.split (ConflictedFilePath)[1], 0, 1)
+            self.iFolder.ID, self.iFolderAsEntry.ID, \
+                self.SearchOperation.Contains, Tail, 0, 1)
+        
+        self.assertNotEqual (ArrayOfiFolderEntry, None)
+
+        ConflictedParentEntry = ArrayOfiFolderEntry[0]
+        
+        Head, Tail = os.path.split (ConflictedChildPath)
+
+        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (\
+            self.iFolder.ID, ConflictedParentEntry.ID, \
+                self.SearchOperation.Contains, Tail, 0, 1)
         
         self.assertNotEqual (ArrayOfiFolderEntry, None)
         
