@@ -70,125 +70,93 @@ class pyFolder (threading.Thread):
     def __action (self):
         pyFolder.__dict__[self.cm.get_action ()] (self)
 
+    def __invoke (self, method, *args):
+
+        if not callable (method):
+            raise TypeError
+        
+        self.logger.info ('Invoking webmethod `{0}\''.format (method.__name__))
+
+        while True:
+            try:
+                return method (*args)
+            except WebFault, wf:
+                self.logger.error (wf)
+                
+                OriginalException = \
+                    wf.fault.detail.detail.OriginalException._type
+                
+                if OriginalException == 'System.NullReferenceException':
+                    time.sleep (SIMIAS_SYNC)
+                    continue
+
+                else:
+                    raise
+    
     def remote_delete (self, iFolderID, EntryID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        try:
-            self.ifolderws.delete_entry (iFolderID, EntryID, Name, Type.File)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        self.__invoke (self.ifolderws.delete_entry, \
+                           iFolderID, EntryID, Name, Type.File)
 
     def remote_rmdir (self, iFolderID, EntryID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        try:
-            self.ifolderws.delete_entry (\
-                iFolderID, EntryID, Name, Type.Directory)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        self.__invoke (self.ifolderws.delete_entry, iFolderID, \
+                           EntryID, Name, Type.Directory)
 
     def remote_create_file (self, iFolderID, ParentID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-
-        try:
-            return self.ifolderws.create_entry (\
-                iFolderID, ParentID, Name, Type.File)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        
+        return self.ifolderws.create_entry (iFolderID, ParentID, \
+                                                Name, Type.File)
 
     def remote_mkdir (self, iFolderID, ParentID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        try:
-            return self.ifolderws.create_entry (\
-                iFolderID, ParentID, Name, Type.Directory)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        return self.ifolderws.create_entry (iFolderID, ParentID, \
+                                                Name, Type.Directory)
 
     def fetch (self, iFolderID, EntryID, Path):
         Path = self.__add_prefix (Path)
-        Handle = None
-
-        try:
-            Handle = self.ifolderws.open_file_read (iFolderID, EntryID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        Handle = self.__invoke (self.ifolderws.open_file_read, \
+                                    iFolderID, EntryID)
 
         if Handle is not None:
             with open (Path, 'wb') as File:
                 while True:
-                    Base64Data = None
-
-                    try:
-                        Base64Data = self.ifolderws.read_file (Handle)
-                    except WebFault, wf:
-                        self.logger.error (wf)
-                        raise
-
+                    Base64Data = self.__invoke (self.ifolderws.read_file, \
+                                                    Handle)
                     if Base64Data is None:
                         break
+
                     File.write (base64.b64decode (Base64Data))
-            try:
-                self.ifolderws.close_file (Handle)
-            except WebFault, wf:
-                self.logger.error (wf)
-                raise
+                self.__invoke (self.ifolderws.close_file, Handle)
 
     def remote_file_write (self, iFolderID, EntryID, Path):
         Size = self.getsize (Path)
-        Handle = None
-
-        try:
-            Handle = self.ifolderws.open_file_write (iFolderID, EntryID, Size)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
-
+        Handle = self.__invoke (self.ifolderws.open_file_write, \
+                                    iFolderID, EntryID, Size)
         if Handle is not None:
             with open (self.__add_prefix (Path), 'rb') as File:
                 while True:
                     Data = File.read (self.cm.get_soapbuflen ())
+
                     if len (Data) == 0:
                         break
 
-                    try:
-                        self.ifolderws.write_file (\
-                            Handle, base64.b64encode (Data))
-                    except WebFault, wf:
-                        self.logger.error (wf)
-                        raise
-
-            try:
-                self.ifolderws.close_file (Handle)
-            except WebFault, wf:
-                self.logger.error (wf)
-                raise
+                    self.__invoke (self.ifolderws.write_file, \
+                                       Handle, base64.b64encode (Data))
+            self.__invoke (self.ifolderws.close_file, Handle)
 
     def __add_ifolder (self, iFolderID):
-        iFolderEntryID = None
-        iFolderEntry = None
-        iFolder = None
-
-        try:
-            iFolderEntry = self.ifolderws.get_ifolder_as_entry (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
-
-        try:
-            iFolder = self.ifolderws.get_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        iFolderEntry = self.__invoke (self.ifolderws.get_ifolder_as_entry, \
+                                          iFolderID)
+        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolderEntry is not None and iFolder is not None:
             iFolderEntryID = iFolderEntry.ID
@@ -199,26 +167,14 @@ class pyFolder (threading.Thread):
                 self.dbm.add_ifolder (iFolderID, mtime, Name, iFolderEntryID)
 
     def __add_entries (self, iFolderID):
-        EntryList = None
-
-        try:
-            EntryList = self.ifolderws.get_children_by_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
-
+        EntryList = self.__invoke (self.ifolderws.get_children_by_ifolder, \
+                                       iFolderID)
         if EntryList is not None:
             for Entry in EntryList:
                 ParentID = Entry.ParentID
-                Change = None
 
-                try:
-                    Change = \
-                        self.ifolderws.get_latest_change (iFolderID, Entry.ID)
-                except WebFault, wf:
-                    self.logger.error (wf)
-                    raise
-
+                Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                            iFolderID, Entry.ID)
                 if Change is not None:
                     self.__add_entry_locally (iFolderID, ParentID, Change)
 
@@ -248,27 +204,16 @@ class pyFolder (threading.Thread):
         Operation = self.ifolderws.get_search_operation ()
         Name = os.path.split (Path)[1]
 
-        EntryList = None
-        
-        try:
-            EntryList = self.ifolderws.get_entries_by_name (\
-                iFolderID, ParentID, Operation.Contains, Name, 0, 1)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
-        
+        EntryList = self.__invoke (self.ifolderws.get_entries_by_name, \
+                                       iFolderID, ParentID, \
+                                       Operation.Contains, Name, 0, 1)
         if EntryList is not None:
             for Entry in EntryList:
                 EntryID = Entry.ID
                 ParentID = Entry.ParentID
-                Change = None
 
-                try:
-                    Change = \
-                        self.ifolderws.get_latest_change (iFolderID, EntryID)
-                except WebFault, wf:
-                    self.logger.error (wf)
-                    raise
+                Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                            iFolderID, EntryID)
 
                 if Change is not None:
                     self.__add_entry_locally (iFolderID, ParentID, Change)
@@ -280,26 +225,15 @@ class pyFolder (threading.Thread):
         Operation = self.ifolderws.get_search_operation ()
 
         ParentEntry = self.add_entry_locally (iFolderID, ParentID, Path)
-        EntryList = None
 
-        try:
-            EntryList = self.ifolderws.get_entries_by_name (\
-                iFolderID, ParentEntry.ID, Operation.Contains, '.', 0, 0)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        EntryList = self.__invoke (self.ifolderws.get_entries_by_name, \
+                                       iFolderID, ParentEntry.ID, \
+                                       Operation.Contains, '.', 0, 0)
 
         if EntryList is not None:
             for Entry in EntryList:
-                Change = None
-
-                try:
-                    Change = \
-                        self.ifolderws.get_latest_change (iFolderID, Entry.ID)
-                except WebFault, wf:
-                    self.logger.error (wf)
-                    raise
-
+                Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                            iFolderID, Entry.ID)
                 if Change is not None:
                     ParentID = Entry.ParentID
                     self.__add_entry_locally (iFolderID, ParentID, Change)
@@ -307,13 +241,8 @@ class pyFolder (threading.Thread):
 
     def checkout (self):
         self.dbm.create_schema ()
-        iFolderList = None
-
-        try:
-            iFolderList = self.ifolderws.get_all_ifolders ()
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        
+        iFolderList = self.__invoke (self.ifolderws.get_all_ifolders)
 
         if iFolderList is not None:
             for iFolder in iFolderList:
@@ -321,13 +250,7 @@ class pyFolder (threading.Thread):
                 self.__add_entries (iFolder.ID)
 
     def __ifolder_has_changes (self, iFolderID, mtime):
-        iFolder = None
-
-        try:
-            iFolder = self.ifolderws.get_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolder is not None:
             if iFolder.LastModified > mtime:
@@ -337,13 +260,8 @@ class pyFolder (threading.Thread):
         return False
 
     def __get_change (self, iFolderID, EntryID, Path, mtime):
-        Change = None
-
-        try:
-            Change = self.ifolderws.get_latest_change (iFolderID, EntryID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                    iFolderID, EntryID)
 
         if Change is not None:
             if Change.Time > mtime:
@@ -351,13 +269,7 @@ class pyFolder (threading.Thread):
         return None
 
     def __update_ifolder_in_dbm (self, iFolderID):
-        iFolder = None
-        
-        try:
-            iFolder = self.ifolderws.get_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolder is not None:
             mtime = iFolder.LastModified
@@ -448,27 +360,16 @@ class pyFolder (threading.Thread):
 
     def __add_new_entries (self, iFolderID):
         Updated = False
-        EntryList = None
         
-        try:
-            EntryList = self.ifolderws.get_children_by_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
-
+        EntryList = self.__invoke (self.ifolderws.get_children_by_ifolder, \
+                                       iFolderID)
         if EntryList is not None:
             for Entry in EntryList:
                 ParentID = Entry.ParentID
                 
                 if self.dbm.get_entry (iFolderID, Entry.ID) is None:
-                    Change = None
-
-                    try:
-                        Change = self.ifolderws.get_latest_change (\
-                            iFolderID, Entry.ID)
-                    except WebFault, wf:
-                        self.logger.error (wf)
-                        raise
+                    Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                                iFolderID, Entry.ID)
 
                     if Change is not None:
                         Updated = self.__add_entry_locally (\
@@ -477,13 +378,7 @@ class pyFolder (threading.Thread):
         return Updated
 
     def __add_new_ifolders (self):
-        iFolderList = None
-        
-        try:
-            iFolderList = self.ifolderws.get_all_ifolders ()
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        iFolderList = self.__invoke (self.ifolderws.get_all_ifolders)
 
         if iFolderList is not None:
             for iFolder in iFolderList:
@@ -497,12 +392,7 @@ class pyFolder (threading.Thread):
         iFolderEntryID = iFolderTuple['entry_id']
         Name = iFolderTuple['name']
 
-        iFolder = None
-        try:
-            iFolder = self.ifolderws.get_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolder is None:
 
@@ -521,12 +411,7 @@ class pyFolder (threading.Thread):
         iFolderEntryID = iFolderTuple['entry_id']
         Name = iFolderTuple['name']
 
-        iFolder = None
-        try:
-            iFolder = self.ifolderws.get_ifolder (iFolderID)
-        except WebFault, wf:
-            self.logger.error (wf)
-            raise
+        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolder is None:
 
@@ -552,14 +437,8 @@ class pyFolder (threading.Thread):
             iFolderID, EntryID, Time, ParentID, Path = args
         else:
             
-            Change = None
-            try:
-                Change = self.ifolderws.get_latest_change (\
-                    Entry.iFolderID, Entry.ID)
-            except WebFault, wf:
-                self.logger.error (wf)
-                raise
-
+            Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                        Entry.iFolderID, Entry.ID)
             if Change is not None:
                 iFolderID = Entry.iFolderID
                 EntryID = Entry.ID
@@ -698,16 +577,11 @@ class pyFolder (threading.Thread):
     def __update_entry_in_dbm (self, iFolderID, EntryID):
         EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
 
-        ChangeEntry = None
         Count = 5
 
         while Count > 0:
-            try:
-                Change = self.ifolderws.get_latest_change (iFolderID, EntryID)
-            except WebFault, wf:
-                self.logger.error (wf)
-                raise
-
+            Change = self.__invoke (self.ifolderws.get_latest_change, \
+                                        iFolderID, EntryID)
             if Change is not None and Change.Time != EntryTuple['mtime']:
                 break
 
@@ -831,38 +705,28 @@ class pyFolder (threading.Thread):
             iFolderID, Head)
 
         if EntryTuple == None:
-            iFolderEntry = None
-            try:
-                iFolderEntry = self.ifolderws.get_ifolder_as_entry (iFolderID)
-                return LocalPath, iFolderEntry
-            except WebFault, wf:
-                self.logger.error (wf)
-                raise
+            iFolderEntry = self.__invoke (\
+                self.ifolderws.get_ifolder_as_entry, iFolderID)
+            return LocalPath, iFolderEntry
 
         ParentID = EntryTuple['id']
         
-        Entry = None
-        Done = False
-        while not Done:
-            try:
-                Entry = self.ifolderws.get_entry (iFolderID, ParentID)
-                Done = True
-                return LocalPath, Entry
-            except WebFault, wf:
-                self.logger.error (wf)
-                OriginalException = wf.fault.detail.detail.OriginalException._type
+        try:
+            Entry = self.__invoke (self.ifolderws.get_entry, \
+                                       iFolderID, ParentID)
+            return LocalPath, Entry
+        except WebFault, wf:
+            self.logger.error (wf)
+            OriginalException = wf.fault.detail.detail.OriginalException._type
 
-                if OriginalException == \
-                        'iFolder.WebService.EntryDoesNotExistException':
-                    Done = True
-                    return self.find_closest_ancestor_remotely_alive (\
-                        iFolderID, Head)
+            if OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
 
-                elif OriginalException == 'System.NullReferenceException' or \
-                        OriginalException == \
-                        'System.IO.DirectoryNotFoundException':
-                    time.sleep (SIMIAS_SYNC)
-                    continue
+                return self.find_closest_ancestor_remotely_alive (\
+                    iFolderID, Head)
+
+            else:
+                raise
     
     def __commit_added_directories (self, Root, Dirs, iFolderID):
         Updated = False
