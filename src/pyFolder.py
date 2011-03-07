@@ -5,6 +5,7 @@ from support.dbm import DBM
 from support.cfg_manager import CfgManager
 from support.policy import PolicyFactory
 from support.ifolderws import iFolderWS
+
 import base64
 import hashlib
 import logging
@@ -20,8 +21,9 @@ from suds import WebFault
 DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
-SIMIAS_SYNC = 5
+SIMIAS_SYNC_INTERVAL = 5
 PYFOLDER_SYNC_INTERVAL = 60
+
 CONFLICTED_SUFFIX = 'conflicted'
 
 class NullHandler (logging.Handler):
@@ -87,14 +89,15 @@ class pyFolder (threading.Thread):
                     wf.fault.detail.detail.OriginalException._type
                 
                 if OriginalException == 'System.NullReferenceException':
-                    time.sleep (SIMIAS_SYNC)
+                    time.sleep (SIMIAS_SYNC_INTERVAL)
                     continue
 
                 else:
                     raise
     
     def ignore_locked (self, Path):
-        self.logger.info ('Ignoring locked entry `{0}\''.format (Path))
+        self.logger.info ('Ignoring locked entry `{0}\''.format (\
+                Path.encode ('utf-8')))
 
     def remote_delete (self, iFolderID, EntryID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
@@ -480,7 +483,8 @@ class pyFolder (threading.Thread):
         Dst = self.add_prefix (Dst)
         try:
             os.rename (Src, Dst)
-            self.logger.info ('Renamed `{0}\' to `{1}\''.format (Src, Dst))
+            self.logger.info ('Renamed `{0}\' to `{1}\''.format (\
+                    Src.encode ('utf-8'), Dst.encode ('utf-8')))
         except OSError, ose:
             self.logger.error (ose)
             raise
@@ -489,7 +493,8 @@ class pyFolder (threading.Thread):
         Path = self.add_prefix (Path)
         try:
             os.remove (Path)
-            self.logger.info ('Deleted local file `{0}\''.format (Path))
+            self.logger.info ('Deleted local file `{0}\''.format (\
+                    Path.encode ('utf-8')))
         except OSError, ose:
             self.logger.error (ose)
             raise
@@ -498,7 +503,8 @@ class pyFolder (threading.Thread):
         Path = self.add_prefix (Path)
         try:
             shutil.rmtree (Path)
-            self.logger.info ('Deleted local directory `{0}\''.format (Path))
+            self.logger.info ('Deleted local directory `{0}\''.format (\
+                    Path.encode ('utf-8')))
         except OSError, ose:
             self.logger.error (ose)
             raise
@@ -507,7 +513,8 @@ class pyFolder (threading.Thread):
         Path = self.add_prefix (Path)
         try:
             os.makedirs (Path)
-            self.logger.info ('Added local directory `{0}\''.format (Path))
+            self.logger.info ('Added local directory `{0}\''.format (\
+                    Path.encode ('utf-8')))
         except OSError, ose:
             self.logger.error (ose)
             raise
@@ -571,7 +578,8 @@ class pyFolder (threading.Thread):
 
                 if OldDigest != NewDigest:
                     self.logger.info ('File `{0}\' has local ' \
-                                          'changes'.format (LocalPath))
+                                          'changes'.format (\
+                            LocalPath.encode ('utf-8')))
                     return True
 
                 else:
@@ -589,7 +597,7 @@ class pyFolder (threading.Thread):
                 break
 
             Count = Count - 1
-            time.sleep (SIMIAS_SYNC)
+            time.sleep (SIMIAS_SYNC_INTERVAL)
 
         if Change is not None:
             Hash = self.__md5_hash (Change.Name)
@@ -849,7 +857,8 @@ class pyFolder (threading.Thread):
             if self.dbm.get_entry (iFolderID, EntryID) is None:
                 continue
             
-            self.logger.debug ('Checking entry `{0}\''.format (LocalPath))
+            self.logger.debug ('Checking entry `{0}\''.format (\
+                    LocalPath.encode ('utf-8')))
 
             ChangeType, EntryType = self.get_local_changes_on_entry (\
                 iFolderID, EntryID, LocalPath, Digest)
@@ -896,7 +905,7 @@ class pyFolder (threading.Thread):
         self.__setup_dbm ()
         while True:
             self.update ()
-            time.sleep (SIMIAS_SYNC)
+            time.sleep (SIMIAS_SYNC_INTERVAL)
             self.commit ()
             time.sleep (PYFOLDER_SYNC_INTERVAL)
 
