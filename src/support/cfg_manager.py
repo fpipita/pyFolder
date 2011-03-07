@@ -128,7 +128,8 @@ class CfgManager ():
         return [\
             'checkout', \
                 'update', \
-                'commit' \
+                'commit', \
+                'noninteractive' \
                 ]
     
     def __policies (self):

@@ -13,6 +13,7 @@ import shutil
 import sqlite3
 import sys
 import time
+import threading
 
 from suds import WebFault
 
@@ -20,18 +21,23 @@ DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 SIMIAS_SYNC = 5
+PYFOLDER_SYNC_INTERVAL = 60
 CONFLICTED_SUFFIX = 'conflicted'
 
 class NullHandler (logging.Handler):
     def emit (self, record):
         pass
 
-class pyFolder:
+class pyFolder (threading.Thread):
     def __init__ (self, cm, runfromtest=False):
+        threading.Thread.__init__ (self)
         self.cm = cm
         self.__setup_logger ()
         self.__setup_ifolderws ()
-        self.__setup_dbm ()
+
+        if self.cm.get_action () != 'noninteractive':
+            self.__setup_dbm ()
+
         self.__setup_policy ()
 
         if not runfromtest:
@@ -64,285 +70,423 @@ class pyFolder:
     def __action (self):
         pyFolder.__dict__[self.cm.get_action ()] (self)
 
-    def remote_delete (self, iFolderID, iFolderEntryID, Path):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+    def remote_delete (self, iFolderID, EntryID, Path):
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        self.ifolderws.delete_entry (\
-            iFolderID, iFolderEntryID, Name, iFolderEntryType.File)
 
-    def remote_rmdir (self, iFolderID, iFolderEntryID, Path):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+        try:
+            self.ifolderws.delete_entry (iFolderID, EntryID, Name, Type.File)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+    def remote_rmdir (self, iFolderID, EntryID, Path):
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        self.ifolderws.delete_entry (\
-            iFolderID, iFolderEntryID, Name, iFolderEntryType.Directory)
+
+        try:
+            self.ifolderws.delete_entry (\
+                iFolderID, EntryID, Name, Type.Directory)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
     def remote_create_file (self, iFolderID, ParentID, Path):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        return self.ifolderws.create_entry \
-            (iFolderID, ParentID, Name, iFolderEntryType.File)
+
+        try:
+            return self.ifolderws.create_entry (\
+                iFolderID, ParentID, Name, Type.File)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
     def remote_mkdir (self, iFolderID, ParentID, Path):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        return self.ifolderws.create_entry \
-            (iFolderID, ParentID, Name, iFolderEntryType.Directory)
+
+        try:
+            return self.ifolderws.create_entry (\
+                iFolderID, ParentID, Name, Type.Directory)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
     def fetch (self, iFolderID, EntryID, Path):
         Path = self.__add_prefix (Path)
-        Handle = self.ifolderws.open_file_read (iFolderID, EntryID)
+        Handle = None
+
+        try:
+            Handle = self.ifolderws.open_file_read (iFolderID, EntryID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
         if Handle is not None:
-            with open (Path, 'wb') as f:
+            with open (Path, 'wb') as File:
                 while True:
-                    Base64Data = self.ifolderws.read_file (Handle)
+                    Base64Data = None
+
+                    try:
+                        Base64Data = self.ifolderws.read_file (Handle)
+                    except WebFault, wf:
+                        self.logger.error (wf)
+                        raise
+
                     if Base64Data is None:
                         break
-                    f.write (base64.b64decode (Base64Data))
-            self.logger.info ('Local File `{0}\' ' \
-                                  'successfully updated.'.format (Path))
-            return self.ifolderws.close_file (Handle)
-        return False
+                    File.write (base64.b64decode (Base64Data))
+            try:
+                self.ifolderws.close_file (Handle)
+            except WebFault, wf:
+                self.logger.error (wf)
+                raise
 
-    def remote_file_write (self, iFolderID, iFolderEntryID, Path):
+    def remote_file_write (self, iFolderID, EntryID, Path):
         Size = self.getsize (Path)
-        Handle = self.ifolderws.open_file_write \
-            (iFolderID, iFolderEntryID, Size)
+        Handle = None
+
+        try:
+            Handle = self.ifolderws.open_file_write (iFolderID, EntryID, Size)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
         if Handle is not None:
-            Fine = True
-            with open (self.__add_prefix (Path), 'rb') as f:
+            with open (self.__add_prefix (Path), 'rb') as File:
                 while True:
-                    Data = f.read (self.cm.get_soapbuflen ())
+                    Data = File.read (self.cm.get_soapbuflen ())
                     if len (Data) == 0:
                         break
-                    Fine = Fine and self.ifolderws.write_file \
-                        (Handle, base64.b64encode (Data))
-            if Fine:
-                self.logger.info ('Remote File `{0}\' has been ' \
-                                       'successfully updated'.format (Path))
-            else:
-                self.logger.warning ('Error while updating `{0}\''.format (Path))
-            return self.ifolderws.close_file (Handle) and Fine
-        return False
+
+                    try:
+                        self.ifolderws.write_file (\
+                            Handle, base64.b64encode (Data))
+                    except WebFault, wf:
+                        self.logger.error (wf)
+                        raise
+
+            try:
+                self.ifolderws.close_file (Handle)
+            except WebFault, wf:
+                self.logger.error (wf)
+                raise
 
     def __add_ifolder (self, iFolderID):
         iFolderEntryID = None
-        iFolderAsEntry = self.ifolderws.get_ifolder_as_entry (iFolderID)
-        iFolder = self.ifolderws.get_ifolder (iFolderID)
-        if iFolderAsEntry is not None and iFolder is not None:
-            iFolderEntryID = iFolderAsEntry.ID
+        iFolderEntry = None
+        iFolder = None
+
+        try:
+            iFolderEntry = self.ifolderws.get_ifolder_as_entry (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        try:
+            iFolder = self.ifolderws.get_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        if iFolderEntry is not None and iFolder is not None:
+            iFolderEntryID = iFolderEntry.ID
             mtime = iFolder.LastModified
             Name = iFolder.Name
+
             if self.policy.add_directory (iFolderID, iFolderEntryID, Name):
                 self.dbm.add_ifolder (iFolderID, mtime, Name, iFolderEntryID)
 
     def __add_entries (self, iFolderID):
-        ArrayOfiFolderEntry = \
-            self.ifolderws.get_children_by_ifolder (iFolderID)
-        if ArrayOfiFolderEntry is not None:
-            for iFolderEntry in ArrayOfiFolderEntry:
-                ChangeEntry = self.ifolderws.get_latest_change \
-                    (iFolderID, iFolderEntry.ID)
-                if ChangeEntry is not None:
-                    self.__add_entry_locally (\
-                        iFolderID, iFolderEntry.ParentID, ChangeEntry)
+        EntryList = None
 
-    def __add_entry_locally (self, iFolderID, ParentID, ChangeEntry):
+        try:
+            EntryList = self.ifolderws.get_children_by_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        if EntryList is not None:
+            for Entry in EntryList:
+                ParentID = Entry.ParentID
+                Change = None
+
+                try:
+                    Change = \
+                        self.ifolderws.get_latest_change (iFolderID, Entry.ID)
+                except WebFault, wf:
+                    self.logger.error (wf)
+                    raise
+
+                if Change is not None:
+                    self.__add_entry_locally (iFolderID, ParentID, Change)
+
+    def __add_entry_locally (self, iFolderID, ParentID, Change):
+        Type = self.ifolderws.get_ifolder_entry_type ()
+        Action = self.ifolderws.get_change_entry_action ()
+        EntryID = Change.ID
+        Name = Change.Name
+        Time = Change.Time
         Updated = False
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
-        ChangeEntryAction = self.ifolderws.get_change_entry_action ()
-        if ChangeEntry.Action == ChangeEntryAction.Add or \
-                ChangeEntry.Action == ChangeEntryAction.Modify:
-            if ChangeEntry.Type == iFolderEntryType.File:
-                Updated = self.policy.add_file \
-                    (iFolderID, ChangeEntry.ID, ChangeEntry.Name)
-            elif ChangeEntry.Type == iFolderEntryType.Directory:
-                Updated = self.policy.add_directory \
-                    (iFolderID, ChangeEntry.ID, ChangeEntry.Name)
+
+        if Change.Action == Action.Add or Change.Action == Action.Modify:
+
+            if Change.Type == Type.File:
+                Updated = self.policy.add_file (iFolderID, EntryID, Name)
+
+            elif Change.Type == Type.Directory:
+                Updated = self.policy.add_directory (iFolderID, EntryID, Name)
+
             if Updated:
                 self.add_entry_to_dbm (\
-                    None, \
-                        iFolderID, \
-                        ChangeEntry.ID, \
-                        ChangeEntry.Time, \
-                        ParentID, \
-                        ChangeEntry.Name)
+                    None, iFolderID, EntryID, Time, ParentID, Name)
+
         return Updated
     
     def add_entry_locally (self, iFolderID, ParentID, Path):
-        SearchOperation = self.ifolderws.get_search_operation ()
+        Operation = self.ifolderws.get_search_operation ()
         Name = os.path.split (Path)[1]
 
-        iFolderEntry = None
-        ArrayOfiFolderEntry = self.ifolderws.get_entries_by_name (\
-            iFolderID, ParentID, SearchOperation.Contains, Name, \
-                0, 1)
+        EntryList = None
         
-        if ArrayOfiFolderEntry is not None:
-            for _iFolderEntry in ArrayOfiFolderEntry:
-                iFolderEntry = _iFolderEntry
-                ChangeEntry = self.ifolderws.get_latest_change (\
-                    iFolderEntry.iFolderID, iFolderEntry.ID)
-                if ChangeEntry is not None:
-                    self.__add_entry_locally (\
-                        iFolderEntry.iFolderID, \
-                            iFolderEntry.ParentID, \
-                            ChangeEntry)
-                break
-        return iFolderEntry
+        try:
+            EntryList = self.ifolderws.get_entries_by_name (\
+                iFolderID, ParentID, Operation.Contains, Name, 0, 1)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+        
+        if EntryList is not None:
+            for Entry in EntryList:
+                EntryID = Entry.ID
+                ParentID = Entry.ParentID
+                Change = None
+
+                try:
+                    Change = \
+                        self.ifolderws.get_latest_change (iFolderID, EntryID)
+                except WebFault, wf:
+                    self.logger.error (wf)
+                    raise
+
+                if Change is not None:
+                    self.__add_entry_locally (iFolderID, ParentID, Change)
+
+                return Entry
+        return None
             
     def add_hierarchy_locally (self, iFolderID, ParentID, Path):
-        SearchOperation = self.ifolderws.get_search_operation ()
+        Operation = self.ifolderws.get_search_operation ()
 
-        iFolderEntry = self.add_entry_locally (iFolderID, ParentID, Path)
+        ParentEntry = self.add_entry_locally (iFolderID, ParentID, Path)
+        EntryList = None
 
-        ArrayOfiFolderEntry = self.ifolderws.get_entries_by_name (\
-            iFolderEntry.iFolderID, iFolderEntry.ID, \
-                SearchOperation.Contains, '.', 0, 0)
+        try:
+            EntryList = self.ifolderws.get_entries_by_name (\
+                iFolderID, ParentEntry.ID, Operation.Contains, '.', 0, 0)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
-        if ArrayOfiFolderEntry is not None:
-            for _iFolderEntry in ArrayOfiFolderEntry:
-                ChangeEntry = self.ifolderws.get_latest_change (\
-                    _iFolderEntry.iFolderID, _iFolderEntry.ID)
-                if ChangeEntry is not None:
-                    self.__add_entry_locally (\
-                        _iFolderEntry.iFolderID, _iFolderEntry.ParentID, \
-                            ChangeEntry)
-                break
+        if EntryList is not None:
+            for Entry in EntryList:
+                Change = None
+
+                try:
+                    Change = \
+                        self.ifolderws.get_latest_change (iFolderID, Entry.ID)
+                except WebFault, wf:
+                    self.logger.error (wf)
+                    raise
+
+                if Change is not None:
+                    ParentID = Entry.ParentID
+                    self.__add_entry_locally (iFolderID, ParentID, Change)
+                return
 
     def checkout (self):
         self.dbm.create_schema ()
-        ArrayOfiFolder = self.ifolderws.get_all_ifolders ()
-        if ArrayOfiFolder is not None:
-            for iFolder in ArrayOfiFolder:
+        iFolderList = None
+
+        try:
+            iFolderList = self.ifolderws.get_all_ifolders ()
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        if iFolderList is not None:
+            for iFolder in iFolderList:
                 self.__add_ifolder (iFolder.ID)
                 self.__add_entries (iFolder.ID)
 
     def __ifolder_has_changes (self, iFolderID, mtime):
-        iFolder = self.ifolderws.get_ifolder (iFolderID)
+        iFolder = None
+
+        try:
+            iFolder = self.ifolderws.get_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
         if iFolder is not None:
-            self.logger.debug ('Checking whether iFolder `{0}\' has remote ' \
-                                   'changes'.format (iFolder.Name))
             if iFolder.LastModified > mtime:
-                self.logger.debug ('iFolder `{0}\' has remote ' \
-                                'changes'.format (iFolder.Name))
-                self.logger.debug ('local_mtime={0}, remote_mtime={1}'.format \
-                                       (mtime, iFolder.LastModified))
                 return True
             else:
-                self.logger.debug ('iFolder `{0}\' hasn\'t any remote ' \
-                                       'changes'.format (iFolder.Name))
                 return False
         return False
 
     def __get_change (self, iFolderID, EntryID, Path, mtime):
-        ChangeEntry = self.ifolderws.get_latest_change (iFolderID, EntryID)
-        if ChangeEntry is not None:
-            if ChangeEntry.Time > mtime:
-                self.logger.debug ('Entry {0} has remote ' \
-                                       'changes'.format (Path))
-                self.logger.debug ('local_mtime={0}, ' \
-                                       'remote_mtime={1}'.format \
-                                       (mtime, ChangeEntry.Time))
-                return ChangeEntry
-            else:
-                self.logger.debug ('Entry {0} hasn\'t any remote ' \
-                                       'changes'.format (Path))
+        Change = None
+
+        try:
+            Change = self.ifolderws.get_latest_change (iFolderID, EntryID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        if Change is not None:
+            if Change.Time > mtime:
+                return Change
         return None
 
     def __update_ifolder_in_dbm (self, iFolderID):
-        iFolder = self.ifolderws.get_ifolder (iFolderID)
+        iFolder = None
+        
+        try:
+            iFolder = self.ifolderws.get_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
         if iFolder is not None:
             mtime = iFolder.LastModified
             self.dbm.update_mtime_by_ifolder (iFolderID, mtime)
 
-    def __handle_add_action (self, iFolderID, iFolderEntryID, ChangeEntry):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+    def __handle_add_action (self, iFolderID, EntryID, Change):
+        Type = self.ifolderws.get_ifolder_entry_type ()
+        Name = Change.Name
         Updated = False
-        if ChangeEntry.Type == iFolderEntryType.Directory:
-            Updated = self.policy.add_directory \
-                (iFolderID, iFolderEntryID, ChangeEntry.Name)
-        elif ChangeEntry.Type == iFolderEntryType.File:
-            Updated = self.policy.add_file \
-                (iFolderID, iFolderEntryID, ChangeEntry.Name)
+
+        if Change.Type == Type.Directory:
+            Updated = self.policy.add_directory (iFolderID, EntryID, Name)
+
+        elif Change.Type == Type.File:
+            Updated = self.policy.add_file (iFolderID, EntryID, Name)
+
         if Updated:
-            self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
+            self.__update_entry_in_dbm (iFolderID, EntryID)
+
         return Updated
 
-    def __handle_modify_action (self, iFolderID, iFolderEntryID, ChangeEntry):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+    def __handle_modify_action (self, iFolderID, EntryID, Change):
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
-        if ChangeEntry.Type == iFolderEntryType.Directory:
-            Updated = self.policy.modify_directory \
-                (iFolderID, iFolderEntryID, ChangeEntry.Name)
-        elif ChangeEntry.Type == iFolderEntryType.File:
-            Updated = self.policy.modify_file \
-                (iFolderID, iFolderEntryID, ChangeEntry.Name)
+        Name = Change.Name
+
+        if Change.Type == Type.Directory:
+            Updated = self.policy.modify_directory (iFolderID, EntryID, Name)
+
+        elif Change.Type == Type.File:
+            Updated = self.policy.modify_file (iFolderID, EntryID, Name)
+
         if Updated:
-            self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
+            self.__update_entry_in_dbm (iFolderID, EntryID)
+
         return Updated
 
-    def __handle_delete_action (self, iFolderID, iFolderEntryID, ChangeEntry):
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+    def __handle_delete_action (self, iFolderID, EntryID, Change):
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
-        if ChangeEntry.Type == iFolderEntryType.File:
-            Updated = self.policy.delete_file (\
-                iFolderID, iFolderEntryID, ChangeEntry.Name)
-        elif ChangeEntry.Type == iFolderEntryType.Directory:
-            Updated = self.policy.delete_directory (\
-                iFolderID, iFolderEntryID, ChangeEntry.Name)
+        Name = Change.Name
+
+        if Change.Type == Type.File:
+            Updated = self.policy.delete_file (iFolderID, EntryID, Name)
+
+        elif Change.Type == Type.Directory:
+            Updated = self.policy.delete_directory (iFolderID, EntryID, Name)
+
             if Updated:
-                self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
+                self.__delete_hierarchy_from_dbm (iFolderID, EntryID)
+
         if Updated:
-            self.__delete_entry_from_dbm (iFolderID, iFolderEntryID)
+            self.__delete_entry_from_dbm (iFolderID, EntryID)
+
         return Updated
 
     def __update_ifolder (self, iFolderID):
-        ListOfEntryTuple = self.dbm.get_entries_by_ifolder (iFolderID)
-        ChangeEntryAction = self.ifolderws.get_change_entry_action ()
+        EntryTupleList = self.dbm.get_entries_by_ifolder (iFolderID)
+        Action = self.ifolderws.get_change_entry_action ()
         Updated = False
 
-        for EntryTuple in ListOfEntryTuple:
+        for EntryTuple in EntryTupleList:
             iFolderID = EntryTuple['ifolder']
-            iFolderEntryID = EntryTuple['id']
+            EntryID = EntryTuple['id']
             Path = EntryTuple['path']
             mtime = EntryTuple['mtime']
 
-            if self.dbm.get_entry (iFolderID, iFolderEntryID) is None:
+            if self.dbm.get_entry (iFolderID, EntryID) is None:
                 continue
             
-            ChangeEntry = self.__get_change (\
-                iFolderID, iFolderEntryID, Path, mtime)
-            if ChangeEntry is not None:
-                if ChangeEntry.Action == ChangeEntryAction.Add:
-                    Updated = self.__handle_add_action \
-                        (iFolderID, iFolderEntryID, ChangeEntry) or Updated
-                elif ChangeEntry.Action == ChangeEntryAction.Modify:
-                    Updated = self.__handle_modify_action \
-                        (iFolderID, iFolderEntryID, ChangeEntry) or Updated
-                elif ChangeEntry.Action == ChangeEntryAction.Delete:
-                    Updated = self.__handle_delete_action \
-                        (iFolderID, iFolderEntryID, ChangeEntry) or Updated
+            Change = self.__get_change (iFolderID, EntryID, Path, mtime)
+
+            if Change is not None:
+
+                if Change.Action == Action.Add:
+                    Updated = self.__handle_add_action (\
+                        iFolderID, EntryID, Change) or Updated
+
+                elif Change.Action == Action.Modify:
+                    Updated = self.__handle_modify_action (\
+                        iFolderID, EntryID, Change) or Updated
+
+                elif Change.Action == Action.Delete:
+                    Updated = self.__handle_delete_action (\
+                        iFolderID, EntryID, Change) or Updated
+
         return Updated
 
     def __add_new_entries (self, iFolderID):
         Updated = False
-        ArrayOfiFolderEntry = \
-            self.ifolderws.get_children_by_ifolder (iFolderID)
-        if ArrayOfiFolderEntry is not None:
-            for iFolderEntry in ArrayOfiFolderEntry:
-                if self.dbm.get_entry (iFolderID, iFolderEntry.ID) is None:
-                    ChangeEntry = self.ifolderws.get_latest_change \
-                        (iFolderID, iFolderEntry.ID)
-                    if ChangeEntry is not None:
+        EntryList = None
+        
+        try:
+            EntryList = self.ifolderws.get_children_by_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        if EntryList is not None:
+            for Entry in EntryList:
+                ParentID = Entry.ParentID
+                
+                if self.dbm.get_entry (iFolderID, Entry.ID) is None:
+                    Change = None
+
+                    try:
+                        Change = self.ifolderws.get_latest_change (\
+                            iFolderID, Entry.ID)
+                    except WebFault, wf:
+                        self.logger.error (wf)
+                        raise
+
+                    if Change is not None:
                         Updated = self.__add_entry_locally (\
-                            iFolderID, iFolderEntry.ParentID, \
-                                ChangeEntry) or Updated
+                            iFolderID, ParentID, Change) or Updated
+
         return Updated
 
     def __add_new_ifolders (self):
-        ArrayOfiFolder = self.ifolderws.get_all_ifolders ()
-        if ArrayOfiFolder is not None:
-            for iFolder in ArrayOfiFolder:
+        iFolderList = None
+        
+        try:
+            iFolderList = self.ifolderws.get_all_ifolders ()
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+        if iFolderList is not None:
+            for iFolder in iFolderList:
                 if self.dbm.get_ifolder (iFolder.ID) is None:
                     self.__add_ifolder (iFolder.ID)
                     self.__add_entries (iFolder.ID)
@@ -350,169 +494,196 @@ class pyFolder:
     def __check_for_deleted_ifolder (self, iFolderTuple):
         Updated = False
         iFolderID = iFolderTuple['id']
-        iFolderAsEntryID = iFolderTuple['entry_id']
+        iFolderEntryID = iFolderTuple['entry_id']
         Name = iFolderTuple['name']
 
-        iFolder = self.ifolderws.get_ifolder (iFolderID)
+        iFolder = None
+        try:
+            iFolder = self.ifolderws.get_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
         if iFolder is None:
+
             Updated = self.policy.delete_directory (\
-                iFolderID, iFolderAsEntryID, Name)
+                iFolderID, iFolderEntryID, Name)
+
             if Updated:
                 self.dbm.delete_entries_by_ifolder (iFolderID)
                 self.dbm.delete_ifolder (iFolderID)
+
         return Updated
 
     def __check_for_deleted_membership (self, iFolderTuple):
         Updated = False
         iFolderID = iFolderTuple['id']
-        iFolderAsEntryID = iFolderTuple['entry_id']
+        iFolderEntryID = iFolderTuple['entry_id']
         Name = iFolderTuple['name']
 
-        iFolder = self.ifolderws.get_ifolder (iFolderID)
+        iFolder = None
+        try:
+            iFolder = self.ifolderws.get_ifolder (iFolderID)
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
 
         if iFolder is None:
+
             Updated = self.policy.delete_directory \
-                (iFolderID, iFolderAsEntryID, Name)
+                (iFolderID, iFolderEntryID, Name)
+
             if Updated:
                 self.dbm.delete_entries_by_ifolder (iFolderID)
                 self.dbm.delete_ifolder (iFolderID)
+
         return Updated
 
-    # *args = (iFolderID, iFolderEntryID, ChangeTime, ParentID, Path)
-    def add_entry_to_dbm (self, iFolderEntry, *args):
+    # *args = (iFolderID, EntryID, Time, ParentID, Path)
+    def add_entry_to_dbm (self, Entry, *args):
 
         iFolderID = None
-        iFolderEntryID = None
-        ChangeTime = None
+        EntryID = None
+        Time = None
         ParentID = None
         Path = None
 
-        if iFolderEntry is None:
-            iFolderID, iFolderEntryID, ChangeTime, ParentID, Path = args
+        if Entry is None:
+            iFolderID, EntryID, Time, ParentID, Path = args
         else:
-            ChangeEntry = self.ifolderws.get_latest_change \
-                (iFolderEntry.iFolderID, iFolderEntry.ID)
-            if ChangeEntry is not None:
-                iFolderID = iFolderEntry.iFolderID
-                iFolderEntryID = iFolderEntry.ID
-                ChangeTime = ChangeEntry.Time
-                ParentID = iFolderEntry.ParentID
-                Path = iFolderEntry.Path
+            
+            Change = None
+            try:
+                Change = self.ifolderws.get_latest_change (\
+                    Entry.iFolderID, Entry.ID)
+            except WebFault, wf:
+                self.logger.error (wf)
+                raise
+
+            if Change is not None:
+                iFolderID = Entry.iFolderID
+                EntryID = Entry.ID
+                Time = Change.Time
+                ParentID = Entry.ParentID
+                Path = Entry.Path
 
         Hash = self.__md5_hash (Path)
-        LocalPath = os.path.normpath (Path)            
-        self.dbm.add_entry (\
-            iFolderID, iFolderEntryID, ChangeTime, Hash, ParentID, \
-                Path, LocalPath)
+        LocalPath = os.path.normpath (Path)
 
-    def __add_prefix (self, path):
+        self.dbm.add_entry (iFolderID, EntryID, Time, Hash, ParentID, \
+                                Path, LocalPath)
+
+    def __add_prefix (self, Path):
         if self.cm.get_prefix () != '':
-            return os.path.join (self.cm.get_prefix (), path)
-        return path
+            return os.path.join (self.cm.get_prefix (), Path)
+        return Path
 
-    def __remove_prefix (self, path):
+    def __remove_prefix (self, Path):
         if self.cm.get_prefix () != '':
             prefix = os.path.join (self.cm.get_prefix (), '')
-            return path.replace ('{0}'.format (prefix), '')
-        return path
+            return Path.replace ('{0}'.format (prefix), '')
+        return Path
 
-    def path_exists (self, path):
-        return os.path.exists (self.__add_prefix (path))
+    def path_exists (self, Path):
+        return os.path.exists (self.__add_prefix (Path))
 
-    def path_isfile (self, path):
-        return os.path.isfile (self.__add_prefix (path))
+    def path_isfile (self, Path):
+        return os.path.isfile (self.__add_prefix (Path))
 
-    def path_isdir (self, path):
-        return os.path.isdir (self.__add_prefix (path))
+    def path_isdir (self, Path):
+        return os.path.isdir (self.__add_prefix (Path))
     
-    def rename (self, src, dst):
-        src = self.__add_prefix (src)
-        dst = self.__add_prefix (dst)
+    def rename (self, Src, Dst):
+        Src = self.__add_prefix (Src)
+        Dst = self.__add_prefix (Dst)
         try:
-            os.rename (src, dst)
-            self.logger.info ('Renamed `{0}\' to `{1}\''.format (src, dst))
+            os.rename (Src, Dst)
+            self.logger.info ('Renamed `{0}\' to `{1}\''.format (Src, Dst))
         except OSError, ose:
             self.logger.error (ose)
             raise
 
-    def delete (self, path):
-        path = self.__add_prefix (path)
+    def delete (self, Path):
+        Path = self.__add_prefix (Path)
         try:
-            os.remove (path)
-            self.logger.info ('Deleted local file `{0}\''.format (path))
+            os.remove (Path)
+            self.logger.info ('Deleted local file `{0}\''.format (Path))
         except OSError, ose:
             self.logger.error (ose)
             raise
 
-    def rmdir (self, path):
-        path = self.__add_prefix (path)
+    def rmdir (self, Path):
+        Path = self.__add_prefix (Path)
         try:
-            shutil.rmtree (path)
-            self.logger.info ('Deleted local directory `{0}\''.format (path))
+            shutil.rmtree (Path)
+            self.logger.info ('Deleted local directory `{0}\''.format (Path))
         except OSError, ose:
             self.logger.error (ose)
             raise
 
-    def mkdir (self, path):
-        path = self.__add_prefix (path)
+    def mkdir (self, Path):
+        Path = self.__add_prefix (Path)
         try:
-            os.makedirs (path)
-            self.logger.info ('Added local directory `{0}\''.format (path))
+            os.makedirs (Path)
+            self.logger.info ('Added local directory `{0}\''.format (Path))
         except OSError, ose:
             self.logger.error (ose)
             raise
 
-    def getsize (self, path):
-        return os.path.getsize (self.__add_prefix (path))
+    def getsize (self, Path):
+        return os.path.getsize (self.__add_prefix (Path))
 
-    def __md5_hash (self, path):
-        path = self.__add_prefix (path)
-        md5_hash = 'DIRECTORY'
-        if os.path.isfile (path):
+    def __md5_hash (self, Path):
+        Path = self.__add_prefix (Path)
+        Hash = 'DIRECTORY'
+        if os.path.isfile (Path):
             m = hashlib.md5 ()
-            with open (path, 'rb') as f:
+            with open (Path, 'rb') as File:
                 while True:
-                    data = f.read ()
-                    m.update (data)
-                    if len (data) == 0:
+                    Data = File.read ()
+                    m.update (Data)
+                    if len (Data) == 0:
                         break
-                md5_hash = m.hexdigest ()
-        return md5_hash
+                Hash = m.hexdigest ()
+        return Hash
 
-    def directory_has_local_changes (self, iFolderID, iFolderEntryID, \
-                                         LocalPath):
+    def directory_has_local_changes (self, iFolderID, EntryID, LocalPath):
         Changed = False
-        ListOfEntryTuple = self.dbm.get_entries_by_parent (iFolderEntryID)
 
-        for EntryTuple in ListOfEntryTuple:
-            _iFolderID = EntryTuple['ifolder']
-            _iFolderEntryID = EntryTuple['id']
-            _LocalPath = EntryTuple['localpath']
+        EntryTupleList = self.dbm.get_entries_by_parent (EntryID)
+
+        for EntryTuple in EntryTupleList:
+            ChildEntryID = EntryTuple['id']
+            ChildLocalPath = EntryTuple['localpath']
             Digest = EntryTuple['digest']
 
             if Digest == 'DIRECTORY':
                 Changed = self.directory_has_local_changes (\
-                    _iFolderID, _iFolderEntryID, _LocalPath) or Changed
+                    iFolderID, ChildEntryID, ChildLocalPath) or Changed
+
             else:
                 Changed = self.file_has_local_changes (\
-                    _iFolderID, _iFolderEntryID, _LocalPath) or Changed
+                    iFolderID, ChildEntryID, ChildLocalPath) or Changed
+
                 if Changed:
                     return Changed
+
         return Changed
 
-    def file_has_local_changes (self, iFolderID, iFolderEntryID, LocalPath):
-        EntryTuple = self.dbm.get_entry (iFolderID, iFolderEntryID)
+    def file_has_local_changes (self, iFolderID, EntryID, LocalPath):
+        EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
+
         if not self.path_exists (LocalPath):
             if EntryTuple is None:
                 return False
             else:
                 return True
+
         else:
             if EntryTuple is None:
                 return True
-            else:
 
+            else:
                 OldDigest = EntryTuple['digest']
                 NewDigest = self.__md5_hash (LocalPath)
 
@@ -520,33 +691,40 @@ class pyFolder:
                     self.logger.info ('File `{0}\' has local ' \
                                           'changes'.format (LocalPath))
                     return True
+
                 else:
                     return False
         
-    def __update_entry_in_dbm (self, iFolderID, iFolderEntryID):
-        iFolderEntryTuple = self.dbm.get_entry (\
-            iFolderID, iFolderEntryID)
-        ChangeEntry = None
+    def __update_entry_in_dbm (self, iFolderID, EntryID):
+        EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
 
-        while True:
-            ChangeEntry = self.ifolderws.get_latest_change (\
-                iFolderID, iFolderEntryID)
-            if ChangeEntry is not None and \
-                    ChangeEntry.Time != iFolderEntryTuple['mtime']:
+        ChangeEntry = None
+        Count = 5
+
+        while Count > 0:
+            try:
+                Change = self.ifolderws.get_latest_change (iFolderID, EntryID)
+            except WebFault, wf:
+                self.logger.error (wf)
+                raise
+
+            if Change is not None and Change.Time != EntryTuple['mtime']:
                 break
+
+            Count = Count - 1
             time.sleep (SIMIAS_SYNC)
 
-        if ChangeEntry is not None:
+        if Change is not None:
+            Hash = self.__md5_hash (Change.Name)
             self.dbm.update_mtime_and_digest_by_entry (\
-                iFolderID, iFolderEntryID, ChangeEntry.Time, \
-                    self.__md5_hash (ChangeEntry.Name))
+                iFolderID, EntryID, Change.Time, Hash)
 
-    def __delete_entry_from_dbm (self, iFolderID, iFolderEntryID):
-        self.dbm.delete_entry (iFolderID, iFolderEntryID)
+    def __delete_entry_from_dbm (self, iFolderID, EntryID):
+        self.dbm.delete_entry (iFolderID, EntryID)
 
     def update (self):
         try:
-            ListOfiFolderTuple = self.dbm.get_ifolders ()
+            iFolderTupleList = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
             print >> sys.stderr, 'Could not open the local database. '
             'Please, ' \
@@ -555,7 +733,7 @@ class pyFolder:
                 'database using the `--pathtodb\' ' \
                 'command line switch.'
             sys.exit ()
-        for iFolderTuple in ListOfiFolderTuple:
+        for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
             mtime = iFolderTuple['mtime']
 
@@ -572,38 +750,39 @@ class pyFolder:
             self.__check_for_deleted_membership (iFolderTuple)
         self.__add_new_ifolders ()
 
-    def get_local_changes_on_entry (self, iFolderID, iFolderEntryID, \
-                                          LocalPath, Digest, \
-                                        iFolderEntryType, \
-                                        ChangeEntryAction):
-        Action = None
-        Type = None
+    def get_local_changes_on_entry (\
+        self, iFolderID, EntryID, LocalPath, Digest, Type, Action):
+        ChangeAction = None
+        ChangeType = None
+
         if Digest == 'DIRECTORY':
-            Type = iFolderEntryType.Directory
+            ChangeType = Type.Directory
+
         else:
-            Type = iFolderEntryType.File
+            ChangeType = Type.File
+
         if not self.path_exists (LocalPath):
-            Action = ChangeEntryAction.Delete
+            ChangeAction = Action.Delete
+
         else:
-            if Type == iFolderEntryType.File:
-                if self.file_has_local_changes (\
-                    iFolderID, iFolderEntryID, LocalPath):
-                    Action = ChangeEntryAction.Modify
-            elif Type == iFolderEntryType.Directory:
+            if ChangeType == Type.File:
+                if self.file_has_local_changes (iFolderID, EntryID, LocalPath):
+                    ChangeAction = Action.Modify
+
+            elif ChangeType == Type.Directory:
                 if self.directory_has_local_changes (\
-                    iFolderID, iFolderEntryID, LocalPath):
-                    Action = ChangeEntryAction.Modify
-        return Action, Type
+                    iFolderID, EntryID, LocalPath):
+                    ChangeAction = Action.Modify
+
+        return ChangeAction, ChangeType
 
     def __is_new_local_entry (self, iFolderID, Path, Isdir):
-        entry_t = self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Path)
-        if entry_t is None:
-            if Isdir:
-                self.logger.info ('Found new local ' \
-                                      'directory `{0}\''.format (Path))
-            else:
-                self.logger.info ('Found new local file `{0}\''.format (Path))
+        EntryTuple = \
+            self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Path)
+
+        if EntryTuple is None:
             return True
+
         return False
 
     def is_new_local_directory (self, iFolderID, Path):
@@ -615,49 +794,62 @@ class pyFolder:
             self.__is_new_local_entry (iFolderID, Path, Isdir=False)
 
     def __find_parent (self, iFolderID, Path):
-        self.logger.debug ('Finding parent for {0}'.format (Path))
         ParentPath = os.path.split (Path)[0]
-        entry_t = self.dbm.get_entry_by_ifolder_and_localpath (\
-            iFolderID, ParentPath)
-        if entry_t is None:
-            ifolder_t = self.dbm.get_ifolder (iFolderID)
-            if ParentPath == ifolder_t['name']:
-                self.logger.debug ('Parent is iFolder {0}'.format \
-                                       (ifolder_t['name']))
-                return ifolder_t['entry_id']
-            else:
-                self.logger.error ('Could not find parent for ' \
-                                       '`{0}\''.format (Path))
-                return None
-        self.logger.debug ('Parent is iFolderEntry `{0}\''.format \
-                               (entry_t['path']))
-        return entry_t['id']
 
-    def add_remote_hierarchy (self, AncestoriFolderEntry, NewParentPath):
+        EntryTuple = \
+            self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, ParentPath)
+
+        if EntryTuple is None:
+            iFolderTuple = self.dbm.get_ifolder (iFolderID)
+
+            if ParentPath == iFolderTuple['name']:
+                return iFolderTuple['entry_id']
+
+            else:
+                return None
+
+        return EntryTuple['id']
+
+    def add_remote_hierarchy (self, AncestoriEntry, NewParentPath):
         Head, Tail = os.path.split (NewParentPath)
-        iFolderID = AncestoriFolderEntry.iFolderID
+        iFolderID = AncestoriEntry.iFolderID
 
         self.__commit_added_directories (Head, [Tail,], iFolderID)
         self.__commit_added_entries (iFolderID, NewParentPath)
     
     def find_closest_ancestor_remotely_alive (self, iFolderID, LocalPath):
-        SearchOperation = self.ifolderws.get_search_operation ()
+        Operation = self.ifolderws.get_search_operation ()
         Head, Tail = os.path.split (LocalPath)
 
-        iFolderEntryTuple = \
-            self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Head)
+        EntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
+            iFolderID, Head)
 
-        if iFolderEntryTuple == None:
+        if EntryTuple == None:
             return LocalPath, self.ifolderws.get_ifolder_as_entry (iFolderID)
 
-        ParentID = iFolderEntryTuple['id']
+        ParentID = EntryTuple['id']
         
-        try:
-            iFolderEntry = self.ifolderws.get_entry (iFolderID, ParentID)
-            return LocalPath, iFolderEntry
-        except WebFault, wf:
-            return self.find_closest_ancestor_remotely_alive (\
-                iFolderID, Head)
+        Entry = None
+        Done = False
+
+        while not Done:
+            try:
+                Entry = self.ifolderws.get_entry (iFolderID, ParentID)
+                Done = True
+                return LocalPath, Entry
+            except WebFault, wf:
+                self.logger.error (wf)
+                OriginalException = wf.fault.detail.detail.OriginalException._type
+
+                if OriginalException == \
+                        'iFolder.WebService.EntryDoesNotExistException':
+                    Done = True
+                    return self.find_closest_ancestor_remotely_alive (\
+                        iFolderID, Head)
+
+                elif OriginalException == 'System.NullReferenceException':
+                    time.sleep (SIMIAS_SYNC)
+                    continue
     
     def __commit_added_directories (self, Root, Dirs, iFolderID):
         Updated = False
@@ -720,8 +912,8 @@ class pyFolder:
 
         NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
         self.rename (PathToRename, NewParentPath)
-
-        DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath(\
+        
+        DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
             iFolderID, PathToRename)
 
         iFolderEntryID = DeadAncestorEntryTuple['id']
@@ -819,6 +1011,17 @@ class pyFolder:
             
             if Updated:
                 self.__update_ifolder_in_dbm (iFolderID)
+                
+    def run (self):
+        self.__setup_dbm ()
+        while True:
+            self.update ()
+            time.sleep (SIMIAS_SYNC)
+            self.commit ()
+            time.sleep (PYFOLDER_SYNC_INTERVAL)
+
+    def noninteractive (self):
+        self.start ()
 
 if __name__ == '__main__':
     cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
