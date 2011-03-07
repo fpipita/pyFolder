@@ -246,5 +246,21 @@ class TestCommitBasic (unittest.TestCase):
                 'TestCommitBasic/Ancestor'))
         self.assertEqual (self.iFolderAsEntry.ID, iFolderEntry.ID)
         
+    def test_add_locked_file (self):
+        LockedFile = '.DS_Store'
+
+        LockedFilePath = self.pyFolder.add_prefix (self.iFolder.Name)
+        LockedFilePath = os.path.join (LockedFilePath, LockedFile)
+        
+        with open (LockedFilePath, 'wb') as File:
+            File.write ('aString')
+            
+        self.pyFolder.commit ()
+        
+        EntryTuple = self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (\
+            self.iFolder.ID, self.pyFolder.remove_prefix (LockedFilePath))
+        
+        self.assertEqual (EntryTuple, None)
+        
 if __name__ == '__main__':
     unittest.main ()

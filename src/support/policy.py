@@ -109,6 +109,11 @@ class DEFAULT (Policy):
                 self.pyFolder.rename (Path, NewPath)
                 return None
 
+            elif OriginalException == \
+                    'iFolder.WebService.FileTypeException':
+                self.pyFolder.ignore_locked (Path)
+                return None
+
             elif OriginalException == 'System.NullReferenceException' or \
                     'System.IO.DirectoryNotFoundException':
                 self.pyFolder.rollback (iFolderID, Path)
@@ -130,6 +135,11 @@ class DEFAULT (Policy):
                     'iFolder.WebService.EntryAlreadyExistException':
                 NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
                 self.pyFolder.rename (Path, NewPath)
+                return None
+            
+            elif OriginalException == \
+                    'iFolder.WebService.FileTypeException':
+                self.pyFolder.ignore_locked (Path)
                 return None
 
             elif OriginalException == 'System.NullReferenceException' or \

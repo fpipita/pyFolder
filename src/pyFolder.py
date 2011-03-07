@@ -93,6 +93,9 @@ class pyFolder (threading.Thread):
                 else:
                     raise
     
+    def ignore_locked (self, Path):
+        self.logger.info ('Ignoring locked entry `{0}\''.format (Path))
+
     def remote_delete (self, iFolderID, EntryID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
@@ -122,7 +125,7 @@ class pyFolder (threading.Thread):
                                                 Name, Type.Directory)
 
     def fetch (self, iFolderID, EntryID, Path):
-        Path = self.__add_prefix (Path)
+        Path = self.add_prefix (Path)
         Handle = self.__invoke (self.ifolderws.open_file_read, \
                                     iFolderID, EntryID)
 
@@ -142,7 +145,7 @@ class pyFolder (threading.Thread):
         Handle = self.__invoke (self.ifolderws.open_file_write, \
                                     iFolderID, EntryID, Size)
         if Handle is not None:
-            with open (self.__add_prefix (Path), 'rb') as File:
+            with open (self.add_prefix (Path), 'rb') as File:
                 while True:
                     Data = File.read (self.cm.get_soapbuflen ())
 
@@ -452,29 +455,29 @@ class pyFolder (threading.Thread):
         self.dbm.add_entry (iFolderID, EntryID, Time, Hash, ParentID, \
                                 Path, LocalPath)
 
-    def __add_prefix (self, Path):
+    def add_prefix (self, Path):
         if self.cm.get_prefix () != '':
             return os.path.join (self.cm.get_prefix (), Path)
         return Path
 
-    def __remove_prefix (self, Path):
+    def remove_prefix (self, Path):
         if self.cm.get_prefix () != '':
             prefix = os.path.join (self.cm.get_prefix (), '')
             return Path.replace ('{0}'.format (prefix), '')
         return Path
 
     def path_exists (self, Path):
-        return os.path.exists (self.__add_prefix (Path))
+        return os.path.exists (self.add_prefix (Path))
 
     def path_isfile (self, Path):
-        return os.path.isfile (self.__add_prefix (Path))
+        return os.path.isfile (self.add_prefix (Path))
 
     def path_isdir (self, Path):
-        return os.path.isdir (self.__add_prefix (Path))
+        return os.path.isdir (self.add_prefix (Path))
     
     def rename (self, Src, Dst):
-        Src = self.__add_prefix (Src)
-        Dst = self.__add_prefix (Dst)
+        Src = self.add_prefix (Src)
+        Dst = self.add_prefix (Dst)
         try:
             os.rename (Src, Dst)
             self.logger.info ('Renamed `{0}\' to `{1}\''.format (Src, Dst))
@@ -483,7 +486,7 @@ class pyFolder (threading.Thread):
             raise
 
     def delete (self, Path):
-        Path = self.__add_prefix (Path)
+        Path = self.add_prefix (Path)
         try:
             os.remove (Path)
             self.logger.info ('Deleted local file `{0}\''.format (Path))
@@ -492,7 +495,7 @@ class pyFolder (threading.Thread):
             raise
 
     def rmdir (self, Path):
-        Path = self.__add_prefix (Path)
+        Path = self.add_prefix (Path)
         try:
             shutil.rmtree (Path)
             self.logger.info ('Deleted local directory `{0}\''.format (Path))
@@ -501,7 +504,7 @@ class pyFolder (threading.Thread):
             raise
 
     def mkdir (self, Path):
-        Path = self.__add_prefix (Path)
+        Path = self.add_prefix (Path)
         try:
             os.makedirs (Path)
             self.logger.info ('Added local directory `{0}\''.format (Path))
@@ -510,10 +513,10 @@ class pyFolder (threading.Thread):
             raise
 
     def getsize (self, Path):
-        return os.path.getsize (self.__add_prefix (Path))
+        return os.path.getsize (self.add_prefix (Path))
 
     def __md5_hash (self, Path):
-        Path = self.__add_prefix (Path)
+        Path = self.add_prefix (Path)
         Hash = 'DIRECTORY'
         if os.path.isfile (Path):
             m = hashlib.md5 ()
@@ -731,7 +734,7 @@ class pyFolder (threading.Thread):
     def __commit_added_directories (self, Root, Dirs, iFolderID):
         Updated = False
         for Dir in Dirs:
-            Path = os.path.join (self.__remove_prefix (Root), Dir)
+            Path = os.path.join (self.remove_prefix (Root), Dir)
             if self.is_new_local_directory (iFolderID, Path):
                 ParentID = self.__find_parent (iFolderID, Path)
                 if ParentID is not None:
@@ -744,7 +747,7 @@ class pyFolder (threading.Thread):
     def __commit_added_files (self, Root, Files, iFolderID):
         Updated = False
         for File in Files:
-            Path = os.path.join (self.__remove_prefix (Root), File)
+            Path = os.path.join (self.remove_prefix (Root), File)
             if self.__is_new_local_file (iFolderID, Path):
                 ParentID = self.__find_parent (iFolderID, Path)
                 if ParentID is not None:
@@ -760,7 +763,7 @@ class pyFolder (threading.Thread):
 
     def __commit_added_entries (self, iFolderID, Name):
         Updated = False
-        for Root, Dirs, Files in os.walk (self.__add_prefix (Name)):
+        for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
             Updated = self.__commit_added_directories (\
                 Root, Dirs, iFolderID) or Updated
             Updated = self.__commit_added_files (\
