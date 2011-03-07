@@ -22,31 +22,30 @@ class iFolderWS:
     def create_ifolder (self, Name, Description='', SSL=False, \
                             EncryptionAlgorithm='', PassPhrase=''):
         try:
+
             return self.client.service.CreateiFolder (\
                 Name, Description, SSL, EncryptionAlgorithm, PassPhrase)
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
     def delete_ifolder (self, iFolderID):
         try:
+
             self.client.service.DeleteiFolder (iFolderID)
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
     
     def get_all_ifolders (self):
         try:
-            self.logger.debug ('Retrieving available ' \
-                                   'iFolders for user ' \
-                                   '`{0}\''.format (self.cm.get_username ()))
             iFolderSet = self.client.service.GetiFolders (0, 0)
+
             if iFolderSet.Total > 0:
-                self.logger.debug ('{0} iFolder(s) found'.format \
-                                       (iFolderSet.Total))
                 return iFolderSet.Items.iFolder
-            else:
-                self.logger.debug ('No iFolders found')
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
@@ -54,35 +53,27 @@ class iFolderWS:
 
     def get_ifolder_as_entry (self, iFolderID):
         try:
-            self.logger.debug ('Getting iFolderEntryID for iFolder with ' \
-                                   'ID={0}'.format (iFolderID))
             iFolderEntrySet = \
                 self.client.service.GetEntries (iFolderID, iFolderID, 0, 1)
+
             if iFolderEntrySet.Total > 0:
                 for iFolderEntry in iFolderEntrySet.Items.iFolderEntry:
-                    self.logger.debug ('Success, got iFolderEntryID=' \
-                                           '{0}'.format (iFolderEntry.ID))
                     return iFolderEntry
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
-    def get_latest_change (self, iFolderID, iFolderEntryID):
+    def get_latest_change (self, iFolderID, EntryID):
         try:
-            self.logger.debug ('Getting latest change ' \
-                                   'for entry `{0}\''.format (iFolderEntryID))
             ChangeEntrySet = \
-                self.client.service.GetChanges \
-                (iFolderID, iFolderEntryID, 0, 1)
+                self.client.service.GetChanges (iFolderID, EntryID, 0, 1)
+
             if ChangeEntrySet.Total > 0:
-                for ChangeEntry in ChangeEntrySet.Items.ChangeEntry:
-                    self.logger.debug ('Latest Change for ' \
-                                           'iFolderEntry `{0}\' ' \
-                                           'is of Type `{1}\''.format \
-                                           (ChangeEntry.Name, \
-                                                ChangeEntry.Action))
-                    return ChangeEntry
+                for Change in ChangeEntrySet.Items.ChangeEntry:
+                    return Change
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
@@ -90,16 +81,11 @@ class iFolderWS:
         
     def get_entry_by_path (self, iFolderID, Path):
         try:
-            self.logger.debug ('Getting iFolderEntry `{0}\' '\
-                                   'by iFolderID and Path'.format (Path))
             iFolderEntry = self.client.service.GetEntryByPath (iFolderID, Path)
+
             if iFolderEntry is not None:
-                self.logger.debug ('Got iFolderEntry ' \
-                                       'with ID={0}'.format (iFolderEntry.ID))
                 return iFolderEntry
-            else:
-                self.logger.debug ('Could not get ' \
-                                       'iFolderEntry `{0\''.format (Path))
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
@@ -112,8 +98,10 @@ class iFolderWS:
                 self.client.service.GetEntriesByName (\
                 iFolderID, ParentID, Operation, Pattern, \
                                  Index, Max)
+
             if iFolderEntrySet.Total > 0:
                 return iFolderEntrySet.Items.iFolderEntry
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
@@ -121,20 +109,13 @@ class iFolderWS:
 
     def get_children_by_ifolder (self, iFolderID):
         try:
-            self.logger.debug ('Getting all the children for ' \
-                                   'iFolder with ID={0}'.format (iFolderID))
-            SearchOperation = self.get_search_operation ()
+            Operation = self.get_search_operation ()
             iFolderEntrySet = self.client.service.GetEntriesByName \
-                (iFolderID, iFolderID, SearchOperation.Contains, '.', 0, 0)
+                (iFolderID, iFolderID, Operation.Contains, '.', 0, 0)
+
             if iFolderEntrySet.Total > 0:
-                iFolderEntry = iFolderEntrySet.Items.iFolderEntry
-                self.logger.debug ('Found {0} ' \
-                                       'children'.format (len (iFolderEntry)))
-                return iFolderEntry
-            else:
-                self.logger.debug ('iFolder with ID={0} ' \
-                                       'hasn\'t any children'.format \
-                                       (iFolderID))
+                return iFolderEntrySet.Items.iFolderEntry
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
@@ -142,53 +123,36 @@ class iFolderWS:
 
     def get_ifolder (self, iFolderID):
         try:
-            self.logger.debug ('Getting iFolder with ID={0}'.format \
-                                   (iFolderID))
             iFolder = self.client.service.GetiFolder (iFolderID)
+
             if iFolder is not None:
-                self.logger.debug ('iFolder with ID={0} has ' \
-                                       'name `{1}\''.format \
-                                       (iFolder.ID, iFolder.Name))
                 return iFolder
-            else:
-                self.logger.debug ('Could not get iFolder with ID={0}'.format \
-                                       (iFolderID))
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
-    def get_entry (self, iFolderID, iFolderEntryID):
+    def get_entry (self, iFolderID, EntryID):
         try:
-            self.logger.debug ('Getting iFolderEntry with ID={0} ' \
-                                   'and iFolderID={1}'.format \
-                                   (iFolderID, iFolderEntryID))
-            iFolderEntry = self.client.service.GetEntry \
-                (iFolderID, iFolderEntryID)
-            if iFolderEntry is not None:
-                self.logger.debug ('Got iFolderEntry with ' \
-                                       'name `{0}\' '.format \
-                                       (iFolderEntry.Name))
-                return iFolderEntry
-            else:
-                self.logger.debug ('Could not get iFolderEntry')
+
+            Entry = self.client.service.GetEntry (iFolderID, EntryID)
+
+            if Entry is not None:
+                return Entry
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
             raise
         
-    def open_file_read (self, iFolderID, iFolderEntryID):
+    def open_file_read (self, iFolderID, EntryID):
         try:
-            Handle = self.client.service.OpenFileRead \
-                (iFolderID, iFolderEntryID)
+            Handle = self.client.service.OpenFileRead (iFolderID, EntryID)
+
             if Handle is not None:
-                self.logger.info (\
-                    'Remote File has been successfully ' \
-                        'opened for reading')
                 return Handle
-            else:
-                self.logger.warning (\
-                    'Could not open remote File for reading')
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
@@ -196,24 +160,22 @@ class iFolderWS:
 
     def read_file (self, Handle):
         try:
-            return self.client.service.ReadFile \
-                (Handle, self.cm.get_soapbuflen ())
+
+            return self.client.service.ReadFile (\
+                Handle, self.cm.get_soapbuflen ())
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
-    def open_file_write (self, iFolderID, iFolderEntryID, Size):
+    def open_file_write (self, iFolderID, EntryID, Size):
         try :
-            Handle = self.client.service.OpenFileWrite \
-                (iFolderID, iFolderEntryID, Size)
+            Handle = self.client.service.OpenFileWrite (\
+                iFolderID, EntryID, Size)
+
             if Handle is not None:
-                self.logger.info (\
-                    'Remote File has beend successfully ' \
-                        'opened for writing')
                 return Handle
-            else:
-                self.logger.warning (\
-                    'Could not open remote File for writing')
+
             return None
         except WebFault, wf:
             self.logger.debug (wf)
@@ -221,54 +183,49 @@ class iFolderWS:
     
     def write_file (self, Handle, Data):
         try:
+
             self.client.service.WriteFile (Handle, Data)
-            return True
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
     def close_file (self, Handle):
         try:
-            self.logger.debug ('Closing file with handle={0}'.format (Handle))
+
             self.client.service.CloseFile (Handle)
-            self.logger.info ('File with handle={0} closed'.format (Handle))
-            return True
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
     def create_entry (self, iFolderID, ParentID, Name, Type):
         try:
-            iFolderEntry = \
-                self.client.service.CreateEntry \
-                (iFolderID, ParentID, Type, Name)
-            if iFolderEntry is not None:
-                self.logger.info ('{0} `{1}\', ' \
-                                      'has been remotely ' \
-                                      'created'.format (Type, Name))
-                return iFolderEntry
-            else:
-                self.logger.warning ('Could not create ' \
-                                         '`{0}\' remotely'.format (Name))
+            Entry = self.client.service.CreateEntry (\
+                iFolderID, ParentID, Type, Name)
+
+            if Entry is not None:
+                return Entry
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
             raise
 
-    def delete_entry (self, iFolderID, iFolderEntryID, Name, Type):
+    def delete_entry (self, iFolderID, EntryID, Name, Type):
         try:
-            self.client.service.DeleteEntry (iFolderID, iFolderEntryID)
-            self.logger.info ('{0} `{1}\', ' \
-                                  'has been remotely ' \
-                                  'deleted'.format (Type, Name))
+
+            self.client.service.DeleteEntry (iFolderID, EntryID)
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
         
     def add_member (self, iFolderID, UserID, Rights):
         try:
-            self.client.service.AddMember (\
-                iFolderID, UserID, Rights)
+
+            self.client.service.AddMember (iFolderID, UserID, Rights)
+
         except WebFault, wf:
             self.logger.error (wf)
             raise
@@ -278,9 +235,10 @@ class iFolderWS:
         try:
             iFolderUserSet = self.client.service.GetUsersBySearch (\
                 Property, Operation, Pattern, Index, Max)
+
             if iFolderUserSet.Total > 0:
-                ArrayOfiFolderUser = iFolderUserSet.Items.iFolderUser
-                return ArrayOfiFolderUser
+                return iFolderUserSet.Items.iFolderUser
+
             return None
         except WebFault, wf:
             self.logger.error (wf)
