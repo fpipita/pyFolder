@@ -201,7 +201,7 @@ class DBM:
                     Path, \
                     LocalPath))
 
-        self.logger.info ('Added entry `{0}\''.format (Path))
+        self.logger.info ('Added entry `{0}\''.format (Path.encode ('utf-8')))
         self.cx.commit ()
 
     def delete_entry (self, ifolder_id, entry_id):
