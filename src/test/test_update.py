@@ -219,6 +219,6 @@ class TestUpdate (unittest.TestCase):
             iFolderEntry.iFolderID)
         
         self.assertEqual (iFolderTuple['mtime'], iFolder.LastModified)
-        
+
 if __name__ == '__main__':
     unittest.main ()

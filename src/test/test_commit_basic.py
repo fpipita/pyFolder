@@ -261,6 +261,6 @@ class TestCommitBasic (unittest.TestCase):
             self.iFolder.ID, self.pyFolder.remove_prefix (LockedFilePath))
         
         self.assertEqual (EntryTuple, None)
-        
+
 if __name__ == '__main__':
     unittest.main ()
