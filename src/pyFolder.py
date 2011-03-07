@@ -723,6 +723,8 @@ class pyFolder (threading.Thread):
         self.dbm.delete_entry (iFolderID, EntryID)
 
     def update (self):
+        iFolderTupleList = None
+        
         try:
             iFolderTupleList = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
@@ -733,6 +735,7 @@ class pyFolder (threading.Thread):
                 'database using the `--pathtodb\' ' \
                 'command line switch.'
             sys.exit ()
+
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
             mtime = iFolderTuple['mtime']
@@ -751,7 +754,10 @@ class pyFolder (threading.Thread):
         self.__add_new_ifolders ()
 
     def get_local_changes_on_entry (\
-        self, iFolderID, EntryID, LocalPath, Digest, Type, Action):
+        self, iFolderID, EntryID, LocalPath, Digest):
+
+        Action = self.ifolderws.get_change_entry_action ()
+        Type = self.ifolderws.get_ifolder_entry_type ()
         ChangeAction = None
         ChangeType = None
 
@@ -825,13 +831,18 @@ class pyFolder (threading.Thread):
             iFolderID, Head)
 
         if EntryTuple == None:
-            return LocalPath, self.ifolderws.get_ifolder_as_entry (iFolderID)
+            iFolderEntry = None
+            try:
+                iFolderEntry = self.ifolderws.get_ifolder_as_entry (iFolderID)
+                return LocalPath, iFolderEntry
+            except WebFault, wf:
+                self.logger.error (wf)
+                raise
 
         ParentID = EntryTuple['id']
         
         Entry = None
         Done = False
-
         while not Done:
             try:
                 Entry = self.ifolderws.get_entry (iFolderID, ParentID)
@@ -847,7 +858,9 @@ class pyFolder (threading.Thread):
                     return self.find_closest_ancestor_remotely_alive (\
                         iFolderID, Head)
 
-                elif OriginalException == 'System.NullReferenceException':
+                elif OriginalException == 'System.NullReferenceException' or \
+                        OriginalException == \
+                        'System.IO.DirectoryNotFoundException':
                     time.sleep (SIMIAS_SYNC)
                     continue
     
@@ -858,9 +871,9 @@ class pyFolder (threading.Thread):
             if self.is_new_local_directory (iFolderID, Path):
                 ParentID = self.__find_parent (iFolderID, Path)
                 if ParentID is not None:
-                    iFolderEntry = self.policy.add_remote_directory (\
+                    Entry = self.policy.add_remote_directory (\
                         iFolderID, ParentID, Path)
-                    if iFolderEntry is not None:
+                    if Entry is not None:
                         Updated = True
         return Updated
 
@@ -871,16 +884,14 @@ class pyFolder (threading.Thread):
             if self.__is_new_local_file (iFolderID, Path):
                 ParentID = self.__find_parent (iFolderID, Path)
                 if ParentID is not None:
-                    iFolderEntry = self.policy.add_remote_file \
+                    Entry = self.policy.add_remote_file \
                         (iFolderID, ParentID, Path)
-                    if iFolderEntry is not None:
+                    if Entry is not None:
                         Updated = True
-                        if self.policy.modify_remote_file \
-                                (iFolderEntry.iFolderID, \
-                                     iFolderEntry.ID, \
-                                     iFolderEntry.Path):
+                        if self.policy.modify_remote_file (\
+                            iFolderID, Entry.ID, Entry.Path):
                             self.__update_entry_in_dbm (\
-                                iFolderEntry.iFolderID, iFolderEntry.ID)
+                                Entry.iFolderID, Entry.ID)
         return Updated
 
     def __commit_added_entries (self, iFolderID, Name):
@@ -892,23 +903,25 @@ class pyFolder (threading.Thread):
                 Root, Files, iFolderID) or Updated
         return Updated
                 
-    def __commit_modified_entry (self, iFolderID, iFolderEntryID, \
-                                     Path, EntryType, iFolderEntryType):
+    def __commit_modified_entry (self, iFolderID, EntryID, Path, EntryType):
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
-        if EntryType == iFolderEntryType.File:
-            Updated = self.policy.modify_remote_file (\
-                iFolderID, iFolderEntryID, Path)
-        elif EntryType == iFolderEntryType.Directory:
+
+        if EntryType == Type.File:
+            Updated = self.policy.modify_remote_file (iFolderID, EntryID, Path)
+
+        elif EntryType == Type.Directory:
             Updated = self.policy.modify_remote_directory (\
-                iFolderID, iFolderEntryID, Path)
+                iFolderID, EntryID, Path)
+
         if Updated:
-            self.__update_entry_in_dbm (iFolderID, iFolderEntryID)
+            self.__update_entry_in_dbm (iFolderID, EntryID)
+
         return Updated
 
     def rollback (self, iFolderID, Path):
-        PathToRename, AncestoriFolderEntry = \
-            self.find_closest_ancestor_remotely_alive (\
-            iFolderID, Path)
+        PathToRename, AncestorEntry = \
+            self.find_closest_ancestor_remotely_alive (iFolderID, Path)
 
         NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
         self.rename (PathToRename, NewParentPath)
@@ -916,80 +929,80 @@ class pyFolder (threading.Thread):
         DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
             iFolderID, PathToRename)
 
-        iFolderEntryID = DeadAncestorEntryTuple['id']
+        EntryID = DeadAncestorEntryTuple['id']
 
-        self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
-        self.dbm.delete_entry (iFolderID, iFolderEntryID)
+        self.__delete_hierarchy_from_dbm (iFolderID, EntryID)
+        self.dbm.delete_entry (iFolderID, EntryID)
 
-    def __delete_hierarchy_from_dbm (self, iFolderID, iFolderEntryID):
-        ListOfEntryTuple = self.dbm.get_entries_by_parent (iFolderEntryID)
-        if len (ListOfEntryTuple) == 0:
-            self.dbm.delete_entry (iFolderID, iFolderEntryID)
+    def __delete_hierarchy_from_dbm (self, iFolderID, EntryID):
+        EntryTupleList = self.dbm.get_entries_by_parent (EntryID)
+        if len (EntryTupleList) == 0:
+            self.dbm.delete_entry (iFolderID, EntryID)
             return
-        for EntryTuple in ListOfEntryTuple:
+
+        for EntryTuple in EntryTupleList:
             ChildrenID = EntryTuple['id']
+
             if EntryTuple['digest'] == 'DIRECTORY':
                 self.__delete_hierarchy_from_dbm (iFolderID, ChildrenID)
+
             self.dbm.delete_entry (iFolderID, ChildrenID)
     
-    def __commit_deleted_entry (self, iFolderID, iFolderEntryID, \
-                                    Path, EntryType, iFolderEntryType):
+    def __commit_deleted_entry (self, iFolderID, EntryID, Path, EntryType):
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
-        if EntryType == iFolderEntryType.File:
-            Updated = self.policy.delete_remote_file (\
-                iFolderID, iFolderEntryID, Path)
-        elif EntryType == iFolderEntryType.Directory:
+
+        if EntryType == Type.File:
+            Updated = self.policy.delete_remote_file (iFolderID, EntryID, Path)
+
+        elif EntryType == Type.Directory:
             Updated = self.policy.delete_remote_directory (\
-                iFolderID, iFolderEntryID, Path)
+                iFolderID, EntryID, Path)
             if Updated:
-                self.__delete_hierarchy_from_dbm (iFolderID, iFolderEntryID)
+                self.__delete_hierarchy_from_dbm (iFolderID, EntryID)
+
         if Updated:
-            self.__delete_entry_from_dbm (iFolderID, iFolderEntryID)
+            self.__delete_entry_from_dbm (iFolderID, EntryID)
+
         return Updated
     
     def __commit_existing_entries (self, iFolderID):
-        ChangeEntryAction = self.ifolderws.get_change_entry_action ()
-        iFolderEntryType = self.ifolderws.get_ifolder_entry_type ()
+        Action = self.ifolderws.get_change_entry_action ()
+        Type = self.ifolderws.get_ifolder_entry_type ()
         Updated = False
 
-        ListOfEntryTuple = self.dbm.get_entries_by_ifolder (iFolderID)
+        EntryTupleList = self.dbm.get_entries_by_ifolder (iFolderID)
 
-        for EntryTuple in ListOfEntryTuple:
-            iFolderEntryID = EntryTuple['id']
+        for EntryTuple in EntryTupleList:
+            EntryID = EntryTuple['id']
             Path = EntryTuple['path']
             LocalPath = EntryTuple['localpath']
             Digest = EntryTuple['digest']
 
-            if self.dbm.get_entry (iFolderID, iFolderEntryID) is None:
+            if self.dbm.get_entry (iFolderID, EntryID) is None:
                 continue
             
             self.logger.debug ('Checking entry `{0}\''.format (LocalPath))
 
             ChangeType, EntryType = self.get_local_changes_on_entry (\
-                iFolderID, iFolderEntryID, LocalPath, Digest, \
-                    iFolderEntryType, ChangeEntryAction)
+                iFolderID, EntryID, LocalPath, Digest)
 
             if ChangeType is not None:
-                if ChangeType == ChangeEntryAction.Modify:
+                if ChangeType == Action.Modify:
                     Updated = self.__commit_modified_entry (\
-                        iFolderID, \
-                            iFolderEntryID, \
-                            Path, \
-                            EntryType, \
-                            iFolderEntryType) or Updated
+                        iFolderID, EntryID, Path, EntryType) or Updated
 
-                elif ChangeType == ChangeEntryAction.Delete:
+                elif ChangeType == Action.Delete:
                     Updated = self.__commit_deleted_entry (\
-                        iFolderID, \
-                            iFolderEntryID, \
-                            Path, \
-                            EntryType, \
-                            iFolderEntryType) or Updated
+                        iFolderID, EntryID, Path, EntryType) or Updated
+
         return Updated
 
     def commit (self):
+        iFolderTupleList = None
+
         try:
-            ListOfiFolderTuple = self.dbm.get_ifolders ()
+            iFolderTupleList = self.dbm.get_ifolders ()
         except sqlite3.OperationalError:
             print >> sys.stderr, 'Could not open the local database. Please, ' \
                 'run the `checkout\' action first or ' \
@@ -1000,7 +1013,7 @@ class pyFolder (threading.Thread):
 
         # We assume that the pyFolder user isn't allowed to add/delete
         # iFolders, so we are going to check just the entries
-        for iFolderTuple in ListOfiFolderTuple:
+        for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
             Name = iFolderTuple['name']
             

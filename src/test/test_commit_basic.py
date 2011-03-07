@@ -80,8 +80,7 @@ class TestCommitBasic (unittest.TestCase):
 
         Action, Type = \
             self.pyFolder.get_local_changes_on_entry (\
-            iFolderID, iFolderEntryID, LocalPath, Digest, \
-                self.iFolderEntryType, self.ChangeEntryAction)
+            iFolderID, iFolderEntryID, LocalPath, Digest)
         
         self.assertEqual (Action, None)
         self.assertEqual (Type, self.iFolderEntryType.File)
@@ -94,8 +93,7 @@ class TestCommitBasic (unittest.TestCase):
         
         Action, Type = \
             self.pyFolder.get_local_changes_on_entry (\
-            iFolderID, iFolderEntryID, LocalPath, Digest, \
-                self.iFolderEntryType, self.ChangeEntryAction)
+            iFolderID, iFolderEntryID, LocalPath, Digest)
         
         self.assertEqual (Action, self.ChangeEntryAction.Modify)
         self.assertEqual (Type, self.iFolderEntryType.File)
@@ -104,8 +102,7 @@ class TestCommitBasic (unittest.TestCase):
         
         Action, Type = \
             self.pyFolder.get_local_changes_on_entry (\
-            iFolderID, iFolderEntryID, LocalPath, Digest, \
-                self.iFolderEntryType, self.ChangeEntryAction)
+            iFolderID, iFolderEntryID, LocalPath, Digest)
 
         self.assertEqual (Action, self.ChangeEntryAction.Delete)
         self.assertEqual (Type, self.iFolderEntryType.File)
