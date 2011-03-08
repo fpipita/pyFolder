@@ -52,19 +52,24 @@ class DEFAULT (Policy):
     - If an entry has any kind of remote change, the changes are also applied
       locally. If the entry has also local changes, it is renamed.
     - If a new entry is added remotely, it is also added to the local
-      repository.
+      repository. If, in the meanwhile, a local entry (with the same path)
+      is added locally, it is renamed.
+    - If an entry has remotely been deleted, it is deleted also locally. If
+      the local copy has any changes, it is renamed.
 
     [ COMMIT behavior ]
     - If an entry has local changes (modify, deletion), changes are committed.
     - New locally added entries are committed. If, at the time of the commit,
       a remote entry having the same path and name of the one that is being
-      committed has been added, then the entries are renamed, adding a suffix
-      with the `OwnerUserName' and both the copies are saved on the server, so
-      that they will be available for all the users at the next update.
+      committed has been added, then the entry being committed is renamed, 
+      so that both the copies are saved on the server and they will be 
+      available for all the users at the next update.
     """
     def add_directory (self, ifolder_id, entry_id, path):
         try:
+
             self.pyFolder.mkdir (path)
+
         except OSError:
             pass
         return True
@@ -81,8 +86,6 @@ class DEFAULT (Policy):
             return True
 
         except WebFault, wf:
-            self.logger.error (wf)
-
             OriginalException = wf.fault.detail.detail.OriginalException._type
             
             if OriginalException == \
@@ -107,8 +110,6 @@ class DEFAULT (Policy):
             return True
 
         except WebFault, wf:
-            self.logger.error (wf)
-
             OriginalException = wf.fault.detail.detail.OriginalException._type
             
             if OriginalException == \
@@ -144,10 +145,12 @@ class DEFAULT (Policy):
 
     def add_remote_directory (self, iFolderID, ParentID, Path):
         try:
+
             iFolderEntry = \
                 self.pyFolder.remote_mkdir (iFolderID, ParentID, Path)
             self.pyFolder.add_entry_to_dbm (iFolderEntry)
             return iFolderEntry
+
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
 
@@ -172,10 +175,12 @@ class DEFAULT (Policy):
     
     def add_remote_file (self, iFolderID, ParentID, Path):
         try:
+
             iFolderEntry = \
                 self.pyFolder.remote_create_file (iFolderID, ParentID, Path)
             self.pyFolder.add_entry_to_dbm (iFolderEntry)
             return iFolderEntry
+
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
 
@@ -203,21 +208,27 @@ class DEFAULT (Policy):
     
     def modify_remote_file (self, iFolderID, EntryID, Path):
         try:
+
             self.pyFolder.remote_file_write (iFolderID, EntryID, Path)
             return True
+
         except WebFault, wf:
             return False
     
     def delete_remote_directory (self, iFolderID, iFolderEntryID, Path):
         try:
+
             self.pyFolder.remote_rmdir (iFolderID, iFolderEntryID, Path)
+
         except WebFault, wf:
             pass
         return True
 
     def delete_remote_file (self, iFolderID, iFolderEntryID, Path):
         try:
+
             self.pyFolder.remote_delete (iFolderID, iFolderEntryID, Path)
+
         except WebFault, wf:
             pass
         return True
