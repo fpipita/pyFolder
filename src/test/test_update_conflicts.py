@@ -62,7 +62,7 @@ class TestUpdateConflicts (unittest.TestCase):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
         
-    def test_modify_conflict (self):
+    def test_modify_on_conflict (self):
         EntryName = 'aFile'
         RemoteContent = 'something'
         LocalContent = '{0} else'.format (RemoteContent)
@@ -103,7 +103,7 @@ class TestUpdateConflicts (unittest.TestCase):
         with open (EntryLocalPath, 'rb') as File:
             self.assertEqual (File.readlines ()[0], RemoteContent)
     
-    def test_add_conflict (self):
+    def test_add_on_conflict (self):
         EntryName = 'aFile'
         RemoteContent = 'something'
         LocalContent = '{0} else'.format (RemoteContent)
@@ -140,7 +140,7 @@ class TestUpdateConflicts (unittest.TestCase):
         with open (EntryLocalPath, 'rb') as File:
             self.assertEqual (File.readlines ()[0], RemoteContent)
     
-    def test_delete_conflict (self):
+    def test_delete_on_conflict (self):
         EntryName = 'aFile'
         LocalContent = 'something'
 
