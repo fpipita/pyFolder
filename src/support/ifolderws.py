@@ -212,7 +212,7 @@ class iFolderWS:
             self.logger.error (wf)
             raise
 
-    def delete_entry (self, iFolderID, EntryID, Name, Type):
+    def delete_entry (self, iFolderID, EntryID):
         try:
 
             self.client.service.DeleteEntry (iFolderID, EntryID)
