@@ -222,7 +222,7 @@ class TestCommitBasic (unittest.TestCase):
         self.assertEqual (iFolderEntry.ID, ParentiFolderEntry.ID)
         
         self.pyFolder.ifolderws.delete_entry (\
-            self.iFolder.ID, ParentiFolderEntry.ID, None, None)
+            self.iFolder.ID, ParentiFolderEntry.ID)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
@@ -235,7 +235,7 @@ class TestCommitBasic (unittest.TestCase):
         self.assertEqual (iFolderEntry.ID, AncestoriFolderEntry.ID)
         
         self.pyFolder.ifolderws.delete_entry (\
-            self.iFolder.ID, AncestoriFolderEntry.ID, None, None)
+            self.iFolder.ID, AncestoriFolderEntry.ID)
         
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         
