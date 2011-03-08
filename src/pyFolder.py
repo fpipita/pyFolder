@@ -731,8 +731,9 @@ class pyFolder (threading.Thread):
             OriginalException = wf.fault.detail.detail.OriginalException._type
 
             if OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException':
-
+                    'iFolder.WebService.EntryDoesNotExistException' or \
+                    OriginalException == \
+                    'System.IO.DirectoryNotFoundException':
                 return self.find_closest_ancestor_remotely_alive (\
                     iFolderID, Head)
 
