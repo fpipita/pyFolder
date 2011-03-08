@@ -421,16 +421,26 @@ class pyFolder (threading.Thread):
         iFolderEntryID = iFolderTuple['entry_id']
         Name = iFolderTuple['name']
 
-        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
+        try:
 
-        if iFolder is None:
+            iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
-            Updated = self.policy.delete_directory \
-                (iFolderID, iFolderEntryID, Name)
+        except WebFault, wf:
+            self.logger.error (wf)
+            
+            OriginalException = wf.fault.detail.detail.OriginalException._type
 
-            if Updated:
-                self.dbm.delete_entries_by_ifolder (iFolderID)
-                self.dbm.delete_ifolder (iFolderID)
+            if OriginalException == \
+                    'iFolder.WebService.MemberDoesNotExistException':
+                Updated = self.policy.delete_directory \
+                    (iFolderID, iFolderEntryID, Name)
+
+                if Updated:
+                    self.dbm.delete_entries_by_ifolder (iFolderID)
+                    self.dbm.delete_ifolder (iFolderID)
+
+            else:
+                raise
 
         return Updated
 
@@ -566,8 +576,13 @@ class pyFolder (threading.Thread):
 
         return Changed
 
-    def file_has_local_changes (self, iFolderID, EntryID, LocalPath):
+    def file_has_local_changes (\
+        self, iFolderID, EntryID, LocalPath, Localize=False):
+
         EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
+        
+        if Localize:
+            LocalPath = self.add_prefix (os.path.normpath (LocalPath))
 
         if not self.path_exists (LocalPath):
             if EntryTuple is None:
@@ -584,9 +599,6 @@ class pyFolder (threading.Thread):
                 NewDigest = self.__md5_hash (LocalPath)
 
                 if OldDigest != NewDigest:
-                    self.logger.info ('File `{0}\' has local ' \
-                                          'changes'.format (\
-                            LocalPath.encode ('utf-8')))
                     return True
 
                 else:

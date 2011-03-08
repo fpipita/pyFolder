@@ -72,6 +72,11 @@ class DEFAULT (Policy):
     def add_file (self, iFolderID, EntryID, Path):
         try:
 
+            if self.pyFolder.file_has_local_changes (\
+                iFolderID, EntryID, Path, Localize=True):
+                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
+                self.pyFolder.rename (Path, ConflictedPath)
+
             self.pyFolder.fetch (iFolderID, EntryID, Path)
             return True
 
@@ -93,6 +98,11 @@ class DEFAULT (Policy):
     def modify_file (self, iFolderID, EntryID, Path):
         try:
 
+            if self.pyFolder.file_has_local_changes (\
+                iFolderID, EntryID, Path, Localize=True):
+                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
+                self.pyFolder.rename (Path, ConflictedPath)
+
             self.pyFolder.fetch (iFolderID, EntryID, Path)
             return True
 
@@ -108,16 +118,26 @@ class DEFAULT (Policy):
             else:
                 raise
 
-    def delete_directory (self, ifolder_id, entry_id, path):
+    def delete_directory (self, iFolderID, EntryID, Path):
         try:
-            self.pyFolder.rmdir (path)
+
+            self.pyFolder.rmdir (Path)
+
         except OSError:
             pass
+
         return True
 
-    def delete_file (self, ifolder_id, entry_id, path):
+    def delete_file (self, iFolderID, EntryID, Path):
         try:
-            self.pyFolder.delete (path)
+
+            if self.pyFolder.file_has_local_changes (\
+                iFolderID, EntryID, Path, Localize=True):
+                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
+                self.pyFolder.rename (Path, ConflictedPath)
+
+            self.pyFolder.delete (Path)
+            
         except OSError:
             pass
         return True
