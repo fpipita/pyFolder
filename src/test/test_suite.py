@@ -4,14 +4,19 @@
 import sys
 import unittest
 
-from test_update import *
+from test_update_basic import *
+from test_update_conflicts import *
 from test_commit_basic import *
 from test_commit_conflicts import *
 
 if __name__ == '__main__':
     suite = unittest.TestSuite ()
 
-    suite.addTest (unittest.TestLoader ().loadTestsFromTestCase (TestUpdate))
+    suite.addTest (\
+        unittest.TestLoader ().loadTestsFromTestCase (TestUpdateBasic))
+
+    suite.addTest (\
+        unittest.TestLoader ().loadTestsFromTestCase (TestUpdateConflicts))
 
     suite.addTest (\
         unittest.TestLoader ().loadTestsFromTestCase (TestCommitBasic))
