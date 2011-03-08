@@ -50,7 +50,7 @@ class DEFAULT (Policy):
 
     [ UPDATE behavior ]
     - If an entry has any kind of remote change, the changes are also applied
-      locally.
+      locally. If the entry has also local changes, it is renamed.
     - If a new entry is added remotely, it is also added to the local
       repository.
 
@@ -69,17 +69,45 @@ class DEFAULT (Policy):
             pass
         return True
 
-    def add_file (self, ifolder_id, entry_id, path):
-        self.pyFolder.fetch (ifolder_id, entry_id, path)
-        return True
+    def add_file (self, iFolderID, EntryID, Path):
+        try:
+
+            self.pyFolder.fetch (iFolderID, EntryID, Path)
+            return True
+
+        except WebFault, wf:
+            self.logger.error (wf)
+
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+            
+            if OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
+                return False
+            
+            else:
+                raise
 
     def modify_directory (self, ifolder_id, entry_id, path):
         return True
 
-    def modify_file (self, ifolder_id, entry_id, path):
-        self.pyFolder.fetch (ifolder_id, entry_id, path)
-        return True
-    
+    def modify_file (self, iFolderID, EntryID, Path):
+        try:
+
+            self.pyFolder.fetch (iFolderID, EntryID, Path)
+            return True
+
+        except WebFault, wf:
+            self.logger.error (wf)
+
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+            
+            if OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
+                return False
+            
+            else:
+                raise
+
     def delete_directory (self, ifolder_id, entry_id, path):
         try:
             self.pyFolder.rmdir (path)
@@ -105,8 +133,8 @@ class DEFAULT (Policy):
 
             if OriginalException == \
                     'iFolder.WebService.EntryAlreadyExistException':
-                NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
-                self.pyFolder.rename (Path, NewPath)
+                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
+                self.pyFolder.rename (Path, ConflictedPath)
                 return None
 
             elif OriginalException == \
@@ -133,8 +161,8 @@ class DEFAULT (Policy):
 
             if OriginalException == \
                     'iFolder.WebService.EntryAlreadyExistException':
-                NewPath = '{0}-{1}'.format (Path, self.pyFolder.cm.get_username ())
-                self.pyFolder.rename (Path, NewPath)
+                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
+                self.pyFolder.rename (Path, ConflictedPath)
                 return None
             
             elif OriginalException == \
