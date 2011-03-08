@@ -82,8 +82,8 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
-        ExpectedLocalPath = '{0}-{1}'.format (\
-            LocalPath, TEST_CONFIG.USERDATA_A['username'])
+        ExpectedLocalPath = self.pyFolder.add_conflicted_suffix (\
+            LocalPath)
 
         self.assertTrue (os.path.isdir (ExpectedLocalPath))
         self.assertTrue (os.path.isdir (LocalPath))
@@ -107,8 +107,10 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)        
         self.pyFolder.update ()
 
-        self.assertTrue (os.path.isfile ('{0}-{1}'.format (\
-                    LocalPath, TEST_CONFIG.USERDATA_A['username'])))
+        ConflictedLocalPath = self.pyFolder.add_conflicted_suffix (\
+            LocalPath)
+        
+        self.assertTrue (os.path.isfile (ConflictedLocalPath))
         self.assertTrue (os.path.isfile (LocalPath))
         
     def test_modify_file_on_update (self):
@@ -188,7 +190,7 @@ class TestCommitConflicts (unittest.TestCase):
         
         self.ifolderws.delete_entry (\
             iFolderEntryDirectory.iFolderID, \
-                iFolderEntryDirectory.ID, None, None)
+                iFolderEntryDirectory.ID)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         
@@ -197,8 +199,8 @@ class TestCommitConflicts (unittest.TestCase):
         self.pyFolder.commit ()
 
         ConflictedParentPath = os.path.join (IFOLDER_NAME, Parent)
-        ConflictedParentPath = \
-            '{0}-{1}'.format (ConflictedParentPath, CONFLICTED_SUFFIX)
+        ConflictedParentPath = self.pyFolder.add_conflicted_suffix (\
+            ConflictedParentPath)
         
         ConflictedChildPath = os.path.join (ConflictedParentPath, Child)
 
@@ -240,9 +242,7 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
         
-        self.ifolderws.delete_entry (\
-            ParentEntry.iFolderID, \
-                ParentEntry.ID, None, None)
+        self.ifolderws.delete_entry (ParentEntry.iFolderID, ParentEntry.ID)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         
@@ -254,8 +254,8 @@ class TestCommitConflicts (unittest.TestCase):
         self.pyFolder.commit ()
 
         ConflictedParentPath = os.path.join (IFOLDER_NAME, Parent)
-        ConflictedParentPath = '{0}-{1}'.format (\
-            ConflictedParentPath, CONFLICTED_SUFFIX)
+        ConflictedParentPath = self.pyFolder.add_conflicted_suffix (\
+            ConflictedParentPath)
         
         ConflictedChildPath = os.path.join (ConflictedParentPath, Child)
 
