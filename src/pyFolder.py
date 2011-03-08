@@ -103,15 +103,13 @@ class pyFolder (threading.Thread):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        self.__invoke (self.ifolderws.delete_entry, \
-                           iFolderID, EntryID, Name, Type.File)
+        self.__invoke (self.ifolderws.delete_entry, iFolderID, EntryID)
 
     def remote_rmdir (self, iFolderID, EntryID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        self.__invoke (self.ifolderws.delete_entry, iFolderID, \
-                           EntryID, Name, Type.Directory)
+        self.__invoke (self.ifolderws.delete_entry, iFolderID, EntryID)
 
     def remote_create_file (self, iFolderID, ParentID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
@@ -129,8 +127,8 @@ class pyFolder (threading.Thread):
 
     def fetch (self, iFolderID, EntryID, Path):
         Path = self.add_prefix (Path)
-        Handle = self.__invoke (self.ifolderws.open_file_read, \
-                                    iFolderID, EntryID)
+        Handle = self.__invoke (\
+            self.ifolderws.open_file_read, iFolderID, EntryID)
 
         if Handle is not None:
             with open (Path, 'wb') as File:
@@ -264,7 +262,7 @@ class pyFolder (threading.Thread):
             else:
                 return False
         return False
-
+    
     def __get_change (self, iFolderID, EntryID, Path, mtime):
         Change = self.__invoke (self.ifolderws.get_latest_change, \
                                     iFolderID, EntryID)
@@ -332,9 +330,28 @@ class pyFolder (threading.Thread):
 
         return Updated
 
+    def update_entry (self, iFolderID, EntryID, Path, mtime):
+        Action = self.ifolderws.get_change_entry_action ()        
+        Change = self.__get_change (iFolderID, EntryID, Path, mtime)
+        Updated = False
+        
+        if Change is not None:
+
+            if Change.Action == Action.Add:
+                Updated = self.__handle_add_action (iFolderID, EntryID, Change)
+
+            elif Change.Action == Action.Modify:
+                Updated = self.__handle_modify_action (\
+                    iFolderID, EntryID, Change)
+
+            elif Change.Action == Action.Delete:
+                Updated = self.__handle_delete_action (\
+                    iFolderID, EntryID, Change)
+                
+        return Updated
+
     def __update_ifolder (self, iFolderID):
         EntryTupleList = self.dbm.get_entries_by_ifolder (iFolderID)
-        Action = self.ifolderws.get_change_entry_action ()
         Updated = False
 
         for EntryTuple in EntryTupleList:
@@ -346,21 +363,8 @@ class pyFolder (threading.Thread):
             if self.dbm.get_entry (iFolderID, EntryID) is None:
                 continue
             
-            Change = self.__get_change (iFolderID, EntryID, Path, mtime)
-
-            if Change is not None:
-
-                if Change.Action == Action.Add:
-                    Updated = self.__handle_add_action (\
-                        iFolderID, EntryID, Change) or Updated
-
-                elif Change.Action == Action.Modify:
-                    Updated = self.__handle_modify_action (\
-                        iFolderID, EntryID, Change) or Updated
-
-                elif Change.Action == Action.Delete:
-                    Updated = self.__handle_delete_action (\
-                        iFolderID, EntryID, Change) or Updated
+            Updated = self.update_entry (iFolderID, EntryID, Path, mtime) and \
+                Updated
 
         return Updated
 
@@ -379,7 +383,7 @@ class pyFolder (threading.Thread):
 
                     if Change is not None:
                         Updated = self.__add_entry_locally (\
-                            iFolderID, ParentID, Change) or Updated
+                            iFolderID, ParentID, Change) and Updated
 
         return Updated
 
@@ -468,6 +472,9 @@ class pyFolder (threading.Thread):
             prefix = os.path.join (self.cm.get_prefix (), '')
             return Path.replace ('{0}'.format (prefix), '')
         return Path
+
+    def add_conflicted_suffix (self, Path):
+        return '{0}-{1}'.format (Path.encode ('utf-8'), CONFLICTED_SUFFIX)
 
     def path_exists (self, Path):
         return os.path.exists (self.add_prefix (Path))
@@ -625,14 +632,14 @@ class pyFolder (threading.Thread):
             iFolderID = iFolderTuple['id']
             mtime = iFolderTuple['mtime']
 
-            Updated = False
+            Updated = True
 
             if self.__ifolder_has_changes (iFolderID, mtime):
-                Updated = self.__update_ifolder (iFolderID) or Updated
-                Updated = self.__add_new_entries (iFolderID) or Updated
+                Updated = self.__update_ifolder (iFolderID) and Updated
+                Updated = self.__add_new_entries (iFolderID) and Updated
 
-            if Updated:
-                self.__update_ifolder_in_dbm (iFolderID)
+                if Updated:
+                    self.__update_ifolder_in_dbm (iFolderID)
 
             self.__check_for_deleted_ifolder (iFolderTuple)
             self.__check_for_deleted_membership (iFolderTuple)
