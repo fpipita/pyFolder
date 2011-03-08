@@ -642,19 +642,37 @@ class pyFolder (threading.Thread):
 
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
+            iFolderEntryID = iFolderTuple['entry_id']
             mtime = iFolderTuple['mtime']
+            Name = iFolderTuple['name']
 
             Updated = True
 
-            if self.__ifolder_has_changes (iFolderID, mtime):
-                Updated = self.__update_ifolder (iFolderID) and Updated
-                Updated = self.__add_new_entries (iFolderID) and Updated
+            try:
 
-                if Updated:
-                    self.__update_ifolder_in_dbm (iFolderID)
+                if self.__ifolder_has_changes (iFolderID, mtime):
+                    Updated = self.__update_ifolder (iFolderID) and Updated
+                    Updated = self.__add_new_entries (iFolderID) and Updated
 
-            self.__check_for_deleted_ifolder (iFolderTuple)
-            self.__check_for_deleted_membership (iFolderTuple)
+                    if Updated:
+                        self.__update_ifolder_in_dbm (iFolderID)
+
+            except WebFault, wf:
+                OriginalException = \
+                    wf.fault.detail.detail.OriginalException._type
+
+                if OriginalException == \
+                        'iFolder.WebService.MemberDoesNotExistException' or \
+                        OriginalException == \
+                        'iFolder.WebService.iFolderDoesNotExistException':
+                    self.policy.delete_directory (\
+                        iFolderID, iFolderEntryID, Name)
+                    self.dbm.delete_entries_by_ifolder (iFolderID)
+                    self.dbm.delete_ifolder (iFolderID)
+
+                else:
+                    raise
+                
         self.__add_new_ifolders ()
 
     def get_local_changes_on_entry (\
@@ -911,12 +929,33 @@ class pyFolder (threading.Thread):
         # iFolders, so we are going to check just the entries
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
+            iFolderEntryID = iFolderTuple['entry_id']
             Name = iFolderTuple['name']
             
             Updated = False
 
-            Updated = self.__commit_existing_entries (iFolderID) or Updated
-            Updated = self.__commit_added_entries (iFolderID, Name) or Updated
+            try:
+
+                Updated = self.__commit_existing_entries (iFolderID) \
+                    or Updated
+                Updated = self.__commit_added_entries (iFolderID, Name) \
+                    or Updated
+
+            except WebFault, wf:
+                OriginalException = \
+                    wf.fault.detail.detail.OriginalException._type
+
+                if OriginalException == \
+                        'iFolder.WebService.MemberDoesNotExistException' or \
+                        OriginalException == \
+                        'iFolder.WebService.iFolderDoesNotExistException':
+                    self.policy.delete_directory (\
+                        iFolderID, iFolderEntryID, Name)
+                    self.dbm.delete_entries_by_ifolder (iFolderID)
+                    self.dbm.delete_ifolder (iFolderID)
+
+                else:
+                    raise
             
             if Updated:
                 self.__update_ifolder_in_dbm (iFolderID)
