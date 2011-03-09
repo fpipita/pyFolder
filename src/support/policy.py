@@ -232,25 +232,61 @@ class DEFAULT (Policy):
             return True
 
         except WebFault, wf:
-            return False
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+            
+            if OriginalException == 'System.IO.IOException':
+                return False
+
+            elif OriginalException == \
+                    'iFolder.WebService.MemberDoesNotExistException' or \
+                    OriginalException == \
+                    'iFolder.WebService.iFolderDoesNotExistException':
+                raise
+
+            else:
+                raise
     
     def delete_remote_directory (self, iFolderID, iFolderEntryID, Path):
         try:
 
             self.pyFolder.remote_rmdir (iFolderID, iFolderEntryID, Path)
+            return True
 
         except WebFault, wf:
-            pass
-        return True
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+            
+            if OriginalException == 'System.IO.IOException':
+                return False
+
+            elif OriginalException == \
+                    'iFolder.WebService.MemberDoesNotExistException' or \
+                    OriginalException == \
+                    'iFolder.WebService.iFolderDoesNotExistException':
+                raise
+
+            else:
+                raise
 
     def delete_remote_file (self, iFolderID, iFolderEntryID, Path):
         try:
 
             self.pyFolder.remote_delete (iFolderID, iFolderEntryID, Path)
+            return True
 
         except WebFault, wf:
-            pass
-        return True
+            OriginalException = wf.fault.detail.detail.OriginalException._type
+
+            if OriginalException == 'System.IO.IOException':
+                return False
+            
+            elif OriginalException == \
+                    'iFolder.WebService.MemberDoesNotExistException' or \
+                    OriginalException == \
+                    'iFolder.WebService.iFolderDoesNotExistException':
+                raise
+
+            else:
+                raise
 
 class PolicyFactory:
     @staticmethod

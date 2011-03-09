@@ -858,7 +858,7 @@ class pyFolder (threading.Thread):
         PathToRename, AncestorEntry = \
             self.find_closest_ancestor_remotely_alive (iFolderID, Path)
 
-        NewParentPath = '{0}-{1}'.format (PathToRename, CONFLICTED_SUFFIX)
+        NewParentPath = self.add_conflicted_suffix (PathToRename)
         self.rename (PathToRename, NewParentPath)
         
         DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
