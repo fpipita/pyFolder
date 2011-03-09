@@ -98,6 +98,16 @@ class pyFolder (threading.Thread):
     def ignore_locked (self, Path):
         self.logger.info ('Ignoring locked entry `{0}\''.format (\
                 Path.encode ('utf-8')))
+        
+    def ignore_no_rights (self, Path):
+        self.logger.info ('Could not commit entry `{0}\' ' \
+                              'because of not sufficient ' \
+                              'rights'.format (Path.encode ('utf-8')))
+
+    def ignore_in_use (self, Path):
+        self.logger.info ('Could not commit entry `{0}\' ' \
+                              'because it is already ' \
+                              'in use'.format (Path.encode ('utf-8')))
 
     def remote_delete (self, iFolderID, EntryID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()

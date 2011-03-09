@@ -244,6 +244,15 @@ class iFolderWS:
             self.logger.error (wf)
             raise
 
+    def set_member_rights (self, iFolderID, UserID, Rights):
+        try:
+
+            self.client.service.SetMemberRights (iFolderID, UserID, Rights)
+
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
     def get_ifolder_entry_type (self):
         return self.client.factory.create ('iFolderEntryType')
         

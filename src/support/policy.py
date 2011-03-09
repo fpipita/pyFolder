@@ -191,8 +191,13 @@ class DEFAULT (Policy):
                 return None
 
             elif OriginalException == 'System.NullReferenceException' or \
+                    OriginalException == \
                     'System.IO.DirectoryNotFoundException':
                 self.pyFolder.rollback (iFolderID, Path)
+                return None
+            
+            elif OriginalException == 'Simias.Storage.AccessException':
+                self.pyFolder.ignore_no_rights (Path)
                 return None
 
             else:
@@ -221,10 +226,15 @@ class DEFAULT (Policy):
                 return None
 
             elif OriginalException == 'System.NullReferenceException' or \
+                    OriginalException == \
                     'System.IO.DirectoryNotFoundException':
                 self.pyFolder.rollback (iFolderID, Path)
                 return None
-
+            
+            elif OriginalException == 'Simias.Storage.AccessException':
+                self.pyFolder.ignore_no_rights (Path)
+                return None
+                
             else:
                 raise
 
@@ -241,6 +251,11 @@ class DEFAULT (Policy):
             OriginalException = wf.fault.detail.detail.OriginalException._type
             
             if OriginalException == 'System.IO.IOException':
+                self.pyFolder.ignore_in_use (Path)
+                return False
+
+            elif OriginalException == 'Simias.Storage.AccessException':
+                self.pyFolder.ignore_no_rights (Path)
                 return False
 
             elif OriginalException == \
@@ -262,6 +277,11 @@ class DEFAULT (Policy):
             OriginalException = wf.fault.detail.detail.OriginalException._type
             
             if OriginalException == 'System.IO.IOException':
+                self.pyFolder.ignore_in_use (Path)
+                return False
+
+            elif OriginalException == 'Simias.Storage.AccessException':
+                self.pyFolder.ignore_no_rights (Path)
                 return False
 
             elif OriginalException == \
@@ -283,6 +303,11 @@ class DEFAULT (Policy):
             OriginalException = wf.fault.detail.detail.OriginalException._type
 
             if OriginalException == 'System.IO.IOException':
+                self.pyFolder.ignore_in_use (Path)
+                return False
+
+            elif OriginalException == 'Simias.Storage.AccessException':
+                self.pyFolder.ignore_no_rights (Path)
                 return False
             
             elif OriginalException == \
