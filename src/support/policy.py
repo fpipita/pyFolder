@@ -139,8 +139,14 @@ class DEFAULT (Policy):
                 raise
 
     def delete_directory (self, iFolderID, EntryID, Path):
-        try:
+        if self.pyFolder.directory_has_local_changes (\
+            iFolderID, EntryID) or \
+            self.pyFolder.directory_has_new_entries (iFolderID, Path):
+            ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
+            self.pyFolder.rename (Path, ConflictedPath)
 
+        try:
+            
             self.pyFolder.rmdir (Path)
 
         except OSError:
