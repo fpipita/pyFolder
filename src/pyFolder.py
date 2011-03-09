@@ -396,54 +396,6 @@ class pyFolder (threading.Thread):
                     self.__add_ifolder (iFolder.ID)
                     self.__add_entries (iFolder.ID)
 
-    def __check_for_deleted_ifolder (self, iFolderTuple):
-        Updated = False
-        iFolderID = iFolderTuple['id']
-        iFolderEntryID = iFolderTuple['entry_id']
-        Name = iFolderTuple['name']
-
-        iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
-
-        if iFolder is None:
-
-            Updated = self.policy.delete_directory (\
-                iFolderID, iFolderEntryID, Name)
-
-            if Updated:
-                self.dbm.delete_entries_by_ifolder (iFolderID)
-                self.dbm.delete_ifolder (iFolderID)
-
-        return Updated
-
-    def __check_for_deleted_membership (self, iFolderTuple):
-        Updated = False
-        iFolderID = iFolderTuple['id']
-        iFolderEntryID = iFolderTuple['entry_id']
-        Name = iFolderTuple['name']
-
-        try:
-
-            iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
-
-        except WebFault, wf:
-            self.logger.error (wf)
-            
-            OriginalException = wf.fault.detail.detail.OriginalException._type
-
-            if OriginalException == \
-                    'iFolder.WebService.MemberDoesNotExistException':
-                Updated = self.policy.delete_directory \
-                    (iFolderID, iFolderEntryID, Name)
-
-                if Updated:
-                    self.dbm.delete_entries_by_ifolder (iFolderID)
-                    self.dbm.delete_ifolder (iFolderID)
-
-            else:
-                raise
-
-        return Updated
-
     # *args = (iFolderID, EntryID, Time, ParentID, Path)
     def add_entry_to_dbm (self, Entry, *args):
 
