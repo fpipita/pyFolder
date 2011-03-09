@@ -68,6 +68,12 @@ class DEFAULT (Policy):
       so that both the copies are saved on the server and they will be 
       available for all the users at the next update.
     """
+    def delete_ifolder (self, iFolderID, Name):
+        if self.pyFolder.ifolder_has_local_changes (iFolderID):
+            ConflictedName = self.pyFolder.add_conflicted_suffix (Name)
+            self.pyFolder.rename (Name, ConflictedName)
+        self.pyFolder.delete_ifolder (iFolderID, Name)
+    
     def add_directory (self, iFolderID, EntryID, Path):
         try:
 

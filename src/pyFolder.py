@@ -248,10 +248,39 @@ class pyFolder (threading.Thread):
         
         iFolderList = self.__invoke (self.ifolderws.get_all_ifolders)
 
+        iFolderID = None
+        Name = None
+        
         if iFolderList is not None:
-            for iFolder in iFolderList:
-                self.__add_ifolder (iFolder.ID)
-                self.__add_entries (iFolder.ID)
+            try:
+
+                for iFolder in iFolderList:
+                    iFolderID = iFolder.ID
+                    Name = iFolder.Name
+
+                    self.__add_ifolder (iFolder.ID)
+                    self.__add_entries (iFolder.ID)
+
+            except WebFault, wf:
+                OriginalException = \
+                    wf.fault.detail.detail.OriginalException._type
+
+                if OriginalException == \
+                        'iFolder.WebService.MemberDoesNotExistException' or \
+                        OriginalException == \
+                        'iFolder.WebService.iFolderDoesNotExistException':
+                    self.policy.delete_ifolder (iFolderID, Name)
+
+                else:
+                    raise
+
+    def ifolder_has_local_changes (self, iFolderID):
+        iFolderTuple = self.dbm.get_ifolder (iFolderID)
+        
+        if iFolderTuple is not None:
+            iFolderEntryID = iFolderTuple['entry_id']
+            return self.directory_has_local_changes (iFolderID, iFolderEntryID)
+        return False
 
     def __ifolder_has_changes (self, iFolderID, mtime):
         iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
@@ -488,6 +517,11 @@ class pyFolder (threading.Thread):
             self.logger.error (ose)
             raise
 
+    def delete_ifolder (self, iFolderID, Name):
+        self.rmdir (Name)
+        self.dbm.delete_entries_by_ifolder (iFolderID)
+        self.dbm.delete_ifolder (iFolderID)
+
     def getsize (self, Path):
         return os.path.getsize (self.add_prefix (Path))
 
@@ -505,9 +539,9 @@ class pyFolder (threading.Thread):
                 Hash = m.hexdigest ()
         return Hash
 
-    def directory_has_local_changes (self, iFolderID, EntryID, LocalPath):
-        Changed = False
+    def directory_has_local_changes (self, iFolderID, EntryID):
 
+        Changed = False
         EntryTupleList = self.dbm.get_entries_by_parent (EntryID)
 
         for EntryTuple in EntryTupleList:
@@ -517,7 +551,7 @@ class pyFolder (threading.Thread):
 
             if Digest == 'DIRECTORY':
                 Changed = self.directory_has_local_changes (\
-                    iFolderID, ChildEntryID, ChildLocalPath) or Changed
+                    iFolderID, ChildEntryID) or Changed
 
             else:
                 Changed = self.file_has_local_changes (\
@@ -594,7 +628,6 @@ class pyFolder (threading.Thread):
 
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
-            iFolderEntryID = iFolderTuple['entry_id']
             mtime = iFolderTuple['mtime']
             Name = iFolderTuple['name']
 
@@ -617,10 +650,7 @@ class pyFolder (threading.Thread):
                         'iFolder.WebService.MemberDoesNotExistException' or \
                         OriginalException == \
                         'iFolder.WebService.iFolderDoesNotExistException':
-                    self.policy.delete_directory (\
-                        iFolderID, iFolderEntryID, Name)
-                    self.dbm.delete_entries_by_ifolder (iFolderID)
-                    self.dbm.delete_ifolder (iFolderID)
+                    self.policy.delete_ifolder (iFolderID, Name)
 
                 else:
                     raise
@@ -650,8 +680,7 @@ class pyFolder (threading.Thread):
                     ChangeAction = Action.Modify
 
             elif ChangeType == Type.Directory:
-                if self.directory_has_local_changes (\
-                    iFolderID, EntryID, LocalPath):
+                if self.directory_has_local_changes (iFolderID, EntryID):
                     ChangeAction = Action.Modify
 
         return ChangeAction, ChangeType
@@ -881,7 +910,6 @@ class pyFolder (threading.Thread):
         # iFolders, so we are going to check just the entries
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
-            iFolderEntryID = iFolderTuple['entry_id']
             Name = iFolderTuple['name']
             
             Updated = False
@@ -901,10 +929,7 @@ class pyFolder (threading.Thread):
                         'iFolder.WebService.MemberDoesNotExistException' or \
                         OriginalException == \
                         'iFolder.WebService.iFolderDoesNotExistException':
-                    self.policy.delete_directory (\
-                        iFolderID, iFolderEntryID, Name)
-                    self.dbm.delete_entries_by_ifolder (iFolderID)
-                    self.dbm.delete_ifolder (iFolderID)
+                    self.policy.delete_ifolder (iFolderID, Name)
 
                 else:
                     raise
