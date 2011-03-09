@@ -52,13 +52,17 @@ class DEFAULT (Policy):
     The DEFAULT Policy has the following features:
 
     [ UPDATE behavior ]
-    - If an entry has any kind of remote change, the changes are also applied
+    - If an entry has any kind of remote changes, the changes are also applied
       locally. If the entry has also local changes, it is renamed.
     - If a new entry is added remotely, it is also added to the local
       repository. If, in the meanwhile, a local entry (with the same path)
       is added locally, it is renamed.
     - If an entry has remotely been deleted, it is deleted also locally. If
       the local copy has any changes, it is renamed.
+    - If an iFolder has been remotely deleted at the time (or during) the
+      update, it is locally removed. If the local copy contained any local
+      change (modifies/new files/deletions), the iFolder will be renamed and 
+      just removed from the local dbm.
 
     [ COMMIT behavior ]
     - If an entry has local changes (modify, deletion), changes are committed.
@@ -72,7 +76,13 @@ class DEFAULT (Policy):
         if self.pyFolder.ifolder_has_local_changes (iFolderID):
             ConflictedName = self.pyFolder.add_conflicted_suffix (Name)
             self.pyFolder.rename (Name, ConflictedName)
-        self.pyFolder.delete_ifolder (iFolderID, Name)
+
+        try:
+
+            self.pyFolder.delete_ifolder (iFolderID, Name)
+            
+        except OSError, ose:
+            pass
     
     def add_directory (self, iFolderID, EntryID, Path):
         try:

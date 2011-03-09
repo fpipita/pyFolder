@@ -274,12 +274,51 @@ class pyFolder (threading.Thread):
                 else:
                     raise
 
+
+    def directory_has_new_directories (self, Root, Dirs, iFolderID):
+        Changed = False
+        
+        for Dir in Dirs:
+            Path = os.path.join (self.remove_prefix (Root), Dir)
+            if self.is_new_local_directory (iFolderID, Path):
+                Changed = True
+                
+        return Changed        
+    
+    def directory_has_new_files (self, Root, Files, iFolderID):
+        Changed = False
+        
+        for File in Files:
+            Path = os.path.join (self.remove_prefix (Root), File)
+            if self.__is_new_local_file (iFolderID, Path):
+                Changed = True
+                
+        return Changed
+
+    def directory_has_new_entries (self, iFolderID, Name):
+        Changed = False
+        
+        for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
+
+            Changed = self.directory_has_new_directories (\
+                Root, Dirs, iFolderID) or Changed
+
+            Changed = self.directory_has_new_files (\
+                Root, Files, iFolderID) or Changed
+            
+        return Changed
+
     def ifolder_has_local_changes (self, iFolderID):
         iFolderTuple = self.dbm.get_ifolder (iFolderID)
         
         if iFolderTuple is not None:
             iFolderEntryID = iFolderTuple['entry_id']
-            return self.directory_has_local_changes (iFolderID, iFolderEntryID)
+            Name = iFolderTuple['name']
+
+            return self.directory_has_local_changes (\
+                iFolderID, iFolderEntryID) or \
+                self.directory_has_new_entries (iFolderID, Name)
+
         return False
 
     def __ifolder_has_changes (self, iFolderID, mtime):
@@ -290,7 +329,7 @@ class pyFolder (threading.Thread):
                 return True
             else:
                 return False
-        return False
+        return True
     
     def __get_change (self, iFolderID, EntryID, Path, mtime):
         Change = self.__invoke (self.ifolderws.get_latest_change, \
@@ -790,11 +829,13 @@ class pyFolder (threading.Thread):
 
     def __commit_added_entries (self, iFolderID, Name):
         Updated = False
+
         for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
             Updated = self.__commit_added_directories (\
                 Root, Dirs, iFolderID) or Updated
             Updated = self.__commit_added_files (\
                 Root, Files, iFolderID) or Updated
+
         return Updated
                 
     def __commit_modified_entry (self, iFolderID, EntryID, Path, EntryType):
