@@ -8,40 +8,43 @@ class Policy:
         self.pyFolder = pyFolder
         self.logger = logging.getLogger ('pyFolder.Policy')
     
-    def add_directory (self, ifolder_id, entry_id, path):
+    def add_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def add_file (self, ifolder_id, entry_id, path):
+    def add_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def modify_directory (self, ifolder_id, entry_id, path):
+    def modify_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def modify_file (self, ifolder_id, entry_id, path):
+    def modify_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
     
-    def delete_directory (self, ifolder_id, entry_id, path):
+    def delete_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def delete_file (self, ifolder_id, entry_id, path):
+    def delete_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def add_remote_directory (self, ifolder_id, parent_id, path):
+    def add_remote_directory (self, iFolderID, parent_id, Path):
         raise NotImplementedError
     
-    def add_remote_file (self, ifolder_id, parent_id, path):
+    def add_remote_file (self, iFolderID, parent_id, Path):
         raise NotImplementedError
 
-    def modify_remote_directory (self, ifolder_id, entry_id, path):
+    def modify_remote_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
     
-    def modify_remote_file (self, ifolder_id, entry_id, path):
+    def modify_remote_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def delete_remote_directory (self, ifolder_id, entry_id, path):
+    def delete_remote_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def delete_remote_file (self, ifolder_id, entry_id, path):
+    def delete_remote_file (self, iFolderID, EntryID, Path):
+        raise NotImplementedError
+    
+    def delete_ifolder (self, iFolderID, Name):
         raise NotImplementedError
 
 class DEFAULT (Policy):
@@ -65,10 +68,10 @@ class DEFAULT (Policy):
       so that both the copies are saved on the server and they will be 
       available for all the users at the next update.
     """
-    def add_directory (self, ifolder_id, entry_id, path):
+    def add_directory (self, iFolderID, EntryID, Path):
         try:
 
-            self.pyFolder.mkdir (path)
+            self.pyFolder.mkdir (Path)
 
         except OSError:
             pass
@@ -95,7 +98,7 @@ class DEFAULT (Policy):
             else:
                 raise
 
-    def modify_directory (self, ifolder_id, entry_id, path):
+    def modify_directory (self, iFolderID, EntryID, Path):
         return True
 
     def modify_file (self, iFolderID, EntryID, Path):
@@ -203,7 +206,7 @@ class DEFAULT (Policy):
             else:
                 raise
 
-    def modify_remote_directory (self, ifolder_id, entry_id, path):
+    def modify_remote_directory (self, iFolderID, EntryID, Path):
         return True
     
     def modify_remote_file (self, iFolderID, EntryID, Path):
