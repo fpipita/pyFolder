@@ -199,8 +199,7 @@ class TestUpdateBasic (unittest.TestCase):
             self.iFolder.ID, ChildEntry.ID)
  
         self.pyFolder.update_entry (\
-            self.iFolder.ID, ChildEntryTuple['id'], ChildEntryTuple['path'], \
-                ChildEntryTuple['mtime'])
+            self.iFolder.ID, ChildEntryTuple['id'], ChildEntryTuple['mtime'])
 
         ChildLocalPath = os.path.normpath (ChildEntry.Path)
         ChildLocalPath = self.pyFolder.add_prefix (ChildLocalPath)
