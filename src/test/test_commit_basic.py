@@ -13,6 +13,8 @@ from pyFolder import *
 from support.dbm import DBM
 from support.cfg_manager import CfgManager
 
+from suds import WebFault
+
 from setup import Setup
 
 IFOLDER_NAME = 'TestCommitBasic'
@@ -262,5 +264,38 @@ class TestCommitBasic (unittest.TestCase):
         
         self.assertEqual (EntryTuple, None)
 
+    def test_file_entry_invalid_characters (self):
+        anInvalidEntry = 'lol:'
+        
+        anInvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+        anInvalidEntryLocalPath = os.path.join (\
+            anInvalidEntryLocalPath, anInvalidEntry)
+        
+        with open (anInvalidEntryLocalPath, 'wb') as File:
+            File.write ('something')
+        
+        self.pyFolder.commit ()
+        
+        validEntryLocalPath = \
+            self.pyFolder.strip_invalid_characters (anInvalidEntryLocalPath)
+        
+        self.assertTrue (os.path.isfile (validEntryLocalPath))
+
+    def test_directory_entry_invalid_characters (self):
+        anInvalidEntry = 'lol:'
+        
+        anInvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+        anInvalidEntryLocalPath = os.path.join (\
+            anInvalidEntryLocalPath, anInvalidEntry)
+        
+        os.mkdir (anInvalidEntryLocalPath)
+        
+        self.pyFolder.commit ()
+        
+        validEntryLocalPath = \
+            self.pyFolder.strip_invalid_characters (anInvalidEntryLocalPath)
+        
+        self.assertTrue (os.path.isdir (validEntryLocalPath))
+
 if __name__ == '__main__':
-    unittest.main ()
+   unittest.main ()

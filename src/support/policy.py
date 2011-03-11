@@ -184,6 +184,12 @@ class DEFAULT (Policy):
                 ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
                 self.pyFolder.rename (Path, ConflictedPath)
                 return None
+            
+            elif OriginalException == \
+                    'iFolder.WebService.EntryInvalidCharactersException':
+                ValidPath = self.pyFolder.strip_invalid_characters (Path)
+                self.pyFolder.rename (Path, ValidPath)
+                return None
 
             elif OriginalException == \
                     'iFolder.WebService.FileTypeException':
@@ -218,6 +224,12 @@ class DEFAULT (Policy):
                     'iFolder.WebService.EntryAlreadyExistException':
                 ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
                 self.pyFolder.rename (Path, ConflictedPath)
+                return None
+            
+            elif OriginalException == \
+                    'iFolder.WebService.EntryInvalidCharactersException':
+                ValidPath = self.pyFolder.strip_invalid_characters (Path)
+                self.pyFolder.rename (Path, ValidPath)
                 return None
             
             elif OriginalException == \

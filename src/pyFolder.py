@@ -30,8 +30,9 @@ DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 SIMIAS_SYNC_INTERVAL = 5
 PYFOLDER_SYNC_INTERVAL = 60
-
 CONFLICTED_SUFFIX = 'conflicted'
+ENTRY_INVALID_CHARS = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
+DEFAULT_INVALID_CHAR_REPLACEMENT = ''
 
 
 
@@ -167,6 +168,31 @@ class pyFolder (threading.Thread):
         self.logger.info ('Could not commit entry `{0}\' ' \
                               'because of not sufficient ' \
                               'rights'.format (Path.encode ('utf-8')))
+
+
+
+    ## Replace invalid characters in the given path.
+    #
+    #  The method just fixes the leaf node of the path.
+    #
+    #  @param Path The path to fix.
+    #  @param Replacement The string to use as replacement for
+    #                     the invalid characters.
+    #
+    #  @return A valid version of the path.
+
+    def strip_invalid_characters (\
+        self, Path, Replacement=DEFAULT_INVALID_CHAR_REPLACEMENT):
+
+        Head, Tail = os.path.split (Path)
+        Name = Tail
+
+        for Char in ENTRY_INVALID_CHARS:
+
+            if Char in Tail:
+                Name = Name.replace (Char, Replacement)
+
+        return Path.replace (Tail, Name)
 
 
 

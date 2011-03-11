@@ -56,5 +56,17 @@ class TestHelpers (unittest.TestCase):
             self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
                 '/lol/.bar-{0}.exe'.format (Suffix))
         
+    def test_strip_invalid_characters (self):
+        InvalidCharacters = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
+        Replacement = 'foo'
+        InvalidPath = '/foo/bar/lol/{0}'
+        ValidPath = InvalidPath.format (Replacement)
+        
+        for Char in InvalidCharacters:
+            
+            self.assertEqual (\
+                self.pyFolder.strip_invalid_characters (\
+                    InvalidPath.format (Char), Replacement), ValidPath)
+        
 if __name__ == '__main__':
     unittest.main ()
