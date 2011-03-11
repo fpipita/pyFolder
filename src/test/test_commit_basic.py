@@ -265,37 +265,55 @@ class TestCommitBasic (unittest.TestCase):
         self.assertEqual (EntryTuple, None)
 
     def test_file_entry_invalid_characters (self):
-        anInvalidEntry = 'lol:'
-        
-        anInvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        anInvalidEntryLocalPath = os.path.join (\
-            anInvalidEntryLocalPath, anInvalidEntry)
-        
-        with open (anInvalidEntryLocalPath, 'wb') as File:
-            File.write ('something')
+
+        if sys.platform in [ 'win32', 'os2', 'os2emx' ]:
+            return
+
+        InvalidEntries = []
+        BaseName = 'foo{0}'
+
+        for Char in ENTRY_INVALID_CHARS:
+            InvalidEntry = BaseName.format (Char)
+
+            InvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+            InvalidEntryLocalPath = os.path.join (\
+                InvalidEntryLocalPath, InvalidEntry)
+
+            InvalidEntries.append (InvalidEntryLocalPath)
+
+            with open (InvalidEntryLocalPath, 'wb') as File:
+                File.write ('something')
         
         self.pyFolder.commit ()
         
-        validEntryLocalPath = \
-            self.pyFolder.strip_invalid_characters (anInvalidEntryLocalPath)
-        
-        self.assertTrue (os.path.isfile (validEntryLocalPath))
+        for InvalidEntry in InvalidEntries:
+            ValidEntry = self.pyFolder.strip_invalid_characters (InvalidEntry)
+            self.assertTrue (os.path.isfile (ValidEntry))
 
     def test_directory_entry_invalid_characters (self):
-        anInvalidEntry = 'lol:'
-        
-        anInvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        anInvalidEntryLocalPath = os.path.join (\
-            anInvalidEntryLocalPath, anInvalidEntry)
-        
-        os.mkdir (anInvalidEntryLocalPath)
+
+        if sys.platform in [ 'win32', 'os2', 'os2emx' ]:
+            return
+
+        InvalidEntries = []
+        BaseName = 'foo{0}'
+
+        for Char in ENTRY_INVALID_CHARS:
+            InvalidEntry = BaseName.format (Char)
+
+            InvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+            InvalidEntryLocalPath = os.path.join (\
+                InvalidEntryLocalPath, InvalidEntry)
+
+            InvalidEntries.append (InvalidEntryLocalPath)
+
+            os.mkdir (InvalidEntryLocalPath)
         
         self.pyFolder.commit ()
         
-        validEntryLocalPath = \
-            self.pyFolder.strip_invalid_characters (anInvalidEntryLocalPath)
-        
-        self.assertTrue (os.path.isdir (validEntryLocalPath))
+        for InvalidEntry in InvalidEntries:
+            ValidEntry = self.pyFolder.strip_invalid_characters (InvalidEntry)
+            self.assertTrue (os.path.isdir (ValidEntry))
 
 if __name__ == '__main__':
    unittest.main ()
