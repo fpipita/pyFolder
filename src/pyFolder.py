@@ -878,12 +878,25 @@ class pyFolder (threading.Thread):
     ## Add a conflicted suffix to the given local path.
     #  
     #  @param Path The path that needs to be renamed.
+    #  @param Suffix The conflicted suffix to append to Path.
     #
     #  @return The modified path.
 
-    def add_conflicted_suffix (self, Path):
-#        CONFLICTED_SUFFIX = datetime.datetime.now ()
-        return '{0}-{1}'.format (Path.encode ('utf-8'), CONFLICTED_SUFFIX)
+    def add_conflicted_suffix (self, Path, Suffix=None):
+
+        BaseName, Extension = os.path.splitext (Path)
+
+        if Suffix == None:
+            Suffix = '{0}_{1}'.format (\
+                CONFLICTED_SUFFIX, datetime.date.today ())
+
+        if Extension == '':
+            return '{0}-{1}'.format (\
+                BaseName.encode ('utf-8'), Suffix.encode ('utf-8'))
+
+        else:
+            return '{0}-{1}{2}'.format (\
+                BaseName.encode ('utf-8'), Suffix, Extension.encode ('utf-8'))
 
 
 
