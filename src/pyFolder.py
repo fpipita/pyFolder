@@ -136,9 +136,13 @@ class pyFolder (threading.Thread):
         self.logger.info ('Invoking webmethod `{0}\''.format (method.__name__))
 
         while True:
+
             try:
+
                 return method (*args)
+
             except WebFault, wf:
+
                 self.logger.error (wf)
                 
                 OriginalException = \
@@ -441,6 +445,7 @@ class pyFolder (threading.Thread):
         Name = None
         
         if iFolderList is not None:
+
             try:
 
                 for iFolder in iFolderList:
@@ -451,6 +456,7 @@ class pyFolder (threading.Thread):
                     self.__add_entries (iFolder.ID)
 
             except WebFault, wf:
+
                 OriginalException = \
                     wf.fault.detail.detail.OriginalException._type
 
@@ -470,7 +476,7 @@ class pyFolder (threading.Thread):
     #  @param Root The full path (with added prefix) to the directory
     #              to check.
     #  @param Dirs A list of directories whose parent is Root.
-    #  @param iFolderID The ID of the iFolder to which Root belong.
+    #  @param iFolderID The ID of the iFolder Root belongs to.
     #
     #  @return True whether new directories were found.
 
@@ -491,7 +497,7 @@ class pyFolder (threading.Thread):
     #  @param Root The full path (with added prefix) to the directory 
     #              to check.
     #  @param Files A list of files whose parent is Root.
-    #  @param iFolderID The ID of the iFolder to which Root belong.
+    #  @param iFolderID The ID of the iFolder Root belongs to.
     #
     #  @return True whether new files were found.
 
@@ -509,7 +515,7 @@ class pyFolder (threading.Thread):
 
     ## Check whether new local entries were added to the given directory.
     #
-    #  @param iFolderID The ID of the iFolder to which Root belong.
+    #  @param iFolderID The ID of the iFolder Root belongs to.
     #  @param LocalPath The path (without prefix) to the directory to check.
     #
     #  @return True whether new entries (files or directories) were found.
@@ -558,37 +564,44 @@ class pyFolder (threading.Thread):
     #               currently stored in the local database.
     #               
     #  @return True whether the iFolder's remote LastModified
-    #          attribute is newer than mtime.
+    #          attribute is newer than the mtime local one.
     
     def __ifolder_has_changes (self, iFolderID, mtime):
         iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolder is not None:
+
             if iFolder.LastModified > mtime:
                 return True
+
             else:
                 return False
+
         return True
 
 
 
     ## Get the latest remote change made to the given entry, if any.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the given entry.
     #  @param mtime The timestamp of the last change made to the entry
     #               currently stored in the local database.
     #
     #  @return A ChangeEntry instance if a new remote change was found,
     #          None else.
+    #
+    #  @sa The iFolder Web Service description.
 
     def __get_change (self, iFolderID, EntryID, mtime):
         Change = self.__invoke (self.ifolderws.get_latest_change, \
                                     iFolderID, EntryID)
 
         if Change is not None:
+
             if Change.Time > mtime:
                 return Change
+
         return None
 
 
@@ -608,7 +621,7 @@ class pyFolder (threading.Thread):
 
     ## Apply the addition of a remote entry locally.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
     #  @param Change A ChangeEntry instance. 
     #
@@ -636,7 +649,7 @@ class pyFolder (threading.Thread):
 
     ## Apply the motification of a remote entry locally.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder entry belongs to.
     #  @param EntryID The ID of the entry.
     #  @param Change A ChangeEntry instance. 
     #
@@ -664,7 +677,7 @@ class pyFolder (threading.Thread):
 
     ## Apply the deletion of a remote entry locally.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
     #  @param Change A ChangeEntry instance. 
     #
@@ -695,9 +708,9 @@ class pyFolder (threading.Thread):
 
     ## Check if an entry has any kind of remote change and handle it.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
-    #  @param mtime The timestamp of the last change made to the entry
+    #  @param mtime The timestamp of the latest change made to the entry
     #               currently stored in the local database.
     #
     #  @return True if any change was successfully applied to the entry.
@@ -794,8 +807,10 @@ class pyFolder (threading.Thread):
     ## Add the given entry to the local database.
     #  
     #  @param Entry an iFolderEntry instance. 
-    #  @param args A list of the following parameters: iFolderID, EntryID,
-    #              Time, ParentID, Path. Checked IFF Entry is None.
+    #  @param args A list containing ALL of the following parameters: 
+    #              iFolderID, EntryID, Time, ParentID, Path. The list
+    #              is checked IFF Entry is None.
+    #
     #  @sa The iFolder Web Service description.
 
     def add_entry_to_dbm (self, Entry, *args):
@@ -808,10 +823,11 @@ class pyFolder (threading.Thread):
 
         if Entry is None:
             iFolderID, EntryID, Time, ParentID, Path = args
+
         else:
-            
             Change = self.__invoke (self.ifolderws.get_latest_change, \
                                         Entry.iFolderID, Entry.ID)
+
             if Change is not None:
                 iFolderID = Entry.iFolderID
                 EntryID = Entry.ID
@@ -827,29 +843,34 @@ class pyFolder (threading.Thread):
 
 
 
-    ## Add the pyFolder prefix to the given Path, if any.
+    ## Add the pyFolder prefix (if any) to the given Path.
     #
     #  @param Path The path to modify.
     #
     #  @return The modified path if a prefix was given, the original one else.
 
     def add_prefix (self, Path):
+
         if self.cm.get_prefix () != '':
             return os.path.join (self.cm.get_prefix (), Path)
+
         return Path
 
 
 
-    ## Remove the pyFolder prefix previously added with pyFolder.add_prefix.
+    ## Remove the pyFolder prefix (if any) previously added with 
+    #  pyFolder.add_prefix.
     #
     #  @param Path The path to modify.
     #
-    #  @return The path with the prefix removed, if a prefix was given, 
+    #  @return The path with the prefix removed.
 
     def remove_prefix (self, Path):
+
         if self.cm.get_prefix () != '':
             prefix = os.path.join (self.cm.get_prefix (), '')
             return Path.replace ('{0}'.format (prefix), '')
+
         return Path
 
 
@@ -902,7 +923,7 @@ class pyFolder (threading.Thread):
 
 
 
-    ## Rename Src to Dst locally.
+    ## Rename a local path.
     #
     #  @param Src The path that needs to be renamed. It must be 
     #             provided without the pyFolder prefix.
@@ -920,6 +941,7 @@ class pyFolder (threading.Thread):
                     Src.encode ('utf-8'), Dst.encode ('utf-8')))
 
         except OSError, ose:
+
             self.logger.error (ose)
             raise
 
@@ -940,6 +962,7 @@ class pyFolder (threading.Thread):
                     Path.encode ('utf-8')))
 
         except OSError, ose:
+
             self.logger.error (ose)
             raise
 
@@ -960,6 +983,7 @@ class pyFolder (threading.Thread):
                     Path.encode ('utf-8')))
 
         except OSError, ose:
+
             self.logger.error (ose)
             raise
 
@@ -975,18 +999,20 @@ class pyFolder (threading.Thread):
         Path = self.add_prefix (Path)
 
         try:
+
             os.makedirs (Path)
             self.logger.info ('Added local directory `{0}\''.format (\
                     Path.encode ('utf-8')))
 
         except OSError, ose:
+
             self.logger.error (ose)
             raise
 
 
 
-    ## Delete the given iFolder and all of its children from the disk and
-    ## from the local database.
+    ## Delete the given iFolder and all of its children from the local 
+    ## repository and from the local database.
     #
     #  @param iFolderID The ID of the iFolder to remove.
     #  @param Name the name of the iFolder.
@@ -1043,8 +1069,7 @@ class pyFolder (threading.Thread):
 
     ## Check for local changes in the given entry-directory.
     #
-    #  @param iFolderID The ID of the iFolder to which the directory-
-    #         entry belongs.
+    #  @param iFolderID The ID of the iFolder the directory-entry belongs to.
     #  @param EntryID The ID of the directory-entry.
     #
     #  @return True whether at least one file in the directory
@@ -1076,8 +1101,7 @@ class pyFolder (threading.Thread):
 
     ## Detect local changes on the given file-entry.
     #
-    #  @param iFolderID The ID of the iFolder to which the file-
-    #         entry belongs.
+    #  @param iFolderID The ID of the iFolder the file-entry belongs to.
     #  @param EntryID The ID of the file-entry.
     #  @param LocalPath The path to the file to check. It can be either
     #                   a pyFolder-prefixed path or not.
@@ -1098,6 +1122,7 @@ class pyFolder (threading.Thread):
         if not self.path_exists (LocalPath):
             if EntryTuple is None:
                 return False
+
             else:
                 return True
 
@@ -1119,7 +1144,7 @@ class pyFolder (threading.Thread):
 
     ## Synchronize the entry's local mtime with its remote one.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
     
     def __update_entry_in_dbm (self, iFolderID, EntryID):
@@ -1145,7 +1170,7 @@ class pyFolder (threading.Thread):
 
     ## Delete the given entry from the local database.
     # 
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
 
     def __delete_entry_from_dbm (self, iFolderID, EntryID):
@@ -1160,8 +1185,11 @@ class pyFolder (threading.Thread):
         iFolderTupleList = None
         
         try:
+
             iFolderTupleList = self.dbm.get_ifolders ()
+
         except sqlite3.OperationalError:
+
             print >> sys.stderr, 'Could not open the local database. '
             'Please, ' \
                 'run the `checkout\' action first ' \
@@ -1187,6 +1215,7 @@ class pyFolder (threading.Thread):
                         self.__update_ifolder_in_dbm (iFolderID)
 
             except WebFault, wf:
+
                 OriginalException = \
                     wf.fault.detail.detail.OriginalException._type
 
@@ -1205,7 +1234,7 @@ class pyFolder (threading.Thread):
 
     ## Detect eventual local changes on the given entry.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
     #  @param LocalPath The local path to the entry that is going to be
     #                   checked, without the pyFolder prefix added.
@@ -1248,7 +1277,7 @@ class pyFolder (threading.Thread):
 
     ## Check whether the given entry already exists in the local database.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param Path The local path of the entry, without the pyFolder prefix
     #              added.
     #
@@ -1267,8 +1296,7 @@ class pyFolder (threading.Thread):
 
     ## Check whether the given directory-entry already exists locally.
     #
-    #  @param iFolderID The ID of the iFolder to which the directory-entry
-    #                   belongs.
+    #  @param iFolderID The ID of the iFolder the directory-entry belongs to.
     #  @param Path The local path of the directory-entry, without the
     #              pyFolder prefix added.
     #
@@ -1282,8 +1310,7 @@ class pyFolder (threading.Thread):
 
     ## Check whether the given file-entry already exists locally.
     #
-    #  @param iFolderID The ID of the iFolder to which the file-entry
-    #                   belongs.
+    #  @param iFolderID The ID of the iFolder the file-entry belongs to.
     #  @param Path The local path of the file-entry, without the pyFolder 
     #              prefix added.
     #
@@ -1297,8 +1324,7 @@ class pyFolder (threading.Thread):
 
     ## Search for the given entry's parent entry.
     #
-    #  @param iFolderID The ID of the iFolder to which the entry
-    #                   belongs.
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param Path The local path of the entry, without the pyFolder 
     #              prefix added.
     #
@@ -1326,8 +1352,7 @@ class pyFolder (threading.Thread):
 
     ## Find the closest ancestor-entry which is still remotely existing.
     #
-    #  @param iFolderID The ID of the iFolder to which the orphaned entry
-    #                   belongs.
+    #  @param iFolderID The ID of the iFolder the orphaned entry belongs to.
     #  @param LocalPath The local path to the orphaned entry. It has to
     #                   be deprived of the pyFolder prefix.
     #
@@ -1357,6 +1382,7 @@ class pyFolder (threading.Thread):
             return LocalPath, Entry
 
         except WebFault, wf:
+
             self.logger.error (wf)
             OriginalException = wf.fault.detail.detail.OriginalException._type
 
@@ -1428,8 +1454,8 @@ class pyFolder (threading.Thread):
 
     ## Commit eventual new local entries.
     #
-    #  @param iFolderID The ID of the iFolder to which the new
-    #                   entries will be merged.
+    #  @param iFolderID The ID of the iFolder the new entries will be 
+    #                   merged with.
     #  @param Name The name of the iFolder that needs to be checked for
     #              new locally-added entries.
     #
@@ -1504,6 +1530,7 @@ class pyFolder (threading.Thread):
 
     def __delete_hierarchy_from_dbm (self, iFolderID, EntryID):
         EntryTupleList = self.dbm.get_entries_by_parent (EntryID)
+
         if len (EntryTupleList) == 0:
             self.dbm.delete_entry (iFolderID, EntryID)
             return
@@ -1601,8 +1628,11 @@ class pyFolder (threading.Thread):
         iFolderTupleList = None
 
         try:
+
             iFolderTupleList = self.dbm.get_ifolders ()
+
         except sqlite3.OperationalError:
+
             print >> sys.stderr, 'Could not open the local database. ' \
                 'Please, ' \
                 'run the `checkout\' action first or ' \
@@ -1611,8 +1641,11 @@ class pyFolder (threading.Thread):
                 'command line switch.'
             sys.exit ()
 
+
+
         # We assume that the pyFolder user isn't allowed to add/delete
         # iFolders, so we are going to check just the entries
+
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
             Name = iFolderTuple['name']
@@ -1627,6 +1660,7 @@ class pyFolder (threading.Thread):
                     or Updated
 
             except WebFault, wf:
+
                 OriginalException = \
                     wf.fault.detail.detail.OriginalException._type
 
@@ -1644,6 +1678,7 @@ class pyFolder (threading.Thread):
                 
     def run (self):
         self.__setup_dbm ()
+
         while True:
             self.update ()
             time.sleep (SIMIAS_SYNC_INTERVAL)
