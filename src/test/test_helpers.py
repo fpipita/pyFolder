@@ -57,6 +57,10 @@ class TestHelpers (unittest.TestCase):
                 '/lol/.bar-{0}.exe'.format (Suffix))
         
     def test_strip_invalid_characters (self):
+
+        if sys.platform in [ 'win32', 'os2', 'os2emx' ]:
+            return
+        
         InvalidCharacters = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
         Replacement = 'foo'
         InvalidPath = '/foo/bar/lol/{0}'
