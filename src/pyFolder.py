@@ -33,16 +33,20 @@ PYFOLDER_SYNC_INTERVAL = 60
 
 CONFLICTED_SUFFIX = 'conflicted'
 
+
+
 class NullHandler (logging.Handler):
     def emit (self, record):
         pass
+
+
 
 class pyFolder (threading.Thread):
 
 
 
     ## The constructor.
-    #  @param cm The support.cfg_manager.CfgManager reference.
+    #  @param cm A support.cfg_manager.CfgManager instance.
     #  @param runfromtest Tells pyFolder whether it 
     #         should run an action or not.
 
@@ -147,14 +151,20 @@ class pyFolder (threading.Thread):
                 else:
                     raise
     
+
+
     def ignore_locked (self, Path):
         self.logger.info ('Ignoring locked entry `{0}\''.format (\
                 Path.encode ('utf-8')))
         
+
+
     def ignore_no_rights (self, Path):
         self.logger.info ('Could not commit entry `{0}\' ' \
                               'because of not sufficient ' \
                               'rights'.format (Path.encode ('utf-8')))
+
+
 
     def ignore_in_use (self, Path):
         self.logger.info ('Could not commit entry `{0}\' ' \
