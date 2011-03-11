@@ -184,7 +184,7 @@ class pyFolder (threading.Thread):
     def strip_invalid_characters (\
         self, Path, Replacement=DEFAULT_INVALID_CHAR_REPLACEMENT):
 
-        Head, Tail = os.path.split (Path)
+        Head, Tail = os.path.split (os.path.normpath (Path))
         Name = Tail
 
         for Char in ENTRY_INVALID_CHARS:
