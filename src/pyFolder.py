@@ -8,7 +8,7 @@
 #  the checkout, update and commit ones, plus various helper methods.
 
 from core.dbm import DBM
-from core.cfg_manager import CfgManager
+from core.config import CfgManager
 from core.policy import PolicyFactory
 from core.ifolderws import iFolderWS
 
@@ -47,7 +47,7 @@ class pyFolder (threading.Thread):
 
 
     ## The constructor.
-    #  @param cm A core.cfg_manager.CfgManager instance.
+    #  @param cm A core.config.CfgManager instance.
     #  @param runfromtest Tells pyFolder whether it 
     #         should run an action or not.
 
