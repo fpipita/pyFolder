@@ -11,7 +11,7 @@ sys.path.append ('../')
 
 from pyFolder import *
 from core.dbm import DBM
-from core.config import CfgManager
+from core.config import ConfigManager
 
 from suds import WebFault
 
@@ -24,7 +24,7 @@ class TestHelpers (unittest.TestCase):
 
     def setUp (self):
         os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
-        self.cm = CfgManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
+        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
         
     def tearDown (self):

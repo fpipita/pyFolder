@@ -11,7 +11,7 @@ sys.path.append ('../')
 
 from pyFolder import *
 from core.dbm import DBM
-from core.config import CfgManager
+from core.config import ConfigManager
 
 from suds import WebFault
 
@@ -25,8 +25,8 @@ class TestCommitRights (unittest.TestCase):
     def setUp (self):
         os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
         
-        self.cm_A = CfgManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
-        self.cm_B = CfgManager (runfromtest=True, **TEST_CONFIG.USERDATA_B)
+        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
+        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_B)
 
         self.pyFolder = pyFolder (self.cm_A, runfromtest=True)
 

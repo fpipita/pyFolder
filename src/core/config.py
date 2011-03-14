@@ -5,16 +5,16 @@ from policy import PolicyFactory
 
 import sys
 
-class CfgManager ():
-    class CfgFile:
-        def __init__ (self, ifcm):
+class ConfigManager ():
+    class ConfigFile:
+        def __init__ (self, cm):
             pass
 
     def __init__ (self, configfile=None, pathtodb=None, soapbuflen=None, \
                       runfromtest=False, **kwargs):
 
         # Try to read the configuration file
-        CfgManager.CfgFile (self)
+        ConfigManager.ConfigFile (self)
         
         # If the user provides any command line option, just overwrite the 
         # settings previously read from the configuration file

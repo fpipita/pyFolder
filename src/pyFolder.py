@@ -8,7 +8,7 @@
 #  the checkout, update and commit ones, plus various helper methods.
 
 from core.dbm import DBM
-from core.config import CfgManager
+from core.config import ConfigManager
 from core.policy import PolicyFactory
 from core.ifolderws import iFolderWS
 
@@ -47,7 +47,7 @@ class pyFolder (threading.Thread):
 
 
     ## The constructor.
-    #  @param cm A core.config.CfgManager instance.
+    #  @param cm A core.config.ConfigManager instance.
     #  @param runfromtest Tells pyFolder whether it 
     #         should run an action or not.
 
@@ -1734,6 +1734,6 @@ class pyFolder (threading.Thread):
         self.start ()
 
 if __name__ == '__main__':
-    cm = CfgManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
+    cm = ConfigManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
                          DEFAULT_SOAP_BUFLEN)
     pf = pyFolder (cm)
