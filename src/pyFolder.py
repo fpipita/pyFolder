@@ -7,10 +7,10 @@
 #  This module, contains the basic functions used by the client,
 #  the checkout, update and commit ones, plus various helper methods.
 
-from support.dbm import DBM
-from support.cfg_manager import CfgManager
-from support.policy import PolicyFactory
-from support.ifolderws import iFolderWS
+from core.dbm import DBM
+from core.cfg_manager import CfgManager
+from core.policy import PolicyFactory
+from core.ifolderws import iFolderWS
 
 import base64
 import datetime
@@ -47,7 +47,7 @@ class pyFolder (threading.Thread):
 
 
     ## The constructor.
-    #  @param cm A support.cfg_manager.CfgManager instance.
+    #  @param cm A core.cfg_manager.CfgManager instance.
     #  @param runfromtest Tells pyFolder whether it 
     #         should run an action or not.
 
@@ -124,7 +124,7 @@ class pyFolder (threading.Thread):
     #  there is an upgrade in progress on its internal data structures.
     #        
     #  @param method A callable object from an instance of the 
-    #                support.ifolderws.iFolderWS class.
+    #                core.ifolderws.iFolderWS class.
     #  @param args   The arguments list to pass to the callable object.
     #
     #  @return The return type expected by the invoked Web Service.

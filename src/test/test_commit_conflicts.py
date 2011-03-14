@@ -10,8 +10,8 @@ import unittest
 sys.path.append ('../')
 
 from pyFolder import *
-from support.dbm import DBM
-from support.cfg_manager import CfgManager
+from core.dbm import DBM
+from core.cfg_manager import CfgManager
 
 from suds import WebFault
 from setup import Setup
