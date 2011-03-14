@@ -157,17 +157,17 @@ class DBM:
         finally:
             self.cx.commit ()
 
-    def add_ifolder (self, ifolder_id, mtime, name, entry_id):
+    def add_ifolder (self, iFolderID, mtime, Name, EntryID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_ADD_IFOLDER, (ifolder_id, mtime, name, entry_id))
+        cu.execute (DBM.Q_ADD_IFOLDER, (iFolderID, mtime, Name, EntryID))
         self.logger.info ('Added iFolder `{0}\', ID={1}'.format \
-                               (name, ifolder_id))
+                               (Name, iFolderID))
         self.cx.commit ()
 
-    def delete_ifolder (self, ifolder_id):
+    def delete_ifolder (self, iFolderID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_DELETE_IFOLDER, (ifolder_id,))
-        self.logger.info ('Deleted iFolder with ID={0}'.format (ifolder_id))
+        cu.execute (DBM.Q_DELETE_IFOLDER, (iFolderID,))
+        self.logger.info ('Deleted iFolder with ID={0}'.format (iFolderID))
         self.cx.commit ()
 
     def get_ifolders (self):
@@ -175,26 +175,26 @@ class DBM:
         cu.execute (DBM.Q_GET_IFOLDERS)
         return cu.fetchall ()
 
-    def get_ifolder (self, ifolder_id):
+    def get_ifolder (self, iFolderID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_IFOLDER, (ifolder_id,))
+        cu.execute (DBM.Q_GET_IFOLDER, (iFolderID,))
         return cu.fetchone ()
 
-    def update_mtime_by_ifolder (self, ifolder_id, mtime):
+    def update_mtime_by_ifolder (self, iFolderID, mtime):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, ifolder_id))
-        self.logger.info ('Updated iFolder with ID={0}'.format (ifolder_id))
+        cu.execute (DBM.Q_UPDATE_MTIME_BY_IFOLDER, (mtime, iFolderID))
+        self.logger.info ('Updated iFolder with ID={0}'.format (iFolderID))
         self.logger.debug ('new_mtime={0}'.format (mtime))
         self.cx.commit ()
 
-    def add_entry (self, iFolderID, iFolderEntryID, mtime, \
+    def add_entry (self, iFolderID, EntryID, mtime, \
                        Digest, ParentID, Path, LocalPath):
         cu = self.cx.cursor ()
 
         cu.execute (\
             DBM.Q_ADD_ENTRY, (\
                 iFolderID, \
-                    iFolderEntryID, \
+                    EntryID, \
                     mtime, \
                     Digest, \
                     ParentID, \
@@ -204,47 +204,48 @@ class DBM:
         self.logger.info ('Added entry `{0}\''.format (Path.encode ('utf-8')))
         self.cx.commit ()
 
-    def delete_entry (self, ifolder_id, entry_id):
+    def delete_entry (self, iFolderID, EntryID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_DELETE_ENTRY, (ifolder_id, entry_id))
-        self.logger.info ('Deleted entry with ID={0}'.format (entry_id))
+        cu.execute (DBM.Q_DELETE_ENTRY, (iFolderID, EntryID))
+        self.logger.info ('Deleted entry with ID={0}'.format (EntryID))
         self.cx.commit ()
 
-    def delete_entries_by_ifolder (self, ifolder_id):
+    def delete_entries_by_ifolder (self, iFolderID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_DELETE_ENTRIES_BY_IFOLDER, (ifolder_id,))
+        cu.execute (DBM.Q_DELETE_ENTRIES_BY_IFOLDER, (iFolderID,))
         self.cx.commit ()
 
-    def delete_entries_by_parent (self, parent_id):
+    def delete_entries_by_parent (self, ParentID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_DELETE_ENTRIES_BY_PARENT, (parent_id,))
+        cu.execute (DBM.Q_DELETE_ENTRIES_BY_PARENT, (ParentID,))
         self.cx.commit ()
 
-    def update_mtime_and_digest_by_entry (self, ifolder_id, entry_id, mtime, digest):
+    def update_mtime_and_digest_by_entry (self, iFolderID, EntryID, \
+                                              mtime, Digest):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_UPDATE_MTIME_AND_DIGEST_BY_ENTRY, \
-                        (mtime, digest, ifolder_id, entry_id))
-        self.logger.info ('Updated Entry with ID={0}'.format (entry_id))
+                        (mtime, Digest, iFolderID, EntryID))
+        self.logger.info ('Updated Entry with ID={0}'.format (EntryID))
         self.cx.commit ()
     
-    def get_mtime_by_entry (self, ifolder_id, entry_id):
+    def get_mtime_by_entry (self, iFolderID, EntryID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_MTIME_BY_ENTRY, (ifolder_id, entry_id))
+        cu.execute (DBM.Q_GET_MTIME_BY_ENTRY, (iFolderID, EntryID))
         return cu.fetchone ()
 
-    def get_digest_by_entry (self, ifolder_id, entry_id):
+    def get_digest_by_entry (self, iFolderID, EntryID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_DIGEST_BY_ENTRY, (ifolder_id, entry_id))
+        cu.execute (DBM.Q_GET_DIGEST_BY_ENTRY, (iFolderID, EntryID))
         return cu.fetchone ()
 
-    def get_entry (self, ifolder_id, entry_id):
+    def get_entry (self, iFolderID, EntryID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRY, (ifolder_id, entry_id))
+        cu.execute (DBM.Q_GET_ENTRY, (iFolderID, EntryID))
         return cu.fetchone ()
 
-    def get_entries_by_ifolder (self, ifolder_id):
+    def get_entries_by_ifolder (self, iFolderID):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRIES_BY_IFOLDER, (ifolder_id,))
+        cu.execute (DBM.Q_GET_ENTRIES_BY_IFOLDER, (iFolderID,))
         return cu.fetchall ()
     
     def get_entries_by_parent (self, ParentID):
@@ -252,9 +253,9 @@ class DBM:
         cu.execute (DBM.Q_GET_ENTRIES_BY_PARENT, (ParentID,))
         return cu.fetchall ()
 
-    def get_entry_by_ifolder_and_path (self, ifolder_id, path):
+    def get_entry_by_ifolder_and_path (self, iFolderID, Path):
         cu = self.cx.cursor ()
-        cu.execute (DBM.Q_GET_ENTRY_BY_IFOLDER_AND_PATH, (ifolder_id, path))
+        cu.execute (DBM.Q_GET_ENTRY_BY_IFOLDER_AND_PATH, (iFolderID, Path))
         return cu.fetchone ()
 
     def get_entry_by_ifolder_and_localpath (self, iFolderID, LocalPath):
