@@ -136,8 +136,9 @@ class pyFolder (threading.Thread):
         
         self.logger.info ('Invoking webmethod `{0}\''.format (method.__name__))
 
+        SyncInterval = 0
         while True:
-
+            
             try:
 
                 return method (*args)
@@ -150,7 +151,10 @@ class pyFolder (threading.Thread):
                     wf.fault.detail.detail.OriginalException._type
                 
                 if OriginalException == 'System.NullReferenceException':
-                    time.sleep (SIMIAS_SYNC_INTERVAL)
+
+                    SyncInterval = (SyncInterval + 1) % SIMIAS_SYNC_INTERVAL
+                    time.sleep (SyncInterval)
+
                     continue
 
                 else:
@@ -1190,15 +1194,17 @@ class pyFolder (threading.Thread):
         EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
 
         Count = 5
-
+        SyncInterval = 0
         while Count > 0:
-            Change = self.__invoke (self.ifolderws.get_latest_change, \
-                                        iFolderID, EntryID)
+            Change = self.__invoke (\
+                self.ifolderws.get_latest_change, iFolderID, EntryID)
+
             if Change is not None and Change.Time != EntryTuple['mtime']:
                 break
 
             Count = Count - 1
-            time.sleep (SIMIAS_SYNC_INTERVAL)
+            SyncInterval = (SyncInterval + 1) % SIMIAS_SYNC_INTERVAL
+            time.sleep (SyncInterval)
 
         if Change is not None:
             Hash = self.__md5_hash (Change.Name)
