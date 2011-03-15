@@ -171,10 +171,9 @@ class DEFAULT (Policy):
     def add_remote_directory (self, iFolderID, ParentID, Path):
         try:
 
-            iFolderEntry = \
-                self.pyFolder.remote_mkdir (iFolderID, ParentID, Path)
-            self.pyFolder.add_entry_to_dbm (iFolderEntry)
-            return iFolderEntry
+            Entry = self.pyFolder.remote_mkdir (iFolderID, ParentID, Path)
+            self.pyFolder.add_entry_to_dbm (Entry)
+            return Entry
 
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
@@ -212,10 +211,12 @@ class DEFAULT (Policy):
     def add_remote_file (self, iFolderID, ParentID, Path):
         try:
 
-            iFolderEntry = \
-                self.pyFolder.remote_create_file (iFolderID, ParentID, Path)
-            self.pyFolder.add_entry_to_dbm (iFolderEntry)
-            return iFolderEntry
+            Entry = self.pyFolder.remote_create_file (\
+                iFolderID, ParentID, Path)
+
+            self.pyFolder.add_entry_to_dbm (Entry)
+
+            return Entry
 
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
