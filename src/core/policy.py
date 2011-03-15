@@ -26,10 +26,10 @@ class Policy:
     def delete_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
-    def add_remote_directory (self, iFolderID, parent_id, Path):
+    def add_remote_directory (self, iFolderID, ParentID, Path):
         raise NotImplementedError
     
-    def add_remote_file (self, iFolderID, parent_id, Path):
+    def add_remote_file (self, iFolderID, ParentID, Path):
         raise NotImplementedError
 
     def modify_remote_directory (self, iFolderID, EntryID, Path):
@@ -279,10 +279,10 @@ class DEFAULT (Policy):
             else:
                 raise
     
-    def delete_remote_directory (self, iFolderID, iFolderEntryID, Path):
+    def delete_remote_directory (self, iFolderID, EntryID, Path):
         try:
 
-            self.pyFolder.remote_rmdir (iFolderID, iFolderEntryID, Path)
+            self.pyFolder.remote_rmdir (iFolderID, EntryID, Path)
             return True
 
         except WebFault, wf:
@@ -305,10 +305,10 @@ class DEFAULT (Policy):
             else:
                 raise
 
-    def delete_remote_file (self, iFolderID, iFolderEntryID, Path):
+    def delete_remote_file (self, iFolderID, EntryID, Path):
         try:
 
-            self.pyFolder.remote_delete (iFolderID, iFolderEntryID, Path)
+            self.pyFolder.remote_delete (iFolderID, EntryID, Path)
             return True
 
         except WebFault, wf:
