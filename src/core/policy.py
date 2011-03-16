@@ -44,7 +44,7 @@ class Policy:
     def delete_remote_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
     
-    def delete_ifolder (self, iFolderID, Name):
+    def delete_ifolder (self, iFolderID, Path):
         raise NotImplementedError
 
 class DEFAULT (Policy):
@@ -72,14 +72,13 @@ class DEFAULT (Policy):
       so that both the copies are saved on the server and they will be 
       available for all the users at the next update.
     """
-    def delete_ifolder (self, iFolderID, Name):
+    def delete_ifolder (self, iFolderID, Path):
         if self.pyFolder.ifolder_has_local_changes (iFolderID):
-            ConflictedName = self.pyFolder.add_conflicted_suffix (Name)
-            self.pyFolder.rename (Name, ConflictedName)
+            self.pyFolder.handle_name_conflict (Path)
 
         try:
 
-            self.pyFolder.delete_ifolder (iFolderID, Name)
+            self.pyFolder.delete_ifolder (iFolderID, Path)
             
         except OSError, ose:
             pass
@@ -98,8 +97,7 @@ class DEFAULT (Policy):
 
             if self.pyFolder.file_has_local_changes (\
                 iFolderID, EntryID, Path, Localize=True):
-                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
-                self.pyFolder.rename (Path, ConflictedPath)
+                self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.fetch (iFolderID, EntryID, Path)
             return True
@@ -122,8 +120,7 @@ class DEFAULT (Policy):
 
             if self.pyFolder.file_has_local_changes (\
                 iFolderID, EntryID, Path, Localize=True):
-                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
-                self.pyFolder.rename (Path, ConflictedPath)
+                self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.fetch (iFolderID, EntryID, Path)
             return True
@@ -142,8 +139,7 @@ class DEFAULT (Policy):
         if self.pyFolder.directory_has_local_changes (\
             iFolderID, EntryID) or \
             self.pyFolder.directory_has_new_entries (iFolderID, Path):
-            ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
-            self.pyFolder.rename (Path, ConflictedPath)
+            self.pyFolder.handle_name_conflict (Path)
 
         try:
             
@@ -159,8 +155,7 @@ class DEFAULT (Policy):
 
             if self.pyFolder.file_has_local_changes (\
                 iFolderID, EntryID, Path, Localize=True):
-                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
-                self.pyFolder.rename (Path, ConflictedPath)
+                self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.delete (Path)
             
@@ -180,14 +175,12 @@ class DEFAULT (Policy):
 
             if OriginalException == \
                     'iFolder.WebService.EntryAlreadyExistException':
-                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
-                self.pyFolder.rename (Path, ConflictedPath)
+                self.pyFolder.handle_name_conflict (Path)
                 return None
             
             elif OriginalException == \
                     'iFolder.WebService.EntryInvalidCharactersException':
-                ValidPath = self.pyFolder.strip_invalid_characters (Path)
-                self.pyFolder.rename (Path, ValidPath)
+                self.pyFolder.handle_name_conflict (Path, InvalidChars=True)
                 return None
 
             elif OriginalException == \
@@ -223,14 +216,12 @@ class DEFAULT (Policy):
 
             if OriginalException == \
                     'iFolder.WebService.EntryAlreadyExistException':
-                ConflictedPath = self.pyFolder.add_conflicted_suffix (Path)
-                self.pyFolder.rename (Path, ConflictedPath)
+                self.pyFolder.handle_name_conflict (Path)
                 return None
             
             elif OriginalException == \
                     'iFolder.WebService.EntryInvalidCharactersException':
-                ValidPath = self.pyFolder.strip_invalid_characters (Path)
-                self.pyFolder.rename (Path, ValidPath)
+                self.pyFolder.handle_name_conflict (Path, InvalidChars=True)
                 return None
             
             elif OriginalException == \

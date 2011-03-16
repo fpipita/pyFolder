@@ -67,6 +67,25 @@ class pyFolder (threading.Thread):
 
 
 
+    ## Handle a local name-conflict, by renaming the conflicted entry.
+    #
+    #  @param Path The path to rename (without the pyFolder prefix added).
+    #  @param InvalidChars If True, just strip forbidden characters from
+    #                      the tail of `Path'.
+
+    def handle_name_conflict (self, Path, InvalidChars=False):
+        NewPath = None
+
+        if InvalidChars:
+            NewPath = self.strip_invalid_characters (Path)
+
+        else:
+            NewPath = self.add_conflicted_suffix (Path)
+
+        self.rename (Path, NewPath)
+
+
+
     ## Helper method. 
 
     def __setup_policy (self):
@@ -1554,8 +1573,7 @@ class pyFolder (threading.Thread):
         PathToRename, AncestorEntry = \
             self.find_closest_ancestor_remotely_alive (iFolderID, Path)
 
-        NewParentPath = self.add_conflicted_suffix (PathToRename)
-        self.rename (PathToRename, NewParentPath)
+        self.handle_name_conflict (PathToRename)
         
         DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
             iFolderID, PathToRename)
