@@ -11,6 +11,7 @@ from core.dbm import DBM
 from core.config import ConfigManager
 from core.policy import PolicyFactory
 from core.ifolderws import iFolderWS
+from core.notify.NotifierFactory import NotifierFactory
 
 import base64
 import datetime
@@ -61,6 +62,7 @@ class pyFolder (threading.Thread):
             self.__setup_dbm ()
 
         self.__setup_policy ()
+        self.__setup_notifier ()
 
         if not runfromtest:
             self.__action ()
@@ -83,6 +85,13 @@ class pyFolder (threading.Thread):
             NewPath = self.add_conflicted_suffix (Path)
 
         self.rename (Path, NewPath)
+
+
+
+    ## Creates a suitable notifier for the host operating system.
+
+    def __setup_notifier (self):
+        self.notifier = NotifierFactory.create (sys.platform)
 
 
 
