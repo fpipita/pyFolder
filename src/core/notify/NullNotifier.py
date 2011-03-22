@@ -1,12 +1,26 @@
+# -*- coding: utf-8 -*-
+
+
+
 from Notifier import *
 
 
+
+## A default Notifier that does nothing.
 
 class NullNotifier (Notifier):
 
 
 
-    ## A default Notifier that does nothing.
+    def notify (self, title, text):
+        pass
 
-    def notify (self, event, *args):
+
+
+    def warning (self, title, text):
+        pass
+
+
+
+    def error (self, title, text):
         pass
