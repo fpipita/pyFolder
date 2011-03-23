@@ -11,7 +11,7 @@ class Notifier:
     #  @param title The title of the message.
     #  @param text The text of the message.
     
-    def info (self, event, *args):
+    def info (self, title, text):
         raise NotImplementedError
 
 
@@ -25,6 +25,7 @@ class Notifier:
         raise NotImplementedError
 
     
+
     ## Notifies the user about the given error message.
     #
     #  @param title The title of the message.
