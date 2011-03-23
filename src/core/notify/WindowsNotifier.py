@@ -1,13 +1,38 @@
+# -*- coding: utf-8 -*-
+
+
+
 from Notifier import *
+from win32.pyFolderWindow import *
 
 
+
+## A Notifier that shows baloons in the Microsoft Windows
+## system tray.
 
 class WindowsNotifier (Notifier):
 
 
 
-    ## A Notifier that shows notifies in the Microsoft Windows
-    ## system tray.
+    def __init__ (self):
+        self.window = pyFolderWindow ()
 
-    def notify (self, event, *args):
-        pass
+
+
+    def __del__ (self):
+        self.window.quit ()
+
+
+
+    def info (self, title, text):
+        self.window.info (title, text)
+
+
+
+    def warning (self, title, text):
+        self.window.warning (title, text)
+
+
+
+    def error (self, title, text):
+        self.window.error (title, text)
