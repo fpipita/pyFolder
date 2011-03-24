@@ -4,14 +4,9 @@ import ConfigParser
 import os
 import sys
 
-from optparse import OptionParser
-
 class Setup:
-
-
-
     def __init__ (self):
-        self.__parse_cmdline_options ()
+        self.SETUP_INI = 'setup.ini'
         self.SIMIAS_REFRESH = 5
 
         self.USERDATA_A = {\
@@ -40,27 +35,10 @@ class Setup:
 
         self.load_configuration ()
 
-
-
-    def __parse_cmdline_options (self):
-        self.parser = OptionParser ()
-        self.parser.add_option ('--config', \
-                                    action='store', \
-                                    type='string', \
-                                    dest='config', \
-                                    default='setup.ini', \
-                                    help='The path to the setup ' \
-                                    'configuration file ' \
-                                    '[ default : %default ]')
-
-        (self.options, self.args) = self.parser.parse_args ()
-
-
-
     def load_configuration (self):
-        if os.path.isfile (self.options.config):
+        if os.path.isfile (self.SETUP_INI):
             config = ConfigParser.RawConfigParser ()
-            config.read (self.options.config)
+            config.read (self.SETUP_INI)
             
             USERDATA = ['USERDATA_A', 'USERDATA_B']
 
@@ -111,5 +89,5 @@ class Setup:
             print >> sys.stderr, \
                 'Error : could not read the ' \
                 'configuration file `{0}\'. ' \
-                'Aborting.'.format (self.options.config)
+                'Aborting.'.format (self.SETUP_INI)
             sys.exit ()
