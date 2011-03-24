@@ -69,9 +69,9 @@ class pyFolder (threading.Thread):
 
 
 
-    ## The destructor.
+    ## Shutdown the pyFolder client.
 
-    def __del__ (self):
+    def finalize (self):
         self.dbm = None
         self.notifier = None
         self.policy = None
@@ -1779,4 +1779,13 @@ class pyFolder (threading.Thread):
 if __name__ == '__main__':
     cm = ConfigManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
                          DEFAULT_SOAP_BUFLEN)
-    pf = pyFolder (cm)
+    try:
+
+        pf = pyFolder (cm)
+
+        if pf.cm.get_action () != 'noninteractive':
+            pf.finalize ()
+        
+    except Exception, e:
+        
+        print >> sys.stderr, 'pyFolder failed with error : {0}'.format (e)
