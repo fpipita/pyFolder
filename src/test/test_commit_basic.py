@@ -44,7 +44,6 @@ class TestCommitBasic (unittest.TestCase):
         self.pyFolder.checkout ()
 
     def tearDown (self):
-        self.pyFolder.dbm = None
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
 

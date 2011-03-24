@@ -28,7 +28,6 @@ class TestHelpers (unittest.TestCase):
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
         
     def tearDown (self):
-        self.pyFolder.dbm = None
         shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
 
     def test_add_conflicted_suffix (self):

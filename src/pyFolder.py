@@ -69,6 +69,14 @@ class pyFolder (threading.Thread):
 
 
 
+    ## The destructor.
+
+    def __del__ (self):
+        self.dbm = None
+        self.notifier = None
+
+
+
     ## Handle a local name-conflict, by renaming the conflicted entry.
     #
     #  @param Path The path to rename (without the pyFolder prefix added).
@@ -85,6 +93,11 @@ class pyFolder (threading.Thread):
             NewPath = self.add_conflicted_suffix (Path)
 
         self.rename (Path, NewPath)
+
+        self.notifier.info (\
+            u'Name conflict detected', \
+                u'Renamed {0} to {1}'.format (\
+                Path.encode ('utf-8'), NewPath.encode ('utf-8')))
 
 
 
