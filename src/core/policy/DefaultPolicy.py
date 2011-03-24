@@ -6,18 +6,12 @@ from Policy import *
 
 
 
+## The default Policy used by pyFolder.
+
 class DefaultPolicy (Policy):
-    def delete_ifolder (self, iFolderID, Path):
-        if self.pyFolder.ifolder_has_local_changes (iFolderID):
-            self.pyFolder.handle_name_conflict (Path)
 
-        try:
 
-            self.pyFolder.delete_ifolder (iFolderID, Path)
-            
-        except OSError, ose:
-            pass
-    
+
     def add_directory (self, iFolderID, EntryID, Path):
         try:
 
@@ -26,6 +20,8 @@ class DefaultPolicy (Policy):
         except OSError:
             pass
         return True
+
+
 
     def add_file (self, iFolderID, EntryID, Path):
         try:
@@ -47,8 +43,12 @@ class DefaultPolicy (Policy):
             else:
                 raise
 
+
+
     def modify_directory (self, iFolderID, EntryID, Path):
         return True
+
+
 
     def modify_file (self, iFolderID, EntryID, Path):
         try:
@@ -70,6 +70,8 @@ class DefaultPolicy (Policy):
             else:
                 raise
 
+
+
     def delete_directory (self, iFolderID, EntryID, Path):
         if self.pyFolder.directory_has_local_changes (\
             iFolderID, EntryID) or \
@@ -85,6 +87,8 @@ class DefaultPolicy (Policy):
 
         return True
 
+
+
     def delete_file (self, iFolderID, EntryID, Path):
         try:
 
@@ -97,6 +101,8 @@ class DefaultPolicy (Policy):
         except OSError:
             pass
         return True
+
+
 
     def add_remote_directory (self, iFolderID, ParentID, Path):
         try:
@@ -136,6 +142,8 @@ class DefaultPolicy (Policy):
             else:
                 raise
     
+
+
     def add_remote_file (self, iFolderID, ParentID, Path):
         try:
 
@@ -177,9 +185,13 @@ class DefaultPolicy (Policy):
             else:
                 raise
 
+
+
     def modify_remote_directory (self, iFolderID, EntryID, Path):
         return True
     
+
+
     def modify_remote_file (self, iFolderID, EntryID, Path):
         try:
 
@@ -206,6 +218,8 @@ class DefaultPolicy (Policy):
             else:
                 raise
     
+
+
     def delete_remote_directory (self, iFolderID, EntryID, Path):
         try:
 
@@ -232,6 +246,8 @@ class DefaultPolicy (Policy):
             else:
                 raise
 
+
+
     def delete_remote_file (self, iFolderID, EntryID, Path):
         try:
 
@@ -257,3 +273,16 @@ class DefaultPolicy (Policy):
 
             else:
                 raise
+
+
+
+    def delete_ifolder (self, iFolderID, Path):
+        if self.pyFolder.ifolder_has_local_changes (iFolderID):
+            self.pyFolder.handle_name_conflict (Path)
+
+        try:
+
+            self.pyFolder.delete_ifolder (iFolderID, Path)
+            
+        except OSError, ose:
+            pass
