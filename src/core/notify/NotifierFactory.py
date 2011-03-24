@@ -1,5 +1,12 @@
 from NullNotifier import *
-from WindowsNotifier import *
+
+
+
+try:
+    from WindowsNotifier import *
+except:
+    pass
+
 
 
 class NotifierFactory:
@@ -13,6 +20,8 @@ class NotifierFactory:
 
     @staticmethod
     def create (platform):
+
         if platform == 'win32':
             return WindowsNotifier ()
+
         return NullNotifier ()
