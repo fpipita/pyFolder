@@ -1,80 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from suds import WebFault
-import logging
 
-class Policy:
-    def __init__ (self, pyFolder):
-        self.pyFolder = pyFolder
-        self.logger = logging.getLogger ('pyFolder.Policy')
 
-    def __del__ (self):
-        self.pyFolder = None
-    
-    def add_directory (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
+from Policy import *
 
-    def add_file (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
 
-    def modify_directory (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
 
-    def modify_file (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-    
-    def delete_directory (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-
-    def delete_file (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-
-    def add_remote_directory (self, iFolderID, ParentID, Path):
-        raise NotImplementedError
-    
-    def add_remote_file (self, iFolderID, ParentID, Path):
-        raise NotImplementedError
-
-    def modify_remote_directory (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-    
-    def modify_remote_file (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-
-    def delete_remote_directory (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-
-    def delete_remote_file (self, iFolderID, EntryID, Path):
-        raise NotImplementedError
-    
-    def delete_ifolder (self, iFolderID, Path):
-        raise NotImplementedError
-
-class DEFAULT (Policy):
-    """
-    The DEFAULT Policy has the following features:
-
-    [ UPDATE behavior ]
-    - If an entry has any kind of remote changes, the changes are also applied
-      locally. If the entry has also local changes, it is renamed.
-    - If a new entry is added remotely, it is also added to the local
-      repository. If, in the meanwhile, a local entry (with the same path)
-      is added locally, it is renamed.
-    - If an entry has remotely been deleted, it is deleted also locally. If
-      the local copy has any changes, it is renamed.
-    - If an iFolder has been remotely deleted at the time (or during) the
-      update, it is locally removed. If the local copy contained any local
-      change (modifies/new files/deletions), the iFolder will be renamed and 
-      just removed from the local dbm.
-
-    [ COMMIT behavior ]
-    - If an entry has local changes (modify, deletion), changes are committed.
-    - New locally added entries are committed. If, at the time of the commit,
-      a remote entry having the same path and name of the one that is being
-      committed has been added, then the entry being committed is renamed, 
-      so that both the copies are saved on the server and they will be 
-      available for all the users at the next update.
-    """
+class DefaultPolicy (Policy):
     def delete_ifolder (self, iFolderID, Path):
         if self.pyFolder.ifolder_has_local_changes (iFolderID):
             self.pyFolder.handle_name_conflict (Path)
@@ -325,13 +257,3 @@ class DEFAULT (Policy):
 
             else:
                 raise
-
-class PolicyFactory:
-    @staticmethod
-    def create (policy, pyFolder):
-        if policy == 'DEFAULT':
-            return DEFAULT (pyFolder)
-    
-    @staticmethod
-    def get_factories ():
-        return ['DEFAULT', ]

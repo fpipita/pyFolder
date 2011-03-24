@@ -6,7 +6,7 @@ pathtodb = .ifolderdb-user_a
 soapbuflen = 65536
 prefix = /tmp/pyFolder
 config = .ifolderrc-user_a
-policy = DEFAULT
+policy = DefaultPolicy
 verbose = False
 
 [USERDATA_B]
@@ -17,7 +17,7 @@ pathtodb = .ifolderdb-user_b
 soapbuflen = 65536
 prefix = /tmp/pyFolder
 config = .ifolderrc-user_b
-policy = DEFAULT
+policy = DefaultPolicy
 verbose = False
 
 [Options]

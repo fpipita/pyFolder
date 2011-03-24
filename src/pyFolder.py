@@ -9,7 +9,7 @@
 
 from core.dbm import DBM
 from core.config import ConfigManager
-from core.policy import PolicyFactory
+from core.policy.PolicyFactory import *
 from core.ifolderws import iFolderWS
 from core.notify.NotifierFactory import NotifierFactory
 

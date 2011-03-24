@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from optparse import OptionParser
-from policy import PolicyFactory
+from policy.PolicyFactory import *
 
 import sys
 
