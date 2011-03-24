@@ -12,7 +12,7 @@ class NullNotifier (Notifier):
 
 
 
-    def notify (self, title, text):
+    def info (self, title, text):
         pass
 
 
