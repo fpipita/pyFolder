@@ -45,6 +45,7 @@ class TestCommitBasic (unittest.TestCase):
 
     def tearDown (self):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
+        self.pyFolder.__del__ ()
         shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
 
     def test_is_new_local_directory (self):

@@ -74,6 +74,9 @@ class pyFolder (threading.Thread):
     def __del__ (self):
         self.dbm = None
         self.notifier = None
+        self.policy = None
+        self.ifolderws = None
+        self.cm = None
 
 
 

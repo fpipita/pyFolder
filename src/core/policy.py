@@ -7,6 +7,9 @@ class Policy:
     def __init__ (self, pyFolder):
         self.pyFolder = pyFolder
         self.logger = logging.getLogger ('pyFolder.Policy')
+
+    def __del__ (self):
+        self.pyFolder = None
     
     def add_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
