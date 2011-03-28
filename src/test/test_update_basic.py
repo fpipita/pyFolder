@@ -205,6 +205,39 @@ class TestUpdateBasic (unittest.TestCase):
         ChildLocalPath = self.pyFolder.add_prefix (ChildLocalPath)
 
         self.assertFalse (self.pyFolder.path_isfile (ChildLocalPath))
+
+    def test_delete_nested_hierarchy (self):
+        Hierarchy = {
+            'Ancestor':None,
+            'Parent':'Ancestor',
+            'Child':'Parent'}
+
+        for Key in Hierarchy.keys ():
+            Current = Hierarchy[Key]
+            ParentID = self.iFolderEntry.ID
+
+            if Current is not None:
+                ParentID = Hierarchy[Current].ID
+
+            Hierarchy[Key] = self.pyFolder.ifolderws.create_entry (
+                self.iFolder.ID,
+                ParentID,
+                Key,
+                self.Type.Directory)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        self.pyFolder.ifolderws.delete_entry (
+            Hierarchy['Ancestor'].iFolderID, Hierarchy['Ancestor'].ID)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        Content = os.listdir (self.pyFolder.add_prefix (IFOLDER_NAME))
+        self.assertEquals (len (Content), 0)
         
 if __name__ == '__main__':
    unittest.main ()

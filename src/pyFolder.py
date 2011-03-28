@@ -219,6 +219,26 @@ class pyFolder (threading.Thread):
 
 
 
+    ## Safely get an entry from the local db by its iFolderID and localpath.
+    #
+    #  This method prevents from portability errors, since the LocalPath
+    #  string, is first normalized through the os.path.normpath method.
+    #
+    #  @param iFolderID The ID of the iFolder the entry belongs to.
+    #  @param LocalPath The path to the entry with the pyFolder prefix
+    #                   stripped.
+    #
+    #  @return The requested entry if found, None else.
+
+    def get_entry_by_ifolder_and_localpath (self, iFolderID, LocalPath):
+
+        NormPath = os.path.normpath (LocalPath)
+
+        return self.dbm.get_entry_by_ifolder_and_localpath (
+            iFolderID, NormPath)
+
+
+
     ## Replace invalid characters in the given path.
     #
     #  The method just fixes the leaf node of the path.
@@ -1373,8 +1393,8 @@ class pyFolder (threading.Thread):
     #  @return True whether the entry does not exist in the local database.
 
     def __is_new_local_entry (self, iFolderID, Path):
-        EntryTuple = \
-            self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, Path)
+
+        EntryTuple = self.get_entry_by_ifolder_and_localpath (iFolderID, Path)
 
         if EntryTuple is None:
             return True
@@ -1423,8 +1443,8 @@ class pyFolder (threading.Thread):
     def __find_parent (self, iFolderID, Path):
         ParentPath = os.path.split (Path)[0]
 
-        EntryTuple = \
-            self.dbm.get_entry_by_ifolder_and_localpath (iFolderID, ParentPath)
+        EntryTuple = self.get_entry_by_ifolder_and_localpath (
+            iFolderID, ParentPath)
 
         if EntryTuple is None:
             iFolderTuple = self.dbm.get_ifolder (iFolderID)
@@ -1454,8 +1474,7 @@ class pyFolder (threading.Thread):
         Operation = self.ifolderws.get_search_operation ()
         Head, Tail = os.path.split (LocalPath)
 
-        EntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
-            iFolderID, Head)
+        EntryTuple = self.get_entry_by_ifolder_and_localpath (iFolderID, Head)
 
         if EntryTuple == None:
             iFolderEntry = self.__invoke (\
@@ -1600,7 +1619,7 @@ class pyFolder (threading.Thread):
 
         self.handle_name_conflict (PathToRename)
         
-        DeadAncestorEntryTuple = self.dbm.get_entry_by_ifolder_and_localpath (\
+        DeadAncestorEntryTuple = self.get_entry_by_ifolder_and_localpath (
             iFolderID, PathToRename)
 
         EntryID = DeadAncestorEntryTuple['id']
