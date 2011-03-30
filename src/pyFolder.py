@@ -153,10 +153,13 @@ class pyFolder (Thread):
     def __setup_logger (self):
         self.logger = logging.getLogger ('pyFolder')
         self.logger.setLevel (logging.INFO)
+
         if self.cm.get_verbose ():
             self.handler = logging.StreamHandler ()
+
         else:
             self.handler = NullHandler ()
+
         formatter = logging.Formatter (LOGGER_FORMAT_STRING)
         self.handler.setFormatter (formatter)
         self.logger.addHandler (self.handler)
