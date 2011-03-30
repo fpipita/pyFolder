@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
+
 ## @package pyFolder
 #  Documentation for the pyFolder module.
 #
@@ -12,6 +14,9 @@ from core.config import ConfigManager
 from core.policy.PolicyFactory import *
 from core.ifolderws import iFolderWS
 from core.notify.NotifierFactory import NotifierFactory
+from suds import WebFault
+
+
 
 import base64
 import datetime
@@ -22,9 +27,10 @@ import shutil
 import sqlite3
 import sys
 import time
-import threading
 
-from suds import WebFault
+from threading import *
+
+
 
 DEFAULT_SOAP_BUFLEN = 65536
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
@@ -43,7 +49,7 @@ class NullHandler (logging.Handler):
 
 
 
-class pyFolder (threading.Thread):
+class pyFolder (Thread):
 
 
 
@@ -53,13 +59,17 @@ class pyFolder (threading.Thread):
     #         should run an action or not.
 
     def __init__ (self, cm, runfromtest=False):
-        threading.Thread.__init__ (self)
+        Thread.__init__ (self)
         self.cm = cm
         self.__setup_logger ()
         self.__setup_ifolderws ()
 
         if self.cm.get_action () != 'noninteractive':
             self.__setup_dbm ()
+
+        else:
+            self.is_running = True
+            self.cv = Condition ()
 
         self.__setup_policy ()
         self.__setup_notifier ()
@@ -107,7 +117,7 @@ class pyFolder (threading.Thread):
     ## Creates a suitable notifier for the host operating system.
 
     def __setup_notifier (self):
-        self.notifier = NotifierFactory.create (sys.platform)
+        self.notifier = NotifierFactory.create (sys.platform, self)
 
 
 
@@ -210,12 +220,24 @@ class pyFolder (threading.Thread):
         self.logger.info ('Ignoring locked entry `{0}\''.format (\
                 Path.encode ('utf-8')))
         
+        self.notifier.warning (
+            u'Locked entry',
+            u'The entry `{0}\' can\'t be committed because of it is ' \
+                'currently locked. It will be ignored.'.format (
+                    Path.encode ('utf-8')))
+
 
 
     def ignore_no_rights (self, Path):
         self.logger.info ('Could not commit entry `{0}\' ' \
                               'because of not sufficient ' \
                               'rights'.format (Path.encode ('utf-8')))
+
+        self.notifier.warning (
+            u'Not sufficient rights',
+            u'Could not commit entry `{0}\' ' \
+                'because of not sufficient ' \
+                'rights'.format (Path.encode ('utf-8')))
 
 
 
@@ -1783,17 +1805,58 @@ class pyFolder (threading.Thread):
             if Updated:
                 self.__update_ifolder_in_dbm (iFolderID)
                 
+
+
+    def __is_running (self):
+        is_running = False
+
+        self.cv.acquire ()
+
+        is_running = self.is_running
+
+        self.cv.release ()
+
+        return is_running
+
+
+
     def run (self):
         self.__setup_dbm ()
 
         while True:
+
+            self.cv.acquire ()
+
             self.update ()
-            time.sleep (SIMIAS_SYNC_INTERVAL)
             self.commit ()
-            time.sleep (PYFOLDER_SYNC_INTERVAL)
+
+            self.cv.wait (PYFOLDER_SYNC_INTERVAL)
+
+            self.cv.release ()
+
+            if not self.__is_running ():
+                break
+
+
+
+    ## Stop pyFolder when it is running in non-interactive mode.
+
+    def stop (self):
+
+        if hasattr (self, 'cv'):
+            self.cv.acquire ()
+
+            self.is_running = False
+
+            self.cv.notify_all ()
+            self.cv.release ()
+
+
 
     def noninteractive (self):
         self.start ()
+
+
 
 if __name__ == '__main__':
     cm = ConfigManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \

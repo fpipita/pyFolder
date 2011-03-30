@@ -12,6 +12,7 @@ from win32con import *
 # Constants
 
 PYFOLDER_NAME = u'pyFolder'
+PYFOLDER_QUIT = 1024
 
 NIM_ADD = 0x00000000
 NIM_MODIFY = 0x00000001
@@ -122,8 +123,10 @@ class pyFolderWindow (Thread):
     
 
 
-    def __init__ (self):
+    def __init__ (self, pyFolder):
         Thread.__init__ (self)
+
+        self.pyFolder = pyFolder
 
         self.c = Condition ()
         self.hWnd = None
@@ -139,6 +142,7 @@ class pyFolderWindow (Thread):
     def quit (self):
 
         self.__wait ()
+        self.pyFolder.stop ()
         PostMessage (self.hWnd, WM_DESTROY, None, None)
             
     
@@ -185,6 +189,30 @@ class pyFolderWindow (Thread):
 
 
 
+    def __show_context_menu (self, hWnd, uMsg, wParam, lParam):
+
+        if lParam == WM_RBUTTONUP:
+
+            hMenu = CreatePopupMenu ()
+            pt = POINT ()
+
+            GetCursorPos (byref (pt))
+            AppendMenu (hMenu, MF_STRING, PYFOLDER_QUIT, u'Quit')
+            SetForegroundWindow (hWnd)
+            TrackPopupMenu (hMenu, TPM_LEFTALIGN, pt.x, pt.y, 0, hWnd, None)
+            PostMessage (hWnd, WM_NULL, 0, 0)
+            return 1
+
+
+
+    def __on_command (self, hWnd, uMsg, wParam, lParam):
+        wmID = wParam & 0xFFFF
+
+        if wmID == PYFOLDER_QUIT:
+            self.quit ()
+
+
+
     def __wnd_proc (self, hWnd, uMsg, wParam, lParam):
 
         if uMsg == WM_CREATE:
@@ -193,6 +221,12 @@ class pyFolderWindow (Thread):
         elif uMsg == WM_DESTROY:
             self.__delete_notification_icon (hWnd)
             PostQuitMessage (0)
+
+        elif uMsg == WM_COMMAND:
+            self.__on_command (hWnd, uMsg, wParam, lParam)
+
+        elif uMsg == WMAPP_NOTIFYCALLBACK:
+            self.__show_context_menu (hWnd, uMsg, wParam, lParam)
 
         else:
             return DefWindowProc (hWnd, uMsg, wParam, lParam)

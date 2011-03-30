@@ -19,9 +19,9 @@ class NotifierFactory:
     #                  system platform name.
 
     @staticmethod
-    def create (platform):
+    def create (platform, pyFolder):
 
         if platform == 'win32':
-            return WindowsNotifier ()
+            return WindowsNotifier (pyFolder)
 
-        return NullNotifier ()
+        return NullNotifier (pyFolder)

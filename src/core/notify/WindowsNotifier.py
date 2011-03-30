@@ -14,8 +14,9 @@ class WindowsNotifier (Notifier):
 
 
 
-    def __init__ (self):
-        self.window = pyFolderWindow ()
+    def __init__ (self, pyFolder):
+        Notifier.__init__ (self, pyFolder)
+        self.window = pyFolderWindow (self.pyFolder)
 
 
 

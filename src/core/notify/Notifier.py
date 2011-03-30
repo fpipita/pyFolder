@@ -3,7 +3,16 @@
 
 
 class Notifier:
-    
+
+
+
+    ## The constructor.
+    #
+    #  @param pyFolder An instance of the pyFolder class.
+
+    def __init__ (self, pyFolder):
+        self.pyFolder = pyFolder
+
 
 
     ## Notifies the user about the given information message.
