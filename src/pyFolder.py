@@ -40,6 +40,11 @@ PYFOLDER_SYNC_INTERVAL = 60
 CONFLICTED_SUFFIX = 'conflicted'
 ENTRY_INVALID_CHARS = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
 DEFAULT_INVALID_CHAR_REPLACEMENT = ''
+LOGGER_FORMAT_STRING = \
+    '%(asctime)s [%(name)s] ' \
+    '%(levelname)s ' \
+    '%(module)s.%(funcName)s - ' \
+    '%(message)s'
 
 
 
@@ -152,10 +157,7 @@ class pyFolder (Thread):
             self.handler = logging.StreamHandler ()
         else:
             self.handler = NullHandler ()
-        formatter = logging.Formatter ('%(asctime)s [%(name)s] ' \
-                                           '%(levelname)s ' \
-                                           '%(module)s.%(funcName)s - ' \
-                                           '%(message)s')
+        formatter = logging.Formatter (LOGGER_FORMAT_STRING)
         self.handler.setFormatter (formatter)
         self.logger.addHandler (self.handler)
 
