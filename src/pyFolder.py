@@ -13,7 +13,8 @@ from core.dbm import DBM
 from core.config import ConfigManager
 from core.policy.PolicyFactory import *
 from core.ifolderws import iFolderWS
-from core.notify.NotifierFactory import NotifierFactory
+from core.notify.NotifierFactory import *
+from core.log.NullHandler import *
 from suds import WebFault
 
 
@@ -27,7 +28,6 @@ import shutil
 import sqlite3
 import sys
 import time
-
 from threading import *
 
 
@@ -45,12 +45,6 @@ LOGGER_FORMAT_STRING = \
     '%(levelname)s ' \
     '%(module)s.%(funcName)s - ' \
     '%(message)s'
-
-
-
-class NullHandler (logging.Handler):
-    def emit (self, record):
-        pass
 
 
 
