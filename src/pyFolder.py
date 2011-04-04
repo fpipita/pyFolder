@@ -1640,6 +1640,19 @@ class pyFolder (Thread):
 
         return Updated
 
+
+
+    ## Undo eventual changes made to the db and rename part of Path.
+    #
+    #  This method, looks for the remotely alive closest ancestor
+    #  to the leaf node of Path (let's call it A). Then, it conflicts the
+    #  direct discendant of A, which IS part of Path (let's call it B) and,
+    #  deletes the hierarchy starting at B, from the database. This way, 
+    #  the conflicted hierarchy, will look as though it was a fresh added one.
+    #
+    #  @param iFolderID The ID of the iFolder Path belongs to.
+    #  @param Path The path in which some errors happened.
+
     def rollback (self, iFolderID, Path):
         PathToRename, AncestorEntry = \
             self.find_closest_ancestor_remotely_alive (iFolderID, Path)
