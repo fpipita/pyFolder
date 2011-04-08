@@ -390,6 +390,20 @@ class pyFolder (Thread):
 
 
 
+    ## Create a new local file.
+    #
+    #  @param Path The path to the new file without the pyFolder
+    #              prefix added
+
+    def touch (self, Path):
+
+        LocalPath = self.add_prefix (Path)
+
+        with open (LocalPath, 'wb') as File:
+            pass
+
+
+
     ## Write the content of a local file to an existing remote one.
     #
     #  @param iFolderID the ID of the iFolder the remote file belongs to.
@@ -412,6 +426,28 @@ class pyFolder (Thread):
                     self.__invoke (self.ifolderws.write_file, \
                                        Handle, base64.b64encode (Data))
             self.__invoke (self.ifolderws.close_file, Handle)
+
+
+
+    ## Discover all of the directories within a pyFolder repository.
+    #
+    #  @return A list of strings, each representing a directory with the
+    #          pyFolder prefix stripped.
+
+    def get_directories (self):
+        Tree = []
+
+        iFolderTupleList = self.dbm.get_ifolders ()
+
+        for iFolderTuple in iFolderTupleList:
+            Name = iFolderTuple['name']
+
+            for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
+
+                if os.path.isdir (Root) and Root != Name:
+                    Tree.append (self.remove_prefix (Root))
+
+        return Tree
 
 
 
