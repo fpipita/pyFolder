@@ -13,7 +13,7 @@ from pyFolder import *
 from core.dbm import DBM
 from core.config import ConfigManager
 
-from setup import Setup
+from setup import *
 
 IFOLDER_NAME = 'TestUpdateConflicts'
 TEST_CONFIG = Setup ()
@@ -21,10 +21,10 @@ TEST_CONFIG = Setup ()
 class TestUpdateConflicts (unittest.TestCase):
 
     def setUp (self):
-        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
+        os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
         
-        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
-        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_B)
+        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
+        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[SECONDARY_USER])
 
         self.pyFolder = pyFolder (self.cm_A, runfromtest=True)
 
@@ -46,7 +46,7 @@ class TestUpdateConflicts (unittest.TestCase):
 
         UserList = self.pyFolder.ifolderws.get_users_by_search (\
             self.SearchProperty.UserName, self.SearchOperation.Contains, \
-                TEST_CONFIG.USERDATA_B['username'], 0, 1)
+                TEST_CONFIG.USERDATA[SECONDARY_USER]['username'], 0, 1)
 
         if UserList is not None:
             for User in UserList:
@@ -60,7 +60,7 @@ class TestUpdateConflicts (unittest.TestCase):
     def tearDown (self):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         self.pyFolder.finalize ()
-        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
+        shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
         
     def test_modify_on_conflict (self):
         EntryName = 'aFile'

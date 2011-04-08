@@ -13,7 +13,7 @@ from pyFolder import *
 from core.dbm import DBM
 from core.config import ConfigManager
 
-from setup import Setup
+from setup import *
 
 IFOLDER_NAME = 'TestUpdateBasic'
 TEST_CONFIG = Setup ()
@@ -21,9 +21,9 @@ TEST_CONFIG = Setup ()
 class TestUpdateBasic (unittest.TestCase):
 
     def setUp (self):
-        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
+        os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
 
-        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
+        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
 
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
@@ -41,7 +41,7 @@ class TestUpdateBasic (unittest.TestCase):
     def tearDown (self):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         self.pyFolder.finalize ()
-        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
+        shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
 
     def test_add_file (self):
         FileName = 'test_add_file'
@@ -59,7 +59,7 @@ class TestUpdateBasic (unittest.TestCase):
         self.assertEqual (EntryTuple['ifolder'], Entry.iFolderID)
         self.assertNotEqual (EntryTuple['digest'], 'DIRECTORY')
         
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
 
         self.assertTrue (os.path.isfile (LocalPath))
 
@@ -90,7 +90,7 @@ class TestUpdateBasic (unittest.TestCase):
         
         self.assertEqual (EntryTuple['mtime'], Change.Time)
 
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
         
         self.assertTrue (os.path.isfile (LocalPath))
         
@@ -116,7 +116,7 @@ class TestUpdateBasic (unittest.TestCase):
         
         self.assertEqual (EntryTuple, None)
         
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
         
         self.assertFalse (os.path.isfile (LocalPath))
 
@@ -136,7 +136,7 @@ class TestUpdateBasic (unittest.TestCase):
         self.assertEqual (EntryTuple['ifolder'], Entry.iFolderID)
         self.assertEqual (EntryTuple['digest'], 'DIRECTORY')
         
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
         
         self.assertTrue (os.path.isdir (LocalPath))
 
@@ -162,7 +162,7 @@ class TestUpdateBasic (unittest.TestCase):
         
         self.assertEqual (EntryTuple, None)
 
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
         
         self.assertFalse (os.path.isdir (LocalPath))
 

@@ -15,7 +15,7 @@ from core.config import ConfigManager
 
 from suds import WebFault
 
-from setup import Setup
+from setup import *
 
 IFOLDER_NAME = 'TestHelpers'
 TEST_CONFIG = Setup ()
@@ -23,13 +23,13 @@ TEST_CONFIG = Setup ()
 class TestHelpers (unittest.TestCase):
 
     def setUp (self):
-        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
-        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
+        os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
+        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
         
     def tearDown (self):
         self.pyFolder.finalize ()
-        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
+        shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
 
     def test_add_conflicted_suffix (self):
         aFile = '/lol\\foo/bar/baz/file.exe.lol'

@@ -14,7 +14,7 @@ from core.dbm import DBM
 from core.config import ConfigManager
 
 from suds import WebFault
-from setup import Setup
+from setup import *
 
 IFOLDER_NAME = 'TestCommitConflicts'
 TEST_CONFIG = Setup ()
@@ -22,10 +22,10 @@ TEST_CONFIG = Setup ()
 class TestCommitConflicts (unittest.TestCase):
 
     def setUp (self):
-        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
+        os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
         
-        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
-        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_B)
+        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
+        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[SECONDARY_USER])
 
         self.pyFolder = pyFolder (self.cm_A, runfromtest=True)
 
@@ -47,7 +47,7 @@ class TestCommitConflicts (unittest.TestCase):
 
         UserList = self.pyFolder.ifolderws.get_users_by_search (\
             self.SearchProperty.UserName, self.SearchOperation.Contains, \
-                TEST_CONFIG.USERDATA_B['username'], 0, 1)
+                TEST_CONFIG.USERDATA[SECONDARY_USER]['username'], 0, 1)
 
         if UserList is not None:
             for User in UserList:
@@ -61,7 +61,7 @@ class TestCommitConflicts (unittest.TestCase):
     def tearDown (self):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         self.pyFolder.finalize ()
-        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
+        shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
 
     def test_add_directory_on_conflict (self):
         DirectoryName = 'test_add_directory_on_conflict'
@@ -71,7 +71,7 @@ class TestCommitConflicts (unittest.TestCase):
                 self.Type.Directory)
         
         LocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
 
         os.mkdir (LocalPath)
 
@@ -93,7 +93,7 @@ class TestCommitConflicts (unittest.TestCase):
         Entry = self.ifolderws.create_entry (\
             self.iFolder.ID, self.iFolderEntry.ID, FileName, self.Type.File)
         
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA_A['prefix'], Entry.Path)
+        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
 
         with open (LocalPath, 'wb') as File:
             File.write (FileData)
@@ -133,9 +133,9 @@ class TestCommitConflicts (unittest.TestCase):
         Handle = self.ifolderws.open_file_read (EntryA.iFolderID, EntryA.ID)
         
         FileALocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], EntryA.Path)
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], EntryA.Path)
         FileBLocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], EntryB.Path)
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], EntryB.Path)
 
         with open (FileALocalPath, 'wb') as File:
             File.write (FileA)

@@ -15,7 +15,7 @@ from core.config import ConfigManager
 
 from suds import WebFault
 
-from setup import Setup
+from setup import *
 
 IFOLDER_NAME = 'TestCommitBasic'
 TEST_CONFIG = Setup ()
@@ -23,9 +23,9 @@ TEST_CONFIG = Setup ()
 class TestCommitBasic (unittest.TestCase):
 
     def setUp (self):
-        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
+        os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
 
-        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
+        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
         self.pyFolder = pyFolder (self.cm, runfromtest=True)
 
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
@@ -46,7 +46,7 @@ class TestCommitBasic (unittest.TestCase):
     def tearDown (self):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         self.pyFolder.finalize ()
-        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
+        shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
 
     def test_is_new_local_directory (self):
         DirectoryName = 'test_is_new_local_directory'
@@ -88,7 +88,7 @@ class TestCommitBasic (unittest.TestCase):
         self.assertEqual (Type, self.iFolderEntryType.File)
 
         PrefixedLocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], iFolderEntry.Path)
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], iFolderEntry.Path)
 
         with open (PrefixedLocalPath, 'wb') as File:
             File.write (FileData)
@@ -113,7 +113,7 @@ class TestCommitBasic (unittest.TestCase):
         FileName = 'File'
         
         FileLocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], self.iFolder.Name)
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], self.iFolder.Name)
         FileLocalPath = os.path.join (FileLocalPath, FileName)
         
         with open (FileLocalPath, 'wb') as File:
@@ -150,7 +150,7 @@ class TestCommitBasic (unittest.TestCase):
         FileName = 'File'
         
         FileLocalPath = os.path.join (\
-            TEST_CONFIG.USERDATA_A['prefix'], self.iFolder.Name)
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], self.iFolder.Name)
         FileLocalPath = os.path.join (FileLocalPath, FileName)
         
         with open (FileLocalPath, 'wb') as File:

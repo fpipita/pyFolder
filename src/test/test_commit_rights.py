@@ -15,7 +15,7 @@ from core.config import ConfigManager
 
 from suds import WebFault
 
-from setup import Setup
+from setup import *
 
 IFOLDER_NAME = 'TestCommitRights'
 TEST_CONFIG = Setup ()
@@ -23,10 +23,10 @@ TEST_CONFIG = Setup ()
 class TestCommitRights (unittest.TestCase):
 
     def setUp (self):
-        os.makedirs (TEST_CONFIG.USERDATA_A['prefix'])
+        os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
         
-        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_A)
-        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA_B)
+        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
+        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[SECONDARY_USER])
 
         self.pyFolder = pyFolder (self.cm_A, runfromtest=True)
 
@@ -48,7 +48,7 @@ class TestCommitRights (unittest.TestCase):
 
         UserList = self.pyFolder.ifolderws.get_users_by_search (\
             self.SearchProperty.UserName, self.SearchOperation.Contains, \
-                TEST_CONFIG.USERDATA_A['username'], 0, 1)
+                TEST_CONFIG.USERDATA[PRIMARY_USER]['username'], 0, 1)
 
         self.USER_A = None
 
@@ -65,7 +65,7 @@ class TestCommitRights (unittest.TestCase):
     def tearDown (self):
         self.ifolderws.delete_ifolder (self.iFolder.ID)
         self.pyFolder.finalize ()
-        shutil.rmtree (TEST_CONFIG.USERDATA_A['prefix'], True)
+        shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
         
     def test_add_file_on_read_only_rights (self):
         aFile = 'aFile'

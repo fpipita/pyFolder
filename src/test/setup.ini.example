@@ -1,4 +1,4 @@
-[USERDATA_A]
+[PRIMARY_USER]
 username = user_a
 password = pass_a
 ifolderws = http://myhost/simias10/iFolderWeb.asmx?wsdl=0
@@ -9,7 +9,7 @@ config = .ifolderrc-user_a
 policy = DefaultPolicy
 verbose = False
 
-[USERDATA_B]
+[SECONDARY_USER]
 username = user_b
 password = pass_b
 ifolderws = http://myhost/simias10/iFolderWeb.asmx?wsdl=0
