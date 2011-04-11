@@ -431,10 +431,13 @@ class pyFolder (Thread):
 
     ## Discover all of the directories within a pyFolder repository.
     #
+    #  @param ExcludeiFolders If True, don't return the iFolder directories
+    #                         within the list.
+    #
     #  @return A list of strings, each representing a directory with the
     #          pyFolder prefix stripped.
 
-    def get_directories (self):
+    def get_directories (self, ExcludeiFolders=False):
         Tree = []
 
         iFolderTupleList = self.dbm.get_ifolders ()
@@ -444,8 +447,36 @@ class pyFolder (Thread):
 
             for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
 
-                if os.path.isdir (Root) and Root != Name:
+                if os.path.isdir (Root):
+
+                    if ExcludeiFolders and Root == self.add_prefix (Name):
+                        continue
+
                     Tree.append (self.remove_prefix (Root))
+
+        return Tree
+
+
+
+    ## Discover all of the files within a pyFolder repository.
+    #
+    #  @return A list of strings, each representing a file with the
+    #          pyFolder prefix stripped.
+
+    def get_files (self):
+        Tree = []
+
+        iFolderTupleList = self.dbm.get_ifolders ()
+
+        for iFolderTuple in iFolderTupleList:
+            Name = iFolderTuple['name']
+
+            for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
+
+                for File in Files:
+                    FilePath = os.path.join (Root, File)
+                    if os.path.isfile (FilePath):
+                        Tree.append (self.remove_prefix (FilePath))
 
         return Tree
 
