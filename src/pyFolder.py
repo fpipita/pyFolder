@@ -475,6 +475,7 @@ class pyFolder (Thread):
 
                 for File in Files:
                     FilePath = os.path.join (Root, File)
+
                     if os.path.isfile (FilePath):
                         Tree.append (self.remove_prefix (FilePath))
 
