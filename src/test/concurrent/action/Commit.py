@@ -17,7 +17,6 @@ class Commit (Action):
 
     def execute (self):
         self.pyFolder.commit ()
-        print 'User {0} : Commit executed'.format (self.User)
 
 
 

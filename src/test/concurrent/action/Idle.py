@@ -18,7 +18,7 @@ class Idle (Action):
 
 
     def execute (self):
-        print 'User {0} : Idle'.format (self.User)
+        pass
 
 
 

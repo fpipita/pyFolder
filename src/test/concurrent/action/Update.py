@@ -17,7 +17,6 @@ class Update (Action):
 
     def execute (self):
         self.pyFolder.update ()
-        print 'User {0} : Update executed'.format (self.User)
 
 
 

@@ -13,6 +13,8 @@ from CreateDirectory import *
 from CreateFile import *
 from DeleteDirectory import *
 from DeleteFile import *
+from RenameFile import *
+from ModifyFile import *
 
 
 
@@ -27,7 +29,9 @@ class ActionFactory:
         'CreateDirectory' : CreateDirectory,
         'CreateFile' : CreateFile,
         'DeleteDirectory' : DeleteDirectory,
-        'DeleteFile' : DeleteFile
+        'DeleteFile' : DeleteFile,
+        'RenameFile' : RenameFile,
+        'ModifyFile' : ModifyFile
         }
 
 

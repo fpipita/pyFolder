@@ -3,6 +3,7 @@
 
 
 from Action import *
+from rand.PathFactory import *
 
 
 
@@ -16,9 +17,16 @@ class DeleteDirectory (Action):
 
 
     def execute (self):
-        pass
+        self.pyFolder.rmdir (self.ActionData['Path'])
 
 
 
     def can_happen (self):
-        return False
+
+        if not len (self.pyFolder.get_directories (ExcludeiFolders=True)):
+            return False
+
+        self.ActionData['Path'] = \
+            PathFactory.select_path (self.pyFolder, isdir=True)
+
+        return self.ActionData['Path'] is not None

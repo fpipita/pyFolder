@@ -404,6 +404,24 @@ class pyFolder (Thread):
 
 
 
+    ## Write some data to the given file, if it exists.
+    #
+    #  @param Path The path to the file to be written (without
+    #              the pyFolder prefix added).
+    #  @param Data A string to write.
+
+    def write_file (self, Path, Data):
+
+        if not self.path_isfile (Path):
+            return
+
+        LocalPath = self.add_prefix (Path)
+
+        with open (LocalPath, 'wb') as File:
+            File.write (Data)
+
+
+
     ## Write the content of a local file to an existing remote one.
     #
     #  @param iFolderID the ID of the iFolder the remote file belongs to.

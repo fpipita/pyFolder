@@ -62,3 +62,28 @@ class PathFactory:
             Name += Char
 
         return Name
+
+
+
+    ## Select an existing random path from the pyFolder repository.
+    #
+    #  @param isdir If True, select a random directory, else a random
+    #               file.
+    #
+    #  @return A random existing path or None if no paths are available.
+
+    @staticmethod
+    def select_path (pyFolder, isdir=False):
+
+        Tree = None
+
+        if isdir:
+            Tree = pyFolder.get_directories (ExcludeiFolders=True)
+
+        else:
+            Tree = pyFolder.get_files ()
+
+        if len (Tree):
+            return random.choice (Tree)
+
+        return None
