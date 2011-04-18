@@ -635,7 +635,6 @@ class pyFolder (Thread):
 
 
     ## Build an initial local copy of the user's remote iFolders.
-    #
             
     def checkout (self):
         self.dbm.create_schema ()
