@@ -35,11 +35,14 @@ class DefaultPolicy (Policy):
 
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
-            
+
             if OriginalException == \
                     'iFolder.WebService.EntryDoesNotExistException':
                 return False
-            
+
+            elif OriginalException == 'System.IO.IOException':
+                self.pyFolder.ignore_in_use (Path)
+
             else:
                 raise
 
@@ -62,11 +65,14 @@ class DefaultPolicy (Policy):
 
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
-            
+
             if OriginalException == \
                     'iFolder.WebService.EntryDoesNotExistException':
                 return False
-            
+
+            elif OriginalException == 'System.IO.IOException':
+                self.pyFolder.ignore_in_use (Path)
+
             else:
                 raise
 
