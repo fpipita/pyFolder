@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+
 from threading import *
 import random
 import sys
@@ -15,6 +16,8 @@ sys.path.append ('../../')
 
 from common.constants import *
 from action.ActionFactory import *
+from action.pyFolderAction import *
+from action.UserAction import *
 from core.config import ConfigManager
 from pyFolder import *
 
@@ -30,6 +33,27 @@ class User (Thread):
         self.ActionHistory = ActionHistory
         self.Errors = Errors
         self.USERDATA = kwargs
+        self.IsRunning = True
+        self.lock = Lock ()
+
+
+
+    def __is_running (self):
+        Retval = None
+
+        with self.lock:
+            Retval = self.IsRunning
+
+        return Retval
+
+
+
+    def stop (self):
+
+        with self.lock:
+            self.IsRunning = False
+
+        self.join ()
 
 
 
@@ -42,18 +66,25 @@ class User (Thread):
         self.pyFolder = pyFolder (cm, runfromtest=True)
 
         self.pyFolder.checkout ()
-        
-        while True:
 
-            Action = ActionFactory.create (self, self.pyFolder)
+        Queue = []
+
+        while self.__is_running ():
+            Action = ActionFactory.create_random (self, self.pyFolder)
 
             try:
-
                 Action.execute ()
-                self.ActionHistory.put (Action)
+
+                if isinstance (Action, pyFolderAction):
+                    self.ActionHistory.put ((Action, Queue))
+                    Queue = []
+
+                else:
+
+                    if isinstance (Action, UserAction):
+                        Queue.append (Action)
 
             except Exception:
-
                 self.Errors.put (Action)
 
             time.sleep (random.randint (MIN_WAIT_TIME, MAX_WAIT_TIME))

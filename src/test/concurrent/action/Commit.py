@@ -2,23 +2,14 @@
 
 
 
-from Action import *
+from pyFolderAction import *
 
 
 
-class Commit (Action):
+class Commit (pyFolderAction):
 
 
 
     def __init__ (self, User, pyFolder):
-        Action.__init__ (self, User, pyFolder)
-
-
-
-    def execute (self):
-        self.pyFolder.commit ()
-
-
-
-    def can_happen (self):
-        return True
+        pyFolderAction.__init__ (self, User, pyFolder)
+        self.action = self.pyFolder.commit

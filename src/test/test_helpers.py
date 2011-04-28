@@ -1,5 +1,7 @@
 #-*- coding: utf-8 -*-
 
+
+
 import base64
 import os
 import shutil
@@ -7,20 +9,34 @@ import sys
 import time
 import unittest
 
+
+
 sys.path.append ('../')
+
+
 
 from pyFolder import *
 from core.dbm import DBM
 from core.config import ConfigManager
 
+
+
 from suds import WebFault
 
+
+
 from setup import *
+
+
 
 IFOLDER_NAME = 'TestHelpers'
 TEST_CONFIG = Setup ()
 
+
+
 class TestHelpers (unittest.TestCase):
+
+
 
     def setUp (self):
         os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
@@ -37,11 +53,15 @@ class TestHelpers (unittest.TestCase):
         self.Action = self.pyFolder.ifolderws.get_change_entry_action ()
 
         self.pyFolder.checkout ()
-        
+
+
+
     def tearDown (self):
         self.pyFolder.ifolderws.delete_ifolder (self.iFolder.ID)
         self.pyFolder.finalize ()
         shutil.rmtree (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], True)
+
+
 
     def test_add_conflicted_suffix (self):
         aFile = '/lol\\foo/bar/baz/file.exe.lol'
@@ -51,38 +71,42 @@ class TestHelpers (unittest.TestCase):
         self.assertEqual (\
             self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
                 '/lol\\foo/bar/baz/file.exe-{0}.lol'.format (Suffix))
-        
+
         self.assertEqual (\
             self.pyFolder.add_conflicted_suffix (aDirectory, Suffix), \
                 '/lol\\bar-{0}'.format (Suffix))
-        
+
         aFile = '/lol/.bar'
-        
+
         self.assertEqual (\
             self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
                 '/lol/.bar-{0}'.format (Suffix))
-        
+
         aFile = '/lol/.bar.exe'
-        
+
         self.assertEqual (\
             self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
                 '/lol/.bar-{0}.exe'.format (Suffix))
-        
+
+
+
     def test_strip_invalid_characters (self):
 
         if sys.platform in [ 'win32', 'os2', 'os2emx' ]:
             return
-        
+
         InvalidCharacters = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
         Replacement = 'foo'
         InvalidPath = '/foo/bar/lol/{0}'
         ValidPath = InvalidPath.format (Replacement)
-        
+
         for Char in InvalidCharacters:
-            
+
             self.assertEqual (\
                 self.pyFolder.strip_invalid_characters (\
                     InvalidPath.format (Char), Replacement), ValidPath)
+
+
 
     def test_get_directories (self):
 
@@ -93,6 +117,8 @@ class TestHelpers (unittest.TestCase):
         x = self.pyFolder.get_directories (ExcludeiFolders=True)
 
         self.assertTrue (IFOLDER_NAME not in x)
+
+
 
     def test_get_files (self):
 
@@ -107,6 +133,18 @@ class TestHelpers (unittest.TestCase):
         x = self.pyFolder.get_files ()
 
         self.assertTrue (FilePath in x)
+
+
+
+    def test_add_prefix (self):
+        ExpectedPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+
+        Path = self.pyFolder.add_prefix (IFOLDER_NAME)
+        Path = self.pyFolder.add_prefix (Path)
+
+        self.assertTrue (ExpectedPath, Path)
+
+
 
 if __name__ == '__main__':
     unittest.main ()

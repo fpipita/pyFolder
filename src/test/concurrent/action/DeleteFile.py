@@ -2,22 +2,22 @@
 
 
 
-from Action import *
+from UserAction import *
 from rand.PathFactory import *
 
 
 
-class DeleteFile (Action):
+class DeleteFile (UserAction):
 
 
 
     def __init__ (self, User, pyFolder):
-        Action.__init__ (self, User, pyFolder)
+        UserAction.__init__ (self, User, pyFolder)
 
 
 
     def execute (self):
-        self.pyFolder.delete (self.ActionData['Path'])
+        self.pyFolder.delete (self.Target)
 
 
 
@@ -26,6 +26,13 @@ class DeleteFile (Action):
         if not len (self.pyFolder.get_directories ()):
             return False
 
-        self.ActionData['Path'] = PathFactory.select_path (self.pyFolder)
+        return self.Target is not None
 
-        return self.ActionData['Path'] is not None
+
+
+    def build_scenario (self):
+        self.Target = PathFactory.select_path (self.pyFolder)
+
+        Scenario = []
+
+        return Scenario

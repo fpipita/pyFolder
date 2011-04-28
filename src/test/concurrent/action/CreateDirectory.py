@@ -10,7 +10,7 @@ sys.path.append ('../')
 
 
 
-from Action import *
+from UserAction import *
 from common.constants import *
 from rand.PathFactory import *
 
@@ -18,18 +18,17 @@ from rand.PathFactory import *
 
 # Create a random directory
 
-class CreateDirectory (Action):
+class CreateDirectory (UserAction):
 
 
 
     def __init__ (self, User, pyFolder):
-        Action.__init__ (self, User, pyFolder)
-        self.ActionData['Path'] = None
+        UserAction.__init__ (self, User, pyFolder)
 
 
 
     def execute (self):
-        self.pyFolder.mkdir (self.ActionData['Path'])
+        self.pyFolder.mkdir (self.Target)
 
 
 
@@ -38,6 +37,13 @@ class CreateDirectory (Action):
         if not len (self.pyFolder.get_directories ()):
             return False
 
-        self.ActionData['Path'] = PathFactory.create_path (self.pyFolder)
+        return len (self.Target) < MAX_PATH
 
-        return len (self.ActionData['Path']) < MAX_PATH
+
+
+    def build_scenario (self):
+        self.Target = PathFactory.create_path (self.pyFolder)
+
+        Scenario = []
+
+        return Scenario

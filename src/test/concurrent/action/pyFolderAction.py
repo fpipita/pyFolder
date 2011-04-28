@@ -6,19 +6,21 @@ from Action import *
 
 
 
-class RenameFile (Action):
+class pyFolderAction (Action):
 
 
 
     def __init__ (self, User, pyFolder):
         Action.__init__ (self, User, pyFolder)
+        self.Responses = []
+        self.action = None
 
 
 
     def execute (self):
-        pass
+        self.Responses = self.action ()
 
 
 
     def can_happen (self):
-        return False
+        return True

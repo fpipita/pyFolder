@@ -2,23 +2,14 @@
 
 
 
-from Action import *
+from pyFolderAction import *
 
 
 
-class Update (Action):
+class Update (pyFolderAction):
 
 
 
     def __init__ (self, User, pyFolder):
-        Action.__init__ (self, User, pyFolder)
-
-
-
-    def execute (self):
-        self.pyFolder.update ()
-
-
-
-    def can_happen (self):
-        return True
+        pyFolderAction.__init__ (self, User, pyFolder)
+        self.action = self.pyFolder.update

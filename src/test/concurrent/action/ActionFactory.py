@@ -13,7 +13,6 @@ from CreateDirectory import *
 from CreateFile import *
 from DeleteDirectory import *
 from DeleteFile import *
-from RenameFile import *
 from ModifyFile import *
 
 
@@ -30,14 +29,13 @@ class ActionFactory:
         'CreateFile' : CreateFile,
         'DeleteDirectory' : DeleteDirectory,
         'DeleteFile' : DeleteFile,
-        'RenameFile' : RenameFile,
         'ModifyFile' : ModifyFile
         }
 
 
 
     @staticmethod
-    def create (User, pyFolder):
+    def create_random (User, pyFolder):
 
         Keys = ActionFactory.Actions.keys ()
         Action = ActionFactory.Actions[random.choice (Keys)] (User, pyFolder)
