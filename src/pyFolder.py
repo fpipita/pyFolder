@@ -139,7 +139,7 @@ class pyFolder (Thread):
 
     def __setup_dbm (self):
         self.dbm = DBM (self.cm.get_pathtodb ())
-    
+
 
 
     ## Helper method. 
@@ -186,12 +186,12 @@ class pyFolder (Thread):
 
         if not callable (method):
             raise TypeError
-        
+
         self.logger.info ('Invoking webmethod `{0}\''.format (method.__name__))
 
         SyncInterval = 0
         while True:
-            
+
             try:
 
                 return method (*args)
@@ -199,10 +199,10 @@ class pyFolder (Thread):
             except WebFault, wf:
 
                 self.logger.error (wf)
-                
+
                 OriginalException = \
                     wf.fault.detail.detail.OriginalException._type
-                
+
                 if OriginalException == 'System.NullReferenceException':
 
                     SyncInterval = (SyncInterval + 1) % SIMIAS_SYNC_INTERVAL
@@ -212,13 +212,13 @@ class pyFolder (Thread):
 
                 else:
                     raise
-    
+
 
 
     def ignore_locked (self, Path):
         self.logger.info ('Ignoring locked entry `{0}\''.format (\
                 Path.encode ('utf-8')))
-        
+
         self.notifier.warning (
             u'Locked entry',
             u'The entry `{0}\' can\'t be committed because of it is ' \
@@ -340,7 +340,7 @@ class pyFolder (Thread):
     def remote_create_file (self, iFolderID, ParentID, Path):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
-        
+
         return self.ifolderws.create_entry (iFolderID, ParentID, \
                                                 Name, Type.File)
 
@@ -504,7 +504,7 @@ class pyFolder (Thread):
     ## Add an iFolder to the local database and create its local directory.
     #
     #  @param iFolderID The ID of the iFolder to add.
- 
+
     def __add_ifolder (self, iFolderID):
         iFolderEntry = self.__invoke (self.ifolderws.get_ifolder_as_entry, \
                                           iFolderID)
@@ -635,15 +635,15 @@ class pyFolder (Thread):
 
 
     ## Build an initial local copy of the user's remote iFolders.
-            
+
     def checkout (self):
         self.dbm.create_schema ()
-        
+
         iFolderList = self.__invoke (self.ifolderws.get_all_ifolders)
 
         iFolderID = None
         Name = None
-        
+
         if iFolderList is not None:
 
             try:
@@ -682,14 +682,14 @@ class pyFolder (Thread):
 
     def directory_has_new_directories (self, Root, Dirs, iFolderID):
         Changed = False
-        
+
         for Dir in Dirs:
             Path = os.path.join (self.remove_prefix (Root), Dir)
             if self.is_new_local_directory (iFolderID, Path):
                 Changed = True
-                
+
         return Changed        
-    
+
 
 
     ## Check whether new local files were added to the given directory.
@@ -703,12 +703,12 @@ class pyFolder (Thread):
 
     def directory_has_new_files (self, Root, Files, iFolderID):
         Changed = False
-        
+
         for File in Files:
             Path = os.path.join (self.remove_prefix (Root), File)
             if self.__is_new_local_file (iFolderID, Path):
                 Changed = True
-                
+
         return Changed
 
 
@@ -722,7 +722,7 @@ class pyFolder (Thread):
 
     def directory_has_new_entries (self, iFolderID, LocalPath):
         Changed = False
-        
+
         for Root, Dirs, Files in os.walk (self.add_prefix (LocalPath)):
 
             Changed = self.directory_has_new_directories (\
@@ -730,7 +730,7 @@ class pyFolder (Thread):
 
             Changed = self.directory_has_new_files (\
                 Root, Files, iFolderID) or Changed
-            
+
         return Changed
 
 
@@ -744,7 +744,7 @@ class pyFolder (Thread):
 
     def ifolder_has_local_changes (self, iFolderID):
         iFolderTuple = self.dbm.get_ifolder (iFolderID)
-        
+
         if iFolderTuple is not None:
             iFolderEntryID = iFolderTuple['entry_id']
             Name = iFolderTuple['name']
@@ -765,7 +765,7 @@ class pyFolder (Thread):
     #               
     #  @return True whether the iFolder's remote LastModified
     #          attribute is newer than the mtime local one.
-    
+
     def __ifolder_has_changes (self, iFolderID, mtime):
         iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
@@ -809,7 +809,7 @@ class pyFolder (Thread):
     ## Synchronize the local mtime for the given iFolder with the remote one.
     #
     #  @param iFolderID The ID of the iFolder whose mtime needs to be updated.
-    
+
     def __update_ifolder_in_dbm (self, iFolderID):
         iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
@@ -828,7 +828,7 @@ class pyFolder (Thread):
     #  @return True if Change was successfully applied.
     #
     #  @sa The iFolder Web Service description.
-            
+
     def __handle_add_action (self, iFolderID, EntryID, Change):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = Change.Name
@@ -919,7 +919,7 @@ class pyFolder (Thread):
         Action = self.ifolderws.get_change_entry_action ()        
         Change = self.__get_change (iFolderID, EntryID, mtime)
         Updated = False
-        
+
         if Change is not None:
 
             if Change.Action == Action.Add:
@@ -932,7 +932,7 @@ class pyFolder (Thread):
             elif Change.Action == Action.Delete:
                 Updated = self.__handle_delete_action (\
                     iFolderID, EntryID, Change)
-                
+
         return Updated
 
 
@@ -955,7 +955,7 @@ class pyFolder (Thread):
 
             if self.dbm.get_entry (iFolderID, EntryID) is None:
                 continue
-            
+
             Updated = self.update_entry (iFolderID, EntryID, mtime) and \
                 Updated
 
@@ -972,13 +972,13 @@ class pyFolder (Thread):
 
     def __add_new_entries (self, iFolderID):
         Updated = False
-        
+
         EntryList = self.__invoke (self.ifolderws.get_children_by_ifolder, \
                                        iFolderID)
         if EntryList is not None:
             for Entry in EntryList:
                 ParentID = Entry.ParentID
-                
+
                 if self.dbm.get_entry (iFolderID, Entry.ID) is None:
                     Change = self.__invoke (self.ifolderws.get_latest_change, \
                                                 iFolderID, Entry.ID)
@@ -1257,7 +1257,7 @@ class pyFolder (Thread):
     #  @param Path The path to the given entry, without the pyFolder prefix.
     #
     #  @return The MD5 digest for the given path.
-    
+
     def __md5_hash (self, Path):
         Path = self.add_prefix (Path)
         Hash = 'DIRECTORY'
@@ -1287,7 +1287,7 @@ class pyFolder (Thread):
     #
     #  @return True whether at least one file in the directory
     #          has been locally modified or deleted.
-    
+
     def directory_has_local_changes (self, iFolderID, EntryID):
         Changed = False
         EntryTupleList = self.dbm.get_entries_by_parent (EntryID)
@@ -1328,7 +1328,7 @@ class pyFolder (Thread):
         self, iFolderID, EntryID, LocalPath, Localize=False):
 
         EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
-        
+
         if Localize:
             LocalPath = self.add_prefix (os.path.normpath (LocalPath))
 
@@ -1359,7 +1359,7 @@ class pyFolder (Thread):
     #
     #  @param iFolderID The ID of the iFolder the entry belongs to.
     #  @param EntryID The ID of the entry.
-    
+
     def __update_entry_in_dbm (self, iFolderID, EntryID):
         EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
 
@@ -1398,7 +1398,7 @@ class pyFolder (Thread):
 
     def update (self):
         iFolderTupleList = None
-        
+
         try:
 
             iFolderTupleList = self.dbm.get_ifolders ()
@@ -1442,7 +1442,7 @@ class pyFolder (Thread):
 
                 else:
                     raise
-                
+
         self.__add_new_ifolders ()
 
 
@@ -1545,7 +1545,7 @@ class pyFolder (Thread):
     #
     #  @return The ID of the parent entry or None if the entry has been
     #          orphaned.
-    
+
     def __find_parent (self, iFolderID, Path):
         ParentPath = os.path.split (Path)[0]
 
@@ -1588,7 +1588,7 @@ class pyFolder (Thread):
             return LocalPath, iFolderEntry
 
         ParentID = EntryTuple['id']
-        
+
         try:
 
             Entry = self.__invoke (self.ifolderws.get_entry, \
@@ -1737,7 +1737,7 @@ class pyFolder (Thread):
             self.find_closest_ancestor_remotely_alive (iFolderID, Path)
 
         self.handle_name_conflict (PathToRename)
-        
+
         DeadAncestorEntryTuple = self.get_entry_by_ifolder_and_localpath (
             iFolderID, PathToRename)
 
@@ -1768,7 +1768,7 @@ class pyFolder (Thread):
                 self.__delete_hierarchy_from_dbm (iFolderID, ChildrenID)
 
             self.dbm.delete_entry (iFolderID, ChildrenID)
-    
+
 
 
     ## Commit a locally deleted entry.
@@ -1803,7 +1803,7 @@ class pyFolder (Thread):
             self.__delete_entry_from_dbm (iFolderID, EntryID)
 
         return Updated
-    
+
 
 
     ## Commit any local change made on existing entries.
@@ -1828,7 +1828,7 @@ class pyFolder (Thread):
 
             if self.dbm.get_entry (iFolderID, EntryID) is None:
                 continue
-            
+
             self.logger.debug ('Checking entry `{0}\''.format (\
                     LocalPath.encode ('utf-8')))
 
@@ -1875,7 +1875,7 @@ class pyFolder (Thread):
         for iFolderTuple in iFolderTupleList:
             iFolderID = iFolderTuple['id']
             Name = iFolderTuple['name']
-            
+
             Updated = False
 
             try:
@@ -1898,10 +1898,10 @@ class pyFolder (Thread):
 
                 else:
                     raise
-            
+
             if Updated:
                 self.__update_ifolder_in_dbm (iFolderID)
-                
+
 
 
     def __is_running (self):
@@ -1956,15 +1956,19 @@ class pyFolder (Thread):
 
 
 if __name__ == '__main__':
-    cm = ConfigManager (DEFAULT_CONFIG_FILE, DEFAULT_SQLITE_FILE, \
-                         DEFAULT_SOAP_BUFLEN)
+
+    cm = ConfigManager (
+        DEFAULT_CONFIG_FILE,
+        DEFAULT_SQLITE_FILE,
+        DEFAULT_SOAP_BUFLEN)
+
     try:
 
         pf = pyFolder (cm)
 
         if pf.cm.get_action () != 'noninteractive':
             pf.finalize ()
-        
+
     except Exception, e:
-        
+
         print >> sys.stderr, 'pyFolder failed with error : {0}'.format (e)
