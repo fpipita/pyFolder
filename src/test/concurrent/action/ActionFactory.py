@@ -85,12 +85,3 @@ class ActionFactory:
                     User, pyFolder, Action=Action, Target=Target))
 
         return Scenario
-
-
-
-if __name__ == '__main__':
-    A1 = ActionFactory.create_client_action (
-        None, None, Action='RemoteMkdir', Target='foo')
-
-    L = []
-    L.append (A1)
