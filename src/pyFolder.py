@@ -57,9 +57,15 @@ class pyFolder (Thread):
     #  @param runfromtest Tells pyFolder whether it 
     #         should run an action or not.
 
-    def __init__ (self, cm, runfromtest=False):
+    def __init__ (self, cm, runfromtest=False, ActionFactory=None):
         Thread.__init__ (self)
         self.cm = cm
+        self.runfromtest = runfromtest
+        self.ActionFactory = ActionFactory
+
+        self.ActionHistory = []
+        self.ActionHistoryLock = Lock ()
+
         self.__setup_logger ()
         self.__setup_ifolderws ()
 
@@ -100,9 +106,11 @@ class pyFolder (Thread):
 
         if InvalidChars:
             NewPath = self.strip_invalid_characters (Path)
+            self.__store_action ('RenameOnInvalidChars', Path)
 
         else:
             NewPath = self.add_conflicted_suffix (Path)
+            self.__store_action ('RenameOnNameConflict', Path)
 
         self.rename (Path, NewPath)
 
@@ -170,6 +178,16 @@ class pyFolder (Thread):
 
 
 
+    def __store_action (self, Action, Target):
+
+        if self.runfromtest and self.ActionFactory is not None:
+            ClientAction = self.ActionFactory.create_client_action (
+                self, self, Action=Action, Target=Target)
+
+            self.ActionHistory.append (ClientAction)
+
+
+
     ## Invoke the iFolder WEB Service.
     #
     #  All the calls to the Web Service, should be done through this method.
@@ -225,6 +243,8 @@ class pyFolder (Thread):
                 'currently locked. It will be ignored.'.format (
                     Path.encode ('utf-8')))
 
+        self.__store_action ('IgnoreLockedEntry', Path)
+
 
 
     def ignore_no_rights (self, Path):
@@ -237,6 +257,8 @@ class pyFolder (Thread):
             u'Could not commit entry `{0}\' ' \
                 'because of not sufficient ' \
                 'rights'.format (Path.encode ('utf-8')))
+
+        self.__store_action ('IgnoreForbiddenEntry', Path)
 
 
 
@@ -361,8 +383,12 @@ class pyFolder (Thread):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        return self.ifolderws.create_entry (iFolderID, ParentID, \
-                                                Name, Type.Directory)
+        Entry = self.ifolderws.create_entry (
+            iFolderID, ParentID, Name, Type.Directory)
+
+        self.__store_action ('RemoteMkdir', Path)
+
+        return Entry
 
 
 
@@ -916,7 +942,7 @@ class pyFolder (Thread):
     #  @return True if any change was successfully applied to the entry.
 
     def update_entry (self, iFolderID, EntryID, mtime):
-        Action = self.ifolderws.get_change_entry_action ()        
+        Action = self.ifolderws.get_change_entry_action ()
         Change = self.__get_change (iFolderID, EntryID, mtime)
         Updated = False
 
@@ -926,11 +952,11 @@ class pyFolder (Thread):
                 Updated = self.__handle_add_action (iFolderID, EntryID, Change)
 
             elif Change.Action == Action.Modify:
-                Updated = self.__handle_modify_action (\
+                Updated = self.__handle_modify_action (
                     iFolderID, EntryID, Change)
 
             elif Change.Action == Action.Delete:
-                Updated = self.__handle_delete_action (\
+                Updated = self.__handle_delete_action (
                     iFolderID, EntryID, Change)
 
         return Updated
@@ -973,15 +999,16 @@ class pyFolder (Thread):
     def __add_new_entries (self, iFolderID):
         Updated = False
 
-        EntryList = self.__invoke (self.ifolderws.get_children_by_ifolder, \
-                                       iFolderID)
+        EntryList = self.__invoke (
+            self.ifolderws.get_children_by_ifolder, iFolderID)
+
         if EntryList is not None:
             for Entry in EntryList:
                 ParentID = Entry.ParentID
 
                 if self.dbm.get_entry (iFolderID, Entry.ID) is None:
-                    Change = self.__invoke (self.ifolderws.get_latest_change, \
-                                                iFolderID, Entry.ID)
+                    Change = self.__invoke (
+                        self.ifolderws.get_latest_change, iFolderID, Entry.ID)
 
                     if Change is not None:
                         Updated = self.__add_entry_locally (\
@@ -1397,6 +1424,10 @@ class pyFolder (Thread):
     ## by applying remote changes locally.
 
     def update (self):
+
+        self.ActionHistoryLock.acquire ()
+        self.ActionHistory = []
+
         iFolderTupleList = None
 
         try:
@@ -1444,6 +1475,9 @@ class pyFolder (Thread):
                     raise
 
         self.__add_new_ifolders ()
+
+        self.ActionHistoryLock.release ()
+        return self.ActionHistory
 
 
 
@@ -1746,6 +1780,8 @@ class pyFolder (Thread):
         self.__delete_hierarchy_from_dbm (iFolderID, EntryID)
         self.dbm.delete_entry (iFolderID, EntryID)
 
+        self.__store_action ('Rollback', Path)
+
 
 
     ## Delete a whole hierarchy from the local database.
@@ -1851,6 +1887,9 @@ class pyFolder (Thread):
     ## Synchronize the remote repository with the local one.
 
     def commit (self):
+        self.ActionHistoryLock.acquire ()
+        self.ActionHistory = []
+
         iFolderTupleList = None
 
         try:
@@ -1901,6 +1940,9 @@ class pyFolder (Thread):
 
             if Updated:
                 self.__update_ifolder_in_dbm (iFolderID)
+
+        self.ActionHistoryLock.release ()
+        return self.ActionHistory
 
 
 
