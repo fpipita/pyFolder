@@ -8,7 +8,7 @@ class Action:
 
 
 
-    def __init__ (self, User, pyFolder):
+    def __init__ (self, User, pyFolder, **kwargs):
         self.User = User
         self.pyFolder = pyFolder
 

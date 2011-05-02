@@ -2,7 +2,16 @@
 
 
 
-from Action import *
+import sys
+
+
+
+sys.path.append ('../')
+sys.path.append ('../../')
+
+
+
+from action.Action import *
 
 
 
@@ -10,8 +19,8 @@ class UserAction (Action):
 
 
 
-    def __init__ (self, User, pyFolder):
-        Action.__init__ (self, User, pyFolder)
+    def __init__ (self, User, pyFolder, **kwargs):
+        Action.__init__ (self, User, pyFolder, **kwargs)
         self.Target = None
         self.Scenario = self.build_scenario ()
 
@@ -27,7 +36,8 @@ class UserAction (Action):
         for PossibleAction in self.Scenario:
 
             if PossibleAction in ClientActionList:
-                return ClientActionList.remove (PossibleAction)
+                ClientActionList.remove (PossibleAction)
+                return PossibleAction
 
         return None
 
@@ -35,3 +45,8 @@ class UserAction (Action):
 
     def build_scenario (self):
         raise NotImplementedError
+
+
+
+    def __repr__ (self):
+        return '{0} `{1}\''.format (self.__class__.__name__, self.Target)

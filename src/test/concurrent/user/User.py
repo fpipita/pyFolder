@@ -16,8 +16,8 @@ sys.path.append ('../../')
 
 from common.constants import *
 from action.ActionFactory import *
-from action.pyFolderAction import *
-from action.UserAction import *
+from action.user.pyFolderAction import *
+from action.user.UserAction import *
 from core.config import ConfigManager
 from pyFolder import *
 
@@ -63,14 +63,16 @@ class User (Thread):
         # the SQLite concurrent error).
 
         cm = ConfigManager (runfromtest=True, **self.USERDATA)
-        self.pyFolder = pyFolder (cm, runfromtest=True)
+        self.pyFolder = pyFolder (
+            cm, runfromtest=True, ActionFactory=ActionFactory)
 
         self.pyFolder.checkout ()
 
         Queue = []
 
         while self.__is_running ():
-            Action = ActionFactory.create_random (self, self.pyFolder)
+            Action = ActionFactory.create_random_user_action (
+                self, self.pyFolder)
 
             try:
                 Action.execute ()

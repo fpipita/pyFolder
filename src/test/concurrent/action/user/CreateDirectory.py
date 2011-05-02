@@ -2,14 +2,6 @@
 
 
 
-import sys
-
-
-
-sys.path.append ('../')
-
-
-
 from UserAction import *
 from common.constants import *
 from rand.PathFactory import *
@@ -44,6 +36,6 @@ class CreateDirectory (UserAction):
     def build_scenario (self):
         self.Target = PathFactory.create_path (self.pyFolder)
 
-        Scenario = []
+        Scenario = self.pyFolder.policy.get_scenario (self)
 
         return Scenario

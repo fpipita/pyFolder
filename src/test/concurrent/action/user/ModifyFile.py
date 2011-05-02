@@ -2,14 +2,6 @@
 
 
 
-import sys
-
-
-
-sys.path.append ('../')
-
-
-
 from UserAction import *
 from common.constants import *
 from rand.PathFactory import *

@@ -2,7 +2,15 @@
 
 
 
-from Action import *
+import sys
+
+
+
+sys.path.append ('../')
+
+
+
+from action.Action import *
 
 
 
@@ -10,8 +18,8 @@ class pyFolderAction (Action):
 
 
 
-    def __init__ (self, User, pyFolder):
-        Action.__init__ (self, User, pyFolder)
+    def __init__ (self, User, pyFolder, **kwargs):
+        Action.__init__ (self, User, pyFolder, **kwargs)
         self.Responses = []
         self.action = None
 
