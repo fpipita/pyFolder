@@ -22,6 +22,7 @@ class UserAction (Action):
     def __init__ (self, User, pyFolder, **kwargs):
         Action.__init__ (self, User, pyFolder, **kwargs)
         self.Target = None
+        self.ClientIdle = None
         self.Scenario = self.build_scenario ()
 
 
@@ -38,6 +39,9 @@ class UserAction (Action):
             if PossibleAction in ClientActionList:
                 ClientActionList.remove (PossibleAction)
                 return PossibleAction
+
+        if self.ClientIdle in self.Scenario:
+            return self.ClientIdle
 
         return None
 

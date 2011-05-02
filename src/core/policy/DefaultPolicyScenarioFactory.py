@@ -22,7 +22,9 @@ class DefaultPolicyScenarioFactory (ScenarioFactory):
             'RenameOnInvalidChars',
             'IgnoreLockedEntry',
             'Rollback',
-            'IgnoreForbiddenEntry']
+            'IgnoreForbiddenEntry',
+            'ClientIdle'
+            ]
 
         return self.ActionFactory.create_scenario (
             UserAction.User,
@@ -33,7 +35,21 @@ class DefaultPolicyScenarioFactory (ScenarioFactory):
 
 
     def create_file (self, UserAction):
-        raise NotImplementedError
+        ClientResponses = [
+            'RemoteCreateFile',
+            'RenameOnNameConflict',
+            'RenameOnInvalidChars',
+            'IgnoreLockedEntry',
+            'Rollback',
+            'IgnoreForbiddenEntry',
+            'ClientIdle'
+            ]
+
+        return self.ActionFactory.create_scenario (
+            UserAction.User,
+            UserAction.pyFolder,
+            UserAction.Target,
+            ClientResponses)
 
 
 

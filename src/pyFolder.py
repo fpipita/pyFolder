@@ -363,8 +363,12 @@ class pyFolder (Thread):
         Type = self.ifolderws.get_ifolder_entry_type ()
         Name = os.path.split (Path)[1]
 
-        return self.ifolderws.create_entry (iFolderID, ParentID, \
-                                                Name, Type.File)
+        Entry = self.ifolderws.create_entry (
+            iFolderID, ParentID, Name, Type.File)
+
+        self.__store_action ('RemoteCreateFile', Path)
+
+        return Entry
 
 
 

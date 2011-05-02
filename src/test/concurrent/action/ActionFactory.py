@@ -21,6 +21,9 @@ from client.RenameOnInvalidChars import *
 from client.IgnoreLockedEntry import *
 from client.Rollback import *
 from client.IgnoreForbiddenEntry import *
+from client.RemoteCreateFile import *
+from client.ClientIdle import *
+
 
 
 class ActionFactory:
@@ -32,7 +35,7 @@ class ActionFactory:
         'Commit' : Commit,
         'Update' : Update,
         'CreateDirectory' : CreateDirectory,
-        # 'CreateFile' : CreateFile,
+        'CreateFile' : CreateFile
         # 'DeleteDirectory' : DeleteDirectory,
         # 'DeleteFile' : DeleteFile,
         # 'ModifyFile' : ModifyFile
@@ -44,7 +47,9 @@ class ActionFactory:
         'RenameOnInvalidChars' : RenameOnInvalidChars,
         'IgnoreLockedEntry' : IgnoreLockedEntry,
         'Rollback' : Rollback,
-        'IgnoreForbiddenEntry' : IgnoreForbiddenEntry
+        'IgnoreForbiddenEntry' : IgnoreForbiddenEntry,
+        'RemoteCreateFile' : RemoteCreateFile,
+        'ClientIdle' : ClientIdle
         }
 
 
@@ -57,6 +62,16 @@ class ActionFactory:
         Action = ActionFactory.UserActions[RandomKey] (User, pyFolder)
 
         if Action.can_happen ():
+
+            if isinstance (Action, UserAction):
+                ClientIdle = ActionFactory.create_client_action (
+                    User,
+                    pyFolder,
+                    Action='ClientIdle',
+                    Target=Action.Target)
+
+                Action.ClientIdle = ClientIdle
+
             return Action
 
         return ActionFactory.UserActions['Idle'] (User, pyFolder)
@@ -65,11 +80,6 @@ class ActionFactory:
 
     @staticmethod
     def create_client_action (User, pyFolder, **kwargs):
-
-        if 'Action' not in kwargs or 'Target' not in kwargs:
-            return ActionFactory.UserActions['Idle'] (
-                User, pyFolder)
-
         return ActionFactory.ClientActions[kwargs['Action']] (
             User, pyFolder, **kwargs)
 
@@ -80,8 +90,13 @@ class ActionFactory:
         Scenario = []
 
         for Action in ActionList:
-            Scenario.append (
-                ActionFactory.create_client_action (
-                    User, pyFolder, Action=Action, Target=Target))
+
+            ExecutedAction = ActionFactory.create_client_action (
+                User,
+                pyFolder,
+                Action=Action,
+                Target=Target)
+
+            Scenario.append (ExecutedAction)
 
         return Scenario

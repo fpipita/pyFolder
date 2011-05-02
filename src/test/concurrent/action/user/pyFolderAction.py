@@ -32,3 +32,8 @@ class pyFolderAction (Action):
 
     def can_happen (self):
         return True
+
+
+
+    def __repr__ (self):
+        return '{0}'.format (self.__class__.__name__)

@@ -72,8 +72,7 @@ if __name__ == '__main__':
         UserActions = Scenario[1]
 
         for UserAction in UserActions:
+            Response = UserAction.find_response (ClientActions)
             print 'The user {0}, executed \"{1}\" and ' \
                 'the client responded with \"{2}\"'.format (
-                UserAction.User,
-                UserAction,
-                UserAction.find_response (ClientActions))
+                UserAction.User, UserAction, Response)
