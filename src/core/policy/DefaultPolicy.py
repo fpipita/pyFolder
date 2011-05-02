@@ -3,6 +3,7 @@
 
 
 from Policy import *
+from DefaultPolicyScenarioFactory import *
 
 
 
@@ -292,3 +293,8 @@ class DefaultPolicy (Policy):
             
         except OSError, ose:
             pass
+
+
+
+    def get_scenario_factory (self, ActionFactory):
+        return DefaultPolicyScenarioFactory (ActionFactory)
