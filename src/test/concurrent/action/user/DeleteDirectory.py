@@ -33,6 +33,6 @@ class DeleteDirectory (UserAction):
     def build_scenario (self):
         self.Target = PathFactory.select_path (self.pyFolder, isdir=True)
 
-        Scenario = []
+        Scenario = self.pyFolder.policy.get_scenario (self)
 
         return Scenario

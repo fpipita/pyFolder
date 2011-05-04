@@ -3,6 +3,7 @@
 
 
 from threading import *
+import inspect
 import random
 import sys
 import time
@@ -23,14 +24,18 @@ from pyFolder import *
 
 
 
+DEBUG_STR = 'user={0}, exception={1}, action={2}, ' \
+    'user_actions={3}, client_responses={4}'
+
+
+
 class User (Thread):
-    
-    
-    
-    def __init__ (self, ActionHistory, Errors, **kwargs):
+
+
+
+    def __init__ (self, Errors, **kwargs):
 
         Thread.__init__ (self)
-        self.ActionHistory = ActionHistory
         self.Errors = Errors
         self.USERDATA = kwargs
         self.IsRunning = True
@@ -75,10 +80,18 @@ class User (Thread):
                 self, self.pyFolder)
 
             try:
+
+                print '* User {0} -> {1}'.format (self, Action)
+
                 Action.execute ()
 
                 if isinstance (Action, pyFolderAction):
-                    self.ActionHistory.put ((Action, Queue))
+                    ClientActions = Action.Responses
+
+                    for ExecutedAction in Queue:
+                        assert ExecutedAction.find_response (
+                            ClientActions) is not None
+
                     Queue = []
 
                 else:
@@ -86,11 +99,22 @@ class User (Thread):
                     if isinstance (Action, UserAction):
                         Queue.append (Action)
 
-            except Exception:
-                self.Errors.put (Action)
+            except Exception, ex:
+                print DEBUG_STR.format (
+                    self, ex, Action, Queue, Action.Responses)
+
+                print '*' * 80
+
+                Trace = inspect.trace ()
+
+                for x in Trace:
+                    print x[1:]
+
+                self.Errors.put ((Action, Trace))
 
             time.sleep (random.randint (MIN_WAIT_TIME, MAX_WAIT_TIME))
 
-            
+
+
     def __repr__ (self):
         return '{0}'.format (self.USERDATA['username'])

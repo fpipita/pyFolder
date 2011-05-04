@@ -24,9 +24,6 @@ TEST_CONFIG = Setup ('../setup.ini')
 
 
 
-# Each item of those Queues, is a tuple : (pyFolderAction, list<UserAction>).
-
-ActionHistory = Queue.Queue ()
 Errors = Queue.Queue ()
 
 
@@ -36,7 +33,7 @@ def load_users ():
     UserList = []
 
     for Key in TEST_CONFIG.USERDATA.keys ():
-        UserList.append (User (ActionHistory, Errors, **TEST_CONFIG.USERDATA[Key]))
+        UserList.append (User (Errors, **TEST_CONFIG.USERDATA[Key]))
 
     return UserList
 
@@ -60,19 +57,6 @@ if __name__ == '__main__':
         os.makedirs (User.USERDATA['prefix'])
         User.start ()
 
-    raw_input ('Press the Enter key to end the simulation.')
+    raw_input ('Press the Enter key to end the simulation.\n')
 
     stop_simulation (UserList)
-
-    while not ActionHistory.empty ():
-        Scenario = ActionHistory.get ()
-
-        ClientActions = Scenario[0].Responses
-
-        UserActions = Scenario[1]
-
-        for UserAction in UserActions:
-            Response = UserAction.find_response (ClientActions)
-            print 'The user {0}, executed \"{1}\" and ' \
-                'the client responded with \"{2}\"'.format (
-                UserAction.User, UserAction, Response)

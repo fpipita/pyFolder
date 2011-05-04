@@ -54,12 +54,36 @@ class DefaultPolicyScenarioFactory (ScenarioFactory):
 
 
     def delete_directory (self, UserAction):
-        raise NotImplementedError
+        ClientResponses = [
+            'RemoteRmdir',
+            'IgnoreEntryInUse',
+            'IgnoreForbiddenEntry',
+            'DeleteiFolder',
+            'ClientIdle'
+            ]
+
+        return self.ActionFactory.create_scenario (
+            UserAction.User,
+            UserAction.pyFolder,
+            UserAction.Target,
+            ClientResponses)
 
 
 
     def delete_file (self, UserAction):
-        raise NotImplementedError
+        ClientResponses = [
+            'RemoteDelete',
+            'IgnoreEntryInUse',
+            'IgnoreForbiddenEntry',
+            'DeleteiFolder',
+            'ClientIdle'
+            ]
+
+        return self.ActionFactory.create_scenario (
+            UserAction.User,
+            UserAction.pyFolder,
+            UserAction.Target,
+            ClientResponses)
 
 
 

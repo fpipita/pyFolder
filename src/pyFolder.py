@@ -312,6 +312,8 @@ class pyFolder (Thread):
                               'because it is already ' \
                               'in use'.format (Path.encode ('utf-8')))
 
+        self.__store_action ('IgnoreEntryInUse', Path)
+
 
 
     ## Delete a remote file.
@@ -329,6 +331,8 @@ class pyFolder (Thread):
 
         self.__invoke (self.ifolderws.delete_entry, iFolderID, EntryID)
 
+        self.__store_action ('RemoteDelete', Path)
+
 
 
     ## Delete a remote directory.
@@ -345,6 +349,8 @@ class pyFolder (Thread):
         Name = os.path.split (Path)[1]
 
         self.__invoke (self.ifolderws.delete_entry, iFolderID, EntryID)
+
+        self.__store_action ('RemoteRmdir', Path)
 
 
 
@@ -432,6 +438,9 @@ class pyFolder (Thread):
         with open (LocalPath, 'wb') as File:
             pass
 
+        self.logger.info ('Created local file `{0}\''.format (
+                Path.encode ('utf-8')))
+
 
 
     ## Write some data to the given file, if it exists.
@@ -449,6 +458,9 @@ class pyFolder (Thread):
 
         with open (LocalPath, 'wb') as File:
             File.write (Data)
+
+        self.logger.info ('Written local file `{0}\''.format (
+                Path.encode ('utf-8')))
 
 
 
@@ -1265,6 +1277,8 @@ class pyFolder (Thread):
         self.rmdir (Name)
         self.dbm.delete_entries_by_ifolder (iFolderID)
         self.dbm.delete_ifolder (iFolderID)
+
+        self.__store_action ('DeleteiFolder', Name)
 
 
 

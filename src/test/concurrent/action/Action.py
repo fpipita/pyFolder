@@ -28,3 +28,8 @@ class Action:
 
     def can_happen (self):
         raise NotImplementedError
+
+
+
+    def __repr__ (self):
+        return '{0}'.format (self.__class__.__name__)
