@@ -245,6 +245,10 @@ class DefaultPolicy (Policy):
                 return False
 
             elif OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
+                return True
+
+            elif OriginalException == \
                     'iFolder.WebService.MemberDoesNotExistException' or \
                     OriginalException == \
                     'iFolder.WebService.iFolderDoesNotExistException':
@@ -271,7 +275,11 @@ class DefaultPolicy (Policy):
             elif OriginalException == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return False
-            
+
+            elif OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
+                return True
+
             elif OriginalException == \
                     'iFolder.WebService.MemberDoesNotExistException' or \
                     OriginalException == \

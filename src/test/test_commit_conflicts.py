@@ -425,5 +425,55 @@ class TestCommitConflicts (unittest.TestCase):
 
 
 
+    def test_delete_nonexistent_file (self):
+        Name = 'foo'
+
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.File)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        self.ifolderws.delete_entry (
+            Entry.iFolderID, Entry.ID)
+
+        self.pyFolder.delete (Entry.Path)
+
+        self.pyFolder.commit ()
+
+        self.assertEquals (self.pyFolder.dbm.get_entry (
+                Entry.iFolderID, Entry.ID), None)
+
+
+
+    def test_delete_nonexistent_directory (self):
+        Name = 'foo'
+
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.Directory)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        self.ifolderws.delete_entry (
+            Entry.iFolderID, Entry.ID)
+
+        self.pyFolder.rmdir (Entry.Path)
+
+        self.pyFolder.commit ()
+
+        self.assertEquals (self.pyFolder.dbm.get_entry (
+                Entry.iFolderID, Entry.ID), None)
+
+
+
 if __name__ == '__main__':
     unittest.main ()
