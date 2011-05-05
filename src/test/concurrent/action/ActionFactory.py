@@ -26,6 +26,7 @@ from client.Rollback import *
 from client.IgnoreForbiddenEntry import *
 from client.RemoteCreateFile import *
 from client.RemoteDelete import *
+from client.RemoteFileWrite import *
 from client.ClientIdle import *
 
 
@@ -41,8 +42,8 @@ class ActionFactory:
         'CreateDirectory' : CreateDirectory,
         'CreateFile' : CreateFile,
         'DeleteDirectory' : DeleteDirectory,
-        'DeleteFile' : DeleteFile
-        # 'ModifyFile' : ModifyFile
+        'DeleteFile' : DeleteFile,
+        'ModifyFile' : ModifyFile
         }
 
     ClientActions = {
@@ -57,6 +58,7 @@ class ActionFactory:
         'IgnoreForbiddenEntry' : IgnoreForbiddenEntry,
         'RemoteCreateFile' : RemoteCreateFile,
         'RemoteDelete' : RemoteDelete,
+        'RemoteFileWrite' : RemoteFileWrite,
         'ClientIdle' : ClientIdle
         }
 

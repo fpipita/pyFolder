@@ -88,4 +88,15 @@ class DefaultPolicyScenarioFactory (ScenarioFactory):
 
 
     def modify_file (self, UserAction):
-        raise NotImplementedError
+        ClientResponses = [
+            'RemoteFileWrite',
+            'IgnoreEntryInUse',
+            'IgnoreForbiddenEntry',
+            'ClientIdle'
+            ]
+
+        return self.ActionFactory.create_scenario (
+            UserAction.User,
+            UserAction.pyFolder,
+            UserAction.Target,
+            ClientResponses)

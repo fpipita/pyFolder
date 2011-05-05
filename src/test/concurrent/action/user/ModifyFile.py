@@ -38,6 +38,6 @@ class ModifyFile (UserAction):
     def build_scenario (self):
         self.Target = PathFactory.select_path (self.pyFolder)
 
-        Scenario = []
+        Scenario = self.pyFolder.policy.get_scenario (self)
 
         return Scenario

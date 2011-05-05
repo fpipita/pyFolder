@@ -24,8 +24,9 @@ from pyFolder import *
 
 
 
-DEBUG_STR = 'user={0}, exception={1}, action={2}, ' \
-    'user_actions={3}, client_responses={4}'
+EXCEPTION_MSG = 'User={0}\nException={1}\nAction={2}\n' \
+    'UserActions={3}\nClientResponses={4}'
+INFO_MSG = '* {0}.{1} ({2})={3} [ {4} ]'
 
 
 
@@ -81,7 +82,7 @@ class User (Thread):
 
             try:
 
-                print '* User {0} -> {1}'.format (self, Action)
+#                print '* User {0} -> {1}'.format (self, Action)
 
                 Action.execute ()
 
@@ -89,8 +90,15 @@ class User (Thread):
                     ClientActions = Action.Responses
 
                     for ExecutedAction in Queue:
-                        assert ExecutedAction.find_response (
-                            ClientActions) is not None
+                        Response = ExecutedAction.find_response (
+                            ClientActions)
+
+                        print INFO_MSG.format (
+                            self,
+                            Action,
+                            ExecutedAction,
+                            Response,
+                            {True : 'OK', False : 'FAIL'}[Response is not None])
 
                     Queue = []
 
@@ -100,17 +108,21 @@ class User (Thread):
                         Queue.append (Action)
 
             except Exception, ex:
-                print DEBUG_STR.format (
-                    self, ex, Action, Queue, Action.Responses)
-
                 print '*' * 80
 
+                print EXCEPTION_MSG.format (
+                    self, ex, Action, Queue, Action.Responses)
+
                 Trace = inspect.trace ()
+
+                print '- StackTrace follows'
 
                 for x in Trace:
                     print x[1:]
 
                 self.Errors.put ((Action, Trace))
+
+                print '*' * 80
 
             time.sleep (random.randint (MIN_WAIT_TIME, MAX_WAIT_TIME))
 
