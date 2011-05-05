@@ -388,5 +388,36 @@ class TestUpdateConflicts (unittest.TestCase):
 
 
 
+    def test_delete_local_nonempty_already_deleted_directory (self):
+        Name = 'foo'
+
+        Parent = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.Directory)
+
+        Child = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            Parent.ID,
+            Name,
+            self.Type.File)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        self.pyFolder.rmdir (Parent.Path)
+
+        self.ifolderws.delete_entry (
+            Parent.iFolderID, Parent.ID)
+
+        self.pyFolder.update ()
+
+        self.assertEquals (self.pyFolder.dbm.get_entry (
+                Parent.iFolderID, Parent.ID), None)
+
+
+
 if __name__ == '__main__':
     unittest.main ()
