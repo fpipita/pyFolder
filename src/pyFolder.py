@@ -487,6 +487,8 @@ class pyFolder (Thread):
                                        Handle, base64.b64encode (Data))
             self.__invoke (self.ifolderws.close_file, Handle)
 
+            self.__store_action ('RemoteFileWrite', LocalPath)
+
 
 
     ## Discover all of the directories within a pyFolder repository.
@@ -1330,11 +1332,18 @@ class pyFolder (Thread):
     #  @param iFolderID The ID of the iFolder the directory-entry belongs to.
     #  @param EntryID The ID of the directory-entry.
     #
-    #  @return True whether at least one file in the directory
-    #          has been locally modified or deleted.
+    #  @return True whether at least one child in the directory
+    #          has been locally modified or deleted. If the directory
+    #          itself has been locally deleted, return False.
 
     def directory_has_local_changes (self, iFolderID, EntryID):
+        ParentEntryTuple = self.dbm.get_entry (iFolderID, EntryID)
+
+        if not self.path_isdir (ParentEntryTuple['path']):
+            return False
+
         Changed = False
+
         EntryTupleList = self.dbm.get_entries_by_parent (EntryID)
 
         for EntryTuple in EntryTupleList:
