@@ -2024,6 +2024,27 @@ class pyFolder (Thread):
 
 
 
+    def find_first_deleted_path_component (self, iFolderID, Path):
+        Head, Tail = os.path.split (Path)
+
+        if self.path_isdir (Head):
+            return self.get_entry_by_ifolder_and_localpath (iFolderID, Path)
+
+        return self.find_first_deleted_path_component (iFolderID, Head)
+
+
+
+    def handle_ioerror (self, iFolderID, Path):
+
+        # If path is '/foo/bar/lol/fool' and 'bar' has been deleted,
+        # it must return 'bar', as an EntryTuple.
+        EntryTuple = self.find_first_deleted_path_component (iFolderID, Path)
+
+        self.__delete_hierarchy_from_dbm (
+            EntryTuple['ifolder'], EntryTuple['id'])
+
+
+
 if __name__ == '__main__':
 
     cm = ConfigManager (

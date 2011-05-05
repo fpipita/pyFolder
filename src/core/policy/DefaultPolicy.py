@@ -43,10 +43,21 @@ class DefaultPolicy (Policy):
 
             elif OriginalException == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
+                return False
 
             else:
                 raise
 
+        except IOError:
+            # BUG #0000 - Closed
+            # - Find 'A', the closest local ancestor to the tail of
+            #   path which is still locally alive.
+            # - Remove the hierarchy starting at the first descentant
+            #   of 'A' which is part of Path from the local database.
+            # - The hierarchy will be added locally again at the next
+            #   update time.
+            self.pyFolder.handle_ioerror (iFolderID, Path)
+            return False
 
 
     def modify_directory (self, iFolderID, EntryID, Path):
@@ -73,6 +84,7 @@ class DefaultPolicy (Policy):
 
             elif OriginalException == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
+                return False
 
             else:
                 raise

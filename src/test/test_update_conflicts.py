@@ -388,7 +388,7 @@ class TestUpdateConflicts (unittest.TestCase):
 
 
 
-    def test_delete_local_nonempty_already_deleted_directory (self):
+    def test_delete_file_within_locally_deleted_directory (self):
         Name = 'foo'
 
         Parent = self.ifolderws.create_entry (
@@ -416,6 +416,42 @@ class TestUpdateConflicts (unittest.TestCase):
 
         self.assertEquals (self.pyFolder.dbm.get_entry (
                 Parent.iFolderID, Parent.ID), None)
+
+
+
+    def test_add_file_within_locally_deleted_directory (self):
+        Name = 'foo'
+
+        Parent = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.Directory)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        self.pyFolder.rmdir (Parent.Path)
+
+        Child = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            Parent.ID,
+            Name,
+            self.Type.File)
+
+        self.pyFolder.update ()
+
+        self.assertEqual (self.pyFolder.dbm.get_entry (
+                Parent.iFolderID, Parent.ID), None)
+
+        self.pyFolder.update ()
+
+        self.assertNotEqual (self.pyFolder.dbm.get_entry (
+                Parent.iFolderID, Parent.ID), None)
+
+        self.assertNotEqual (self.pyFolder.dbm.get_entry (
+                Child.iFolderID, Child.ID), None)
 
 
 
