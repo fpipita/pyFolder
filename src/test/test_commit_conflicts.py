@@ -475,5 +475,35 @@ class TestCommitConflicts (unittest.TestCase):
 
 
 
+    def test_modify_file_on_nonexistent_file (self):
+        Name = 'foo'
+
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.File)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        self.ifolderws.delete_entry (
+            Entry.iFolderID, Entry.ID)
+
+        self.pyFolder.write_file (Entry.Path, 'somedata')
+
+        self.pyFolder.commit ()
+
+        self.assertEquals (self.pyFolder.dbm.get_entry (
+                Entry.iFolderID, Entry.ID), None)
+
+        Path = os.path.join (IFOLDER_NAME, Name)
+        Path = self.pyFolder.add_conflicted_suffix (Path)
+
+        self.assertTrue (self.pyFolder.path_isfile (Path))
+
+
+
 if __name__ == '__main__':
     unittest.main ()

@@ -229,6 +229,17 @@ class DefaultPolicy (Policy):
                 return False
 
             elif OriginalException == \
+                    'iFolder.WebService.EntryDoesNotExistException':
+
+                # BUG #0001 - Fixed
+                # It happened when we were going to modify a shared
+                # file which, at the time of the commit, has been remotely
+                # deleted by anybody else.
+
+                self.pyFolder.rollback (iFolderID, Path)
+                return False
+
+            elif OriginalException == \
                     'iFolder.WebService.MemberDoesNotExistException' or \
                     OriginalException == \
                     'iFolder.WebService.iFolderDoesNotExistException':

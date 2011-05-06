@@ -92,6 +92,7 @@ class DefaultPolicyScenarioFactory (ScenarioFactory):
             'RemoteFileWrite',
             'IgnoreEntryInUse',
             'IgnoreForbiddenEntry',
+            'Rollback',
             'ClientIdle'
             ]
 
