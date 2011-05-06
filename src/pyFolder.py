@@ -1339,7 +1339,8 @@ class pyFolder (Thread):
     def directory_has_local_changes (self, iFolderID, EntryID):
         ParentEntryTuple = self.dbm.get_entry (iFolderID, EntryID)
 
-        if not self.path_isdir (ParentEntryTuple['path']):
+        if ParentEntryTuple is not None and \
+                not self.path_isdir (ParentEntryTuple['path']):
             return False
 
         Changed = False
