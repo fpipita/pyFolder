@@ -455,5 +455,45 @@ class TestUpdateConflicts (unittest.TestCase):
 
 
 
+    def test_modify_file_on_locally_deleted_file (self):
+        Name = 'foo'
+        Content = 'something'
+
+
+
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.File)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.update ()
+
+        Handle = self.ifolderws.open_file_write (
+            Entry.iFolderID, Entry.ID, len (Content))
+
+        self.ifolderws.write_file (Handle, base64.b64encode (Content))
+
+        self.ifolderws.close_file (Handle)
+
+        time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
+        self.pyFolder.delete (Entry.Path)
+
+        self.pyFolder.update ()
+
+        Path = os.path.join (IFOLDER_NAME, Name)
+
+        ExpectedDigest = self.pyFolder.md5_hash (Path)
+
+        Digest = self.pyFolder.dbm.get_entry (
+            Entry.iFolderID, Entry.ID)['digest']
+
+        self.assertEqual (Digest, ExpectedDigest)
+
+
+
 if __name__ == '__main__':
     unittest.main ()

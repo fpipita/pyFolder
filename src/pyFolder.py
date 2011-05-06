@@ -1080,7 +1080,7 @@ class pyFolder (Thread):
                 ParentID = Entry.ParentID
                 Path = Entry.Path
 
-        Hash = self.__md5_hash (Path)
+        Hash = self.md5_hash (Path)
         LocalPath = os.path.normpath (Path)
 
         self.dbm.add_entry (iFolderID, EntryID, Time, Hash, ParentID, \
@@ -1305,7 +1305,7 @@ class pyFolder (Thread):
     #
     #  @return The MD5 digest for the given path.
 
-    def __md5_hash (self, Path):
+    def md5_hash (self, Path):
         Path = self.add_prefix (Path)
         Hash = 'DIRECTORY'
 
@@ -1392,7 +1392,14 @@ class pyFolder (Thread):
                 return False
 
             else:
-                return True
+
+                # BUG #0002 - Closed.
+                # It happened when, at the update time, a remotely
+                # modified file had been locally deleted. Now, a
+                # locally deleted file, is not considered to have
+                # local changes anymore.
+
+                return False
 
         else:
             if EntryTuple is None:
@@ -1400,7 +1407,7 @@ class pyFolder (Thread):
 
             else:
                 OldDigest = EntryTuple['digest']
-                NewDigest = self.__md5_hash (LocalPath)
+                NewDigest = self.md5_hash (LocalPath)
 
                 if OldDigest != NewDigest:
                     return True
@@ -1432,7 +1439,7 @@ class pyFolder (Thread):
             time.sleep (SyncInterval)
 
         if Change is not None:
-            Hash = self.__md5_hash (Change.Name)
+            Hash = self.md5_hash (Change.Name)
             self.dbm.update_mtime_and_digest_by_entry (\
                 iFolderID, EntryID, Change.Time, Hash)
 

@@ -49,15 +49,14 @@ class DefaultPolicy (Policy):
                 raise
 
         except IOError:
-            # BUG #0000 - Closed
-            # - Find 'A', the closest local ancestor to the tail of
-            #   path which is still locally alive.
-            # - Remove the hierarchy starting at the first descentant
-            #   of 'A' which is part of Path from the local database.
-            # - The hierarchy will be added locally again at the next
-            #   update time.
+
+            # BUG #0000 - Closed.
+            # It happened when, at the update time, parth of path
+            # to Path had been deleted locally.
+
             self.pyFolder.handle_ioerror (iFolderID, Path)
             return False
+
 
 
     def modify_directory (self, iFolderID, EntryID, Path):
@@ -88,6 +87,11 @@ class DefaultPolicy (Policy):
 
             else:
                 raise
+
+        except IOError:
+
+            self.pyFolder.handle_ioerror (iFolderID, Path)
+            return False
 
 
 
@@ -231,7 +235,7 @@ class DefaultPolicy (Policy):
             elif OriginalException == \
                     'iFolder.WebService.EntryDoesNotExistException':
 
-                # BUG #0001 - Fixed
+                # BUG #0001 - Closed.
                 # It happened when we were going to modify a shared
                 # file which, at the time of the commit, has been remotely
                 # deleted by anybody else.
