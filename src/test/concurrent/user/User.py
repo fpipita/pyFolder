@@ -17,16 +17,22 @@ sys.path.append ('../../')
 
 from common.constants import *
 from action.ActionFactory import *
-from action.user.pyFolderAction import *
-from action.user.UserAction import *
 from core.config import ConfigManager
 from pyFolder import *
 
 
 
-EXCEPTION_MSG = 'User={0}\nException={1}\nAction={2}\n' \
-    'UserActions={3}\nClientResponses={4}'
-INFO_MSG = '* {0}.{1} ({2})={3} [ {4} ]'
+MAX_VALUES_LENGTH = 199
+
+
+
+def formatvalue (value):
+
+    try:
+        return '={0}'.format (value[:MAX_VALUE_LENGTH])
+
+    except:
+        return '={0}'.format (value)
 
 
 
@@ -34,10 +40,9 @@ class User (Thread):
 
 
 
-    def __init__ (self, Errors, **kwargs):
+    def __init__ (self, **kwargs):
 
         Thread.__init__ (self)
-        self.Errors = Errors
         self.USERDATA = kwargs
         self.IsRunning = True
         self.lock = Lock ()
@@ -69,58 +74,31 @@ class User (Thread):
         # the SQLite concurrent error).
 
         cm = ConfigManager (runfromtest=True, **self.USERDATA)
-        self.pyFolder = pyFolder (
-            cm, runfromtest=True, ActionFactory=ActionFactory)
+        self.pyFolder = pyFolder (cm, runfromtest=True)
 
         self.pyFolder.checkout ()
 
-        Queue = []
-
         while self.__is_running ():
-            Action = ActionFactory.create_random_user_action (
-                self, self.pyFolder)
+            Action = ActionFactory.create (self, self.pyFolder)
 
             try:
 
-#                print '* User {0} -> {1}'.format (self, Action)
-
                 Action.execute ()
-
-                if isinstance (Action, pyFolderAction):
-                    ClientActions = Action.Responses
-
-                    for ExecutedAction in Queue:
-                        Response = ExecutedAction.find_response (
-                            ClientActions)
-
-                        print INFO_MSG.format (
-                            self,
-                            Action,
-                            ExecutedAction,
-                            Response,
-                            {True : 'OK', False : 'FAIL'}[Response is not None])
-
-                    Queue = []
-
-                else:
-
-                    if isinstance (Action, UserAction):
-                        Queue.append (Action)
 
             except Exception, ex:
                 print '*' * 80
 
-                print EXCEPTION_MSG.format (
-                    self, ex, Action, Queue, Action.Responses)
+                print 'Exception {0}'.format (ex)
 
                 Trace = inspect.trace ()
 
-                print '- StackTrace follows'
+                for Frame in Trace:
+                    print '-' * 80
+                    print TRACE_MSG.format (*Frame[1:5])
 
-                for x in Trace:
-                    print x[1:]
-
-                self.Errors.put ((Action, Trace))
+                    print inspect.formatargvalues (
+                        *inspect.getargvalues (Frame[0]),
+                         formatvalue=formatvalue)
 
                 print '*' * 80
 

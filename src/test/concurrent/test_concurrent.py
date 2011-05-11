@@ -1,9 +1,9 @@
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 
 
 import os
-import Queue
 import shutil
 import sys
 import time
@@ -24,16 +24,12 @@ TEST_CONFIG = Setup ('../setup.ini')
 
 
 
-Errors = Queue.Queue ()
-
-
-
 def load_users ():
 
     UserList = []
 
     for Key in TEST_CONFIG.USERDATA.keys ():
-        UserList.append (User (Errors, **TEST_CONFIG.USERDATA[Key]))
+        UserList.append (User (**TEST_CONFIG.USERDATA[Key]))
 
     return UserList
 

@@ -3,7 +3,6 @@
 
 
 from Policy import *
-from DefaultPolicyScenarioFactory import *
 
 
 
@@ -102,7 +101,7 @@ class DefaultPolicy (Policy):
             self.pyFolder.handle_name_conflict (Path)
 
         try:
-            
+
             self.pyFolder.rmdir (Path)
 
         except OSError:
@@ -120,7 +119,7 @@ class DefaultPolicy (Policy):
                 self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.delete (Path)
-            
+
         except OSError:
             pass
         return True
@@ -141,7 +140,7 @@ class DefaultPolicy (Policy):
                     'iFolder.WebService.EntryAlreadyExistException':
                 self.pyFolder.handle_name_conflict (Path)
                 return None
-            
+
             elif OriginalException == \
                     'iFolder.WebService.EntryInvalidCharactersException':
                 self.pyFolder.handle_name_conflict (Path, InvalidChars=True)
@@ -157,14 +156,14 @@ class DefaultPolicy (Policy):
                     'System.IO.DirectoryNotFoundException':
                 self.pyFolder.rollback (iFolderID, Path)
                 return None
-            
+
             elif OriginalException == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return None
 
             else:
                 raise
-    
+
 
 
     def add_remote_file (self, iFolderID, ParentID, Path):
@@ -184,12 +183,12 @@ class DefaultPolicy (Policy):
                     'iFolder.WebService.EntryAlreadyExistException':
                 self.pyFolder.handle_name_conflict (Path)
                 return None
-            
+
             elif OriginalException == \
                     'iFolder.WebService.EntryInvalidCharactersException':
                 self.pyFolder.handle_name_conflict (Path, InvalidChars=True)
                 return None
-            
+
             elif OriginalException == \
                     'iFolder.WebService.FileTypeException':
                 self.pyFolder.ignore_locked (Path)
@@ -200,11 +199,11 @@ class DefaultPolicy (Policy):
                     'System.IO.DirectoryNotFoundException':
                 self.pyFolder.rollback (iFolderID, Path)
                 return None
-            
+
             elif OriginalException == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return None
-                
+
             else:
                 raise
 
@@ -212,7 +211,7 @@ class DefaultPolicy (Policy):
 
     def modify_remote_directory (self, iFolderID, EntryID, Path):
         return True
-    
+
 
 
     def modify_remote_file (self, iFolderID, EntryID, Path):
@@ -223,7 +222,7 @@ class DefaultPolicy (Policy):
 
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
-            
+
             if OriginalException == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
                 return False
@@ -251,7 +250,7 @@ class DefaultPolicy (Policy):
 
             else:
                 raise
-    
+
 
 
     def delete_remote_directory (self, iFolderID, EntryID, Path):
@@ -262,7 +261,7 @@ class DefaultPolicy (Policy):
 
         except WebFault, wf:
             OriginalException = wf.fault.detail.detail.OriginalException._type
-            
+
             if OriginalException == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
                 return False
@@ -325,11 +324,6 @@ class DefaultPolicy (Policy):
         try:
 
             self.pyFolder.delete_ifolder (iFolderID, Path)
-            
+
         except OSError, ose:
             pass
-
-
-
-    def get_scenario_factory (self, ActionFactory):
-        return DefaultPolicyScenarioFactory (ActionFactory)

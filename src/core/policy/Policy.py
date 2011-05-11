@@ -19,8 +19,6 @@ class Policy:
 
     def __init__ (self, pyFolder):
         self.pyFolder = pyFolder
-        self.ScenarioFactory = \
-            self.get_scenario_factory (pyFolder.ActionFactory)
         self.logger = logging.getLogger ('pyFolder.Policy')
 
 
@@ -209,22 +207,3 @@ class Policy:
 
     def delete_ifolder (self, iFolderID, Path):
         raise NotImplementedError
-
-
-
-    def get_scenario_factory (self, ActionFactory):
-        raise NotImplementedError
-
-
-
-    def get_scenario (self, UserAction):
-
-        Scenarios = {
-            'CreateDirectory' : self.ScenarioFactory.create_directory,
-            'CreateFile' : self.ScenarioFactory.create_file,
-            'DeleteDirectory' : self.ScenarioFactory.delete_directory,
-            'DeleteFile' : self.ScenarioFactory.delete_file,
-            'ModifyFile' : self.ScenarioFactory.modify_file
-            }
-
-        return Scenarios[UserAction.__class__.__name__] (UserAction)

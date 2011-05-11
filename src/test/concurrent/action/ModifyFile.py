@@ -2,7 +2,7 @@
 
 
 
-from UserAction import *
+from Action import *
 from common.constants import *
 from rand.PathFactory import *
 from rand.DataGenerator import *
@@ -11,12 +11,12 @@ from rand.DataGenerator import *
 
 ## Modify an existing file
 
-class ModifyFile (UserAction):
+class ModifyFile (Action):
 
 
 
     def __init__ (self, User, pyFolder):
-        UserAction.__init__ (self, User, pyFolder)
+        Action.__init__ (self, User, pyFolder)
 
 
 
@@ -31,13 +31,6 @@ class ModifyFile (UserAction):
         if not len (self.pyFolder.get_directories ()):
             return False
 
-        return self.Target is not None
-
-
-
-    def build_scenario (self):
         self.Target = PathFactory.select_path (self.pyFolder)
 
-        Scenario = self.pyFolder.policy.get_scenario (self)
-
-        return Scenario
+        return self.Target is not None

@@ -2,7 +2,7 @@
 
 
 
-from UserAction import *
+from Action import *
 from common.constants import *
 from rand.PathFactory import *
 
@@ -10,12 +10,12 @@ from rand.PathFactory import *
 
 # Create a random directory
 
-class CreateDirectory (UserAction):
+class CreateDirectory (Action):
 
 
 
     def __init__ (self, User, pyFolder):
-        UserAction.__init__ (self, User, pyFolder)
+        Action.__init__ (self, User, pyFolder)
 
 
 
@@ -29,13 +29,6 @@ class CreateDirectory (UserAction):
         if not len (self.pyFolder.get_directories ()):
             return False
 
-        return len (self.Target) < MAX_PATH
-
-
-
-    def build_scenario (self):
         self.Target = PathFactory.create_path (self.pyFolder)
 
-        Scenario = self.pyFolder.policy.get_scenario (self)
-
-        return Scenario
+        return len (self.Target) < MAX_PATH
