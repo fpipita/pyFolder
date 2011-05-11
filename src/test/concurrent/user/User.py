@@ -23,6 +23,7 @@ from pyFolder import *
 
 
 MAX_VALUES_LENGTH = 199
+TRACE_MSG = 'In file `{1}\', lineno {2}, function `{3}\', code `{0}\''
 
 
 
@@ -94,7 +95,8 @@ class User (Thread):
 
                 for Frame in Trace:
                     print '-' * 80
-                    print TRACE_MSG.format (*Frame[1:5])
+                    print TRACE_MSG.format (
+                        Frame[4][Frame[5]].strip (), *Frame[1:4])
 
                     print inspect.formatargvalues (
                         *inspect.getargvalues (Frame[0]),
