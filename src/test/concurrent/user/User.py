@@ -75,7 +75,7 @@ class User (Thread):
         # the SQLite concurrent error).
 
         cm = ConfigManager (runfromtest=True, **self.USERDATA)
-        self.pyFolder = pyFolder (cm, runfromtest=True)
+        self.pyFolder = pyFolder (cm, runmode=RUN_AS_OBJECT)
 
         self.pyFolder.checkout ()
 
@@ -89,7 +89,7 @@ class User (Thread):
             except Exception, ex:
                 print '*' * 80
 
-                print 'Exception {0}'.format (ex)
+                print 'Exception of type `{0}\' : {1}'.format (type (ex), ex)
 
                 Trace = inspect.trace ()
 

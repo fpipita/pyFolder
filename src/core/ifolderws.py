@@ -318,6 +318,17 @@ class iFolderWS:
 
 
 
+    def get_authenticated_user (self):
+        try:
+
+            return self.client.service.GetAuthenticatedUser ()
+
+        except WebFault, wf:
+            self.logger.error (wf)
+            raise
+
+
+
     def get_ifolder_entry_type (self):
         return self.client.factory.create ('iFolderEntryType')
         

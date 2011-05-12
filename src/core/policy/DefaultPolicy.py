@@ -26,8 +26,7 @@ class DefaultPolicy (Policy):
     def add_file (self, iFolderID, EntryID, Path):
         try:
 
-            if self.pyFolder.file_has_local_changes (\
-                iFolderID, EntryID, Path, Localize=True):
+            if self.pyFolder.file_has_local_changes (iFolderID, EntryID, Path):
                 self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.fetch (iFolderID, EntryID, Path)
@@ -66,8 +65,7 @@ class DefaultPolicy (Policy):
     def modify_file (self, iFolderID, EntryID, Path):
         try:
 
-            if self.pyFolder.file_has_local_changes (\
-                iFolderID, EntryID, Path, Localize=True):
+            if self.pyFolder.file_has_local_changes (iFolderID, EntryID, Path):
                 self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.fetch (iFolderID, EntryID, Path)
@@ -114,8 +112,7 @@ class DefaultPolicy (Policy):
     def delete_file (self, iFolderID, EntryID, Path):
         try:
 
-            if self.pyFolder.file_has_local_changes (\
-                iFolderID, EntryID, Path, Localize=True):
+            if self.pyFolder.file_has_local_changes (iFolderID, EntryID, Path):
                 self.pyFolder.handle_name_conflict (Path)
 
             self.pyFolder.delete (Path)

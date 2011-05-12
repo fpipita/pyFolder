@@ -1,8 +1,12 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+
+
 import sys
 import unittest
+
+
 
 from test_update_basic import *
 from test_update_conflicts import *
@@ -11,25 +15,27 @@ from test_commit_conflicts import *
 from test_commit_rights import *
 from test_helpers import *
 
+
+
 if __name__ == '__main__':
     suite = unittest.TestSuite ()
 
-    suite.addTest (\
+    suite.addTest (
         unittest.TestLoader ().loadTestsFromTestCase (TestUpdateBasic))
 
-    suite.addTest (\
+    suite.addTest (
         unittest.TestLoader ().loadTestsFromTestCase (TestUpdateConflicts))
 
-    suite.addTest (\
+    suite.addTest (
         unittest.TestLoader ().loadTestsFromTestCase (TestCommitBasic))
     
-    suite.addTest (\
+    suite.addTest (
         unittest.TestLoader ().loadTestsFromTestCase (TestCommitConflicts))
 
-    suite.addTest (\
+    suite.addTest (
         unittest.TestLoader ().loadTestsFromTestCase (TestCommitRights))
     
-    suite.addTest (\
+    suite.addTest (
         unittest.TestLoader ().loadTestsFromTestCase (TestHelpers))
 
     unittest.TextTestRunner (verbosity=2).run (suite)

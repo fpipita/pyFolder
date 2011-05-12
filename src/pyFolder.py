@@ -9,6 +9,8 @@
 #  This module, contains the basic functions used by the client,
 #  the checkout, update and commit ones, plus various helper methods.
 
+
+
 from core.dbm import DBM
 from core.config import ConfigManager
 from core.policy.PolicyFactory import *
@@ -24,20 +26,23 @@ import datetime
 import hashlib
 import logging
 import os
+import re
 import shutil
 import sqlite3
 import sys
 import time
-from threading import *
 
 
 
-DEFAULT_SOAP_BUFLEN = 65535
+DEFAULT_SOAP_BUFLEN = 32768
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 SIMIAS_SYNC_INTERVAL = 5
 PYFOLDER_SYNC_INTERVAL = 60
-CONFLICTED_SUFFIX = 'conflicted'
+CONFLICTED_SUFFIX = '({0}\'s conflicted copy {1} {2})'
+CONFLICTED_SUFFIX_RE = re.compile (
+    r'\((.*)\'s conflicted copy ' \
+        '(\d{4}-\d{2}-\d{2}) (\d{2}\.\d{2}\.\d{2}.\d{6})\)')
 ENTRY_INVALID_CHARS = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
 DEFAULT_INVALID_CHAR_REPLACEMENT = ''
 LOGGER_FORMAT_STRING = \
@@ -48,34 +53,33 @@ LOGGER_FORMAT_STRING = \
 
 
 
-class pyFolder (Thread):
+# pyFolder run modes
+RUN_FROM_TEST = 0
+RUN_AS_OBJECT = 1
+RUN_AS_COMMAND = 2
+
+
+
+class pyFolder:
 
 
 
     ## The constructor.
     #  @param cm A core.config.ConfigManager instance.
-    #  @param runfromtest Tells pyFolder whether it 
-    #         should run an action or not.
+    #  @param runmode Tells pyFolder the way it should
+    #                 run.
 
-    def __init__ (self, cm, runfromtest=False):
-        Thread.__init__ (self)
+    def __init__ (self, cm, runmode=RUN_AS_COMMAND):
         self.cm = cm
-        self.runfromtest = runfromtest
+        self.runmode = runmode
 
         self.__setup_logger ()
         self.__setup_ifolderws ()
-
-        if self.cm.get_action () != 'noninteractive':
-            self.__setup_dbm ()
-
-        else:
-            self.is_running = True
-            self.cv = Condition ()
-
+        self.__setup_dbm ()
         self.__setup_policy ()
         self.__setup_notifier ()
 
-        if not runfromtest:
+        if runmode == RUN_AS_COMMAND:
             self.__action ()
 
 
@@ -108,9 +112,9 @@ class pyFolder (Thread):
 
         self.rename (Path, NewPath)
 
-        self.notifier.info (\
-            u'Name conflict detected', \
-                u'Renamed {0} to {1}'.format (\
+        self.notifier.info (
+            u'Name conflict detected',
+            u'Renamed {0} to {1}'.format (
                 Path.encode ('utf-8'), NewPath.encode ('utf-8')))
 
 
@@ -1091,25 +1095,57 @@ class pyFolder (Thread):
     ## Add a conflicted suffix to the given local path.
     #  
     #  @param Path The path that needs to be renamed.
-    #  @param Suffix The conflicted suffix to append to Path.
     #
     #  @return The modified path.
 
-    def add_conflicted_suffix (self, Path, Suffix=None):
+    def add_conflicted_suffix (self, Path):
 
         BaseName, Extension = os.path.splitext (Path)
 
-        if Suffix == None:
-            Suffix = '{0}_{1}'.format (\
-                CONFLICTED_SUFFIX, datetime.date.today ())
+        Today = datetime.date.today ()
+        Now = datetime.datetime.now ().time ().isoformat ().replace (':', '.')
+
+        if self.runmode == RUN_FROM_TEST:
+            Today = '0000-00-00'
+            Now = '00.00.00.000000'
+
+        Suffix = CONFLICTED_SUFFIX.format (
+            self.cm.get_username (), Today, Now)
 
         if Extension == '':
-            return '{0}-{1}'.format (\
-                BaseName.encode ('utf-8'), Suffix.encode ('utf-8'))
+            return '{0} {1}'.format (
+                BaseName.encode ('utf-8'),
+                Suffix.encode ('utf-8'))
 
         else:
-            return '{0}-{1}{2}'.format (\
-                BaseName.encode ('utf-8'), Suffix, Extension.encode ('utf-8'))
+            return '{0} {1}{2}'.format (
+                BaseName.encode ('utf-8'),
+                Suffix,
+                Extension.encode ('utf-8'))
+
+
+
+    # def strip_conflicted_suffix (self, Path):
+    #     BaseName, Extension = os.path.splitext (Path)
+
+    #     Suffix = CONFLICTED_SUFFIX.format (
+    #         self.cm.get_username (),
+    #         datetime.date.today ())
+
+    #     if Path.find (Suffix):
+    #         return Path.replace (Suffix, '')
+
+    #     return Path
+
+
+
+    def is_conflicted_entry (self, Path):
+        Match = CONFLICTED_SUFFIX_RE.search (Path)
+
+        if Match is not None:
+            return True
+
+        return False
 
 
 
@@ -1163,8 +1199,10 @@ class pyFolder (Thread):
         try:
 
             os.rename (Src, Dst)
-            self.logger.info ('Renamed `{0}\' to `{1}\''.format (\
-                    Src.encode ('utf-8'), Dst.encode ('utf-8')))
+            self.logger.info (
+                'Renamed `{0}\' to `{1}\''.format (
+                    Src.encode ('utf-8'),
+                    Dst.encode ('utf-8')))
 
         except OSError, ose:
 
@@ -1184,7 +1222,7 @@ class pyFolder (Thread):
         try:
 
             os.remove (Path)
-            self.logger.info ('Deleted local file `{0}\''.format (\
+            self.logger.info ('Deleted local file `{0}\''.format (
                     Path.encode ('utf-8')))
 
         except OSError, ose:
@@ -1205,7 +1243,7 @@ class pyFolder (Thread):
         try:
 
             shutil.rmtree (Path)
-            self.logger.info ('Deleted local directory `{0}\''.format (\
+            self.logger.info ('Deleted local directory `{0}\''.format (
                     Path.encode ('utf-8')))
 
         except OSError, ose:
@@ -1227,7 +1265,7 @@ class pyFolder (Thread):
         try:
 
             os.makedirs (Path)
-            self.logger.info ('Added local directory `{0}\''.format (\
+            self.logger.info ('Added local directory `{0}\''.format (
                     Path.encode ('utf-8')))
 
         except OSError, ose:
@@ -1319,11 +1357,11 @@ class pyFolder (Thread):
             Digest = EntryTuple['digest']
 
             if Digest == 'DIRECTORY':
-                Changed = self.directory_has_local_changes (\
+                Changed = self.directory_has_local_changes (
                     iFolderID, ChildEntryID) or Changed
 
             else:
-                Changed = self.file_has_local_changes (\
+                Changed = self.file_has_local_changes (
                     iFolderID, ChildEntryID, ChildLocalPath) or Changed
 
                 if Changed:
@@ -1337,32 +1375,21 @@ class pyFolder (Thread):
     #
     #  @param iFolderID The ID of the iFolder the file-entry belongs to.
     #  @param EntryID The ID of the file-entry.
-    #  @param LocalPath The path to the file to check. It can be either
-    #                   a pyFolder-prefixed path or not.
-    #  @param Localize If a path without the pyFolder-prefix is provided,
-    #                  make sure this is set to True, or the method will
-    #                  fail.
+    #  @param Path The path to the file to check. It can be either
+    #              a pyFolder-prefixed path or not.
     #
     #  @return True whether the file has been locally modified or deleted.
 
-    def file_has_local_changes (\
-        self, iFolderID, EntryID, LocalPath, Localize=False):
+    def file_has_local_changes (self, iFolderID, EntryID, Path):
 
         EntryTuple = self.dbm.get_entry (iFolderID, EntryID)
 
-        if Localize:
-            LocalPath = self.add_prefix (os.path.normpath (LocalPath))
-
-        if not self.path_exists (LocalPath):
-            if EntryTuple is None:
-                return False
-
-            else:
+        if not self.path_exists (Path):
 
                 # BUG #0002 - Closed.
                 # It happened when, at the update time, a remotely
                 # modified file had been locally deleted. Now, a
-                # locally deleted file, is not considered to have
+                # locally deleted file, is considered not to have
                 # local changes anymore.
 
                 return False
@@ -1373,7 +1400,7 @@ class pyFolder (Thread):
 
             else:
                 OldDigest = EntryTuple['digest']
-                NewDigest = self.md5_hash (LocalPath)
+                NewDigest = self.md5_hash (Path)
 
                 if OldDigest != NewDigest:
                     return True
@@ -1528,6 +1555,9 @@ class pyFolder (Thread):
     #  @return True whether the entry does not exist in the local database.
 
     def __is_new_local_entry (self, iFolderID, Path):
+
+        if self.is_conflicted_entry (Path):
+            return False
 
         EntryTuple = self.get_entry_by_ifolder_and_localpath (iFolderID, Path)
 
@@ -1934,57 +1964,6 @@ class pyFolder (Thread):
 
 
 
-    def __is_running (self):
-        is_running = False
-
-        self.cv.acquire ()
-
-        is_running = self.is_running
-
-        self.cv.release ()
-
-        return is_running
-
-
-
-    def run (self):
-        self.__setup_dbm ()
-
-        while True:
-
-            self.cv.acquire ()
-
-            self.update ()
-            self.commit ()
-
-            self.cv.wait (PYFOLDER_SYNC_INTERVAL)
-
-            self.cv.release ()
-
-            if not self.__is_running ():
-                break
-
-
-
-    ## Stop pyFolder when it is running in non-interactive mode.
-
-    def stop (self):
-
-        if hasattr (self, 'cv'):
-            self.cv.acquire ()
-
-            self.is_running = False
-
-            self.cv.notify_all ()
-            self.cv.release ()
-
-
-
-    def noninteractive (self):
-        self.start ()
-
-
-
     def find_first_deleted_path_component (self, iFolderID, Path):
         Head, Tail = os.path.split (Path)
 
@@ -2001,8 +1980,9 @@ class pyFolder (Thread):
         # it must return 'bar', as an EntryTuple.
         EntryTuple = self.find_first_deleted_path_component (iFolderID, Path)
 
-        self.__delete_hierarchy_from_dbm (
-            EntryTuple['ifolder'], EntryTuple['id'])
+        if EntryTuple is not None:
+            self.__delete_hierarchy_from_dbm (
+                EntryTuple['ifolder'], EntryTuple['id'])
 
 
 

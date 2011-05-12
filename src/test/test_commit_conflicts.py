@@ -18,7 +18,13 @@ sys.path.append ('../')
 from pyFolder import *
 from core.dbm import DBM
 from core.config import ConfigManager
+
+
+
 from suds import WebFault
+
+
+
 from setup import *
 
 
@@ -35,10 +41,13 @@ class TestCommitConflicts (unittest.TestCase):
     def setUp (self):
         os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
 
-        self.cm_A = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
-        self.cm_B = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[SECONDARY_USER])
+        self.cm_A = ConfigManager (
+            runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
 
-        self.pyFolder = pyFolder (self.cm_A, runfromtest=True)
+        self.cm_B = ConfigManager (
+            runfromtest=True, **TEST_CONFIG.USERDATA[SECONDARY_USER])
+
+        self.pyFolder = pyFolder (self.cm_A, runmode=RUN_FROM_TEST)
 
         self.ifolderws = iFolderWS (self.cm_B)
         logging.getLogger ('suds.client').addHandler (NullHandler ())
@@ -56,14 +65,18 @@ class TestCommitConflicts (unittest.TestCase):
         self.iFolderEntry = \
             self.pyFolder.ifolderws.get_ifolder_as_entry (self.iFolder.ID)
 
-        UserList = self.pyFolder.ifolderws.get_users_by_search (\
-            self.SearchProperty.UserName, self.SearchOperation.Contains, \
-                TEST_CONFIG.USERDATA[SECONDARY_USER]['username'], 0, 1)
+        UserList = self.pyFolder.ifolderws.get_users_by_search (
+            self.SearchProperty.UserName,
+            self.SearchOperation.Contains,
+            TEST_CONFIG.USERDATA[SECONDARY_USER]['username'], 
+            0, 1)
 
         if UserList is not None:
             for User in UserList:
-                self.pyFolder.ifolderws.add_member (\
-                    self.iFolder.ID, User.ID, self.Rights.ReadWrite)
+                self.pyFolder.ifolderws.add_member (
+                    self.iFolder.ID,
+                    User.ID,
+                    self.Rights.ReadWrite)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
@@ -81,11 +94,13 @@ class TestCommitConflicts (unittest.TestCase):
     def test_add_directory_on_conflict (self):
         DirectoryName = 'test_add_directory_on_conflict'
 
-        Entry = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, DirectoryName, \
-                self.Type.Directory)
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            DirectoryName,
+            self.Type.Directory)
 
-        LocalPath = os.path.join (\
+        LocalPath = os.path.join (
             TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
 
         os.mkdir (LocalPath)
@@ -95,7 +110,7 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
-        ExpectedLocalPath = self.pyFolder.add_conflicted_suffix (\
+        ExpectedLocalPath = self.pyFolder.add_conflicted_suffix (
             LocalPath)
 
         self.assertTrue (os.path.isdir (ExpectedLocalPath))
@@ -107,10 +122,14 @@ class TestCommitConflicts (unittest.TestCase):
         FileName = 'test_add_file_on_conflict'
         FileData = 'test_add_file_on_conflict'
 
-        Entry = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, FileName, self.Type.File)
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            FileName,
+            self.Type.File)
 
-        LocalPath = os.path.join (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
+        LocalPath = os.path.join (
+            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
 
         with open (LocalPath, 'wb') as File:
             File.write (FileData)
@@ -120,7 +139,7 @@ class TestCommitConflicts (unittest.TestCase):
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)        
         self.pyFolder.update ()
 
-        ConflictedLocalPath = self.pyFolder.add_conflicted_suffix (\
+        ConflictedLocalPath = self.pyFolder.add_conflicted_suffix (
             LocalPath)
 
         self.assertTrue (os.path.isfile (ConflictedLocalPath))
@@ -132,28 +151,39 @@ class TestCommitConflicts (unittest.TestCase):
         FileA = 'FileA'
         FileB = 'FileB'
 
-        EntryA = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, FileA, self.Type.File)
+        EntryA = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            FileA,
+            self.Type.File)
 
-        EntryB = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, FileB, self.Type.File)
+        EntryB = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            FileB,
+            self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
-        TupleAbeforeCommit = self.pyFolder.dbm.get_entry (\
-            EntryA.iFolderID, EntryA.ID)
+        TupleAbeforeCommit = self.pyFolder.dbm.get_entry (
+            EntryA.iFolderID,
+            EntryA.ID)
+
         self.assertNotEqual (TupleAbeforeCommit, None)
 
-        TupleBbeforeCommit = self.pyFolder.dbm.get_entry (\
-            EntryB.iFolderID, EntryB.ID)
+        TupleBbeforeCommit = self.pyFolder.dbm.get_entry (
+            EntryB.iFolderID,
+            EntryB.ID)
+
         self.assertNotEqual (TupleBbeforeCommit, None)
 
         Handle = self.ifolderws.open_file_read (EntryA.iFolderID, EntryA.ID)
 
-        FileALocalPath = os.path.join (\
+        FileALocalPath = os.path.join (
             TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], EntryA.Path)
-        FileBLocalPath = os.path.join (\
+
+        FileBLocalPath = os.path.join (
             TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], EntryB.Path)
 
         with open (FileALocalPath, 'wb') as File:
@@ -164,24 +194,26 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
 
-        TupleAafterCommit = self.pyFolder.dbm.get_entry (\
+        TupleAafterCommit = self.pyFolder.dbm.get_entry (
             EntryA.iFolderID, EntryA.ID)
-        TupleBafterCommit = self.pyFolder.dbm.get_entry (\
+
+        TupleBafterCommit = self.pyFolder.dbm.get_entry (
             EntryB.iFolderID, EntryB.ID)
 
-        self.assertEqual (\
+        self.assertEqual (
             TupleAbeforeCommit['mtime'], TupleAafterCommit['mtime'])
-        self.assertNotEqual (\
+
+        self.assertNotEqual (
             TupleBbeforeCommit['mtime'], TupleBafterCommit['mtime'])
 
         self.ifolderws.close_file (Handle)
 
         self.pyFolder.commit ()
 
-        TupleAafterCommit = self.pyFolder.dbm.get_entry (\
+        TupleAafterCommit = self.pyFolder.dbm.get_entry (
             EntryA.iFolderID, EntryA.ID)
 
-        self.assertNotEqual (\
+        self.assertNotEqual (
             TupleAbeforeCommit['mtime'], TupleAafterCommit['mtime'])
 
 
@@ -190,14 +222,16 @@ class TestCommitConflicts (unittest.TestCase):
         Parent = 'Parent'
         Child = 'Child'
 
-        ParentEntry = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, Parent, \
-                self.Type.Directory)
+        ParentEntry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Parent,
+            self.Type.Directory)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
-        ParentPath = os.path.join (\
+        ParentPath = os.path.join (
             self.pyFolder.add_prefix (IFOLDER_NAME), Parent)
 
         ChildPath = os.path.join (ParentPath, Child)
@@ -211,36 +245,12 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
 
-        self.pyFolder.commit ()
-
-        ConflictedParentPath = self.pyFolder.add_conflicted_suffix (ParentPath)
+        ConflictedParentPath = self.pyFolder.add_conflicted_suffix (
+            ParentPath)
         ConflictedChildPath = os.path.join (ConflictedParentPath, Child)
 
         self.assertTrue (self.pyFolder.path_isdir (ConflictedParentPath))
         self.assertTrue (self.pyFolder.path_isfile (ConflictedChildPath))
-
-        EntryTuple = self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (\
-            self.iFolder.ID, self.pyFolder.remove_prefix (ConflictedChildPath))
-
-        self.assertNotEqual (EntryTuple, None)
-
-        Head, Tail = os.path.split (ConflictedParentPath)
-
-        EntryList = self.pyFolder.ifolderws.get_entries_by_name (\
-            self.iFolder.ID, self.iFolderEntry.ID, \
-                self.SearchOperation.Contains, Tail, 0, 1)
-
-        self.assertNotEqual (EntryList, None)
-
-        ConflictedParentEntry = EntryList[0]
-
-        Head, Tail = os.path.split (ConflictedChildPath)
-
-        EntryList = self.pyFolder.ifolderws.get_entries_by_name (\
-            self.iFolder.ID, ConflictedParentEntry.ID, \
-                self.SearchOperation.Contains, Tail, 0, 1)
-
-        self.assertNotEqual (EntryList, None)
 
 
 
@@ -248,9 +258,11 @@ class TestCommitConflicts (unittest.TestCase):
         Parent= 'Parent'
         Child = 'Child'
 
-        ParentEntry = self.ifolderws.create_entry (\
-            self.iFolder.ID, self.iFolderEntry.ID, Parent, \
-                self.Type.Directory)
+        ParentEntry = self.ifolderws.create_entry (
+            self.iFolder.ID,
+            self.iFolderEntry.ID,
+            Parent,
+            self.Type.Directory)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
@@ -259,7 +271,7 @@ class TestCommitConflicts (unittest.TestCase):
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
-        ParentPath = os.path.join (\
+        ParentPath = os.path.join (
             self.pyFolder.add_prefix (IFOLDER_NAME), Parent)
 
         ChildPath = os.path.join (ParentPath, Child)
@@ -268,36 +280,12 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
 
-        self.pyFolder.commit ()
-
-        ConflictedParentPath = self.pyFolder.add_conflicted_suffix (ParentPath)
+        ConflictedParentPath = self.pyFolder.add_conflicted_suffix (
+            ParentPath)
         ConflictedChildPath = os.path.join (ConflictedParentPath, Child)
 
         self.assertTrue (self.pyFolder.path_isdir (ConflictedParentPath))
         self.assertTrue (self.pyFolder.path_isdir (ConflictedChildPath))
-
-        EntryTuple = self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (\
-            self.iFolder.ID, self.pyFolder.remove_prefix (ConflictedChildPath))
-
-        self.assertNotEqual (EntryTuple, None)
-
-        Head, Tail = os.path.split (ConflictedParentPath)
-
-        EntryList = self.pyFolder.ifolderws.get_entries_by_name (\
-            self.iFolder.ID, self.iFolderEntry.ID, \
-                self.SearchOperation.Contains, Tail, 0, 1)
-
-        self.assertNotEqual (EntryList, None)
-
-        ConflictedParentEntry = EntryList[0]
-
-        Head, Tail = os.path.split (ConflictedChildPath)
-
-        EntryList = self.pyFolder.ifolderws.get_entries_by_name (\
-            self.iFolder.ID, ConflictedParentEntry.ID, \
-                self.SearchOperation.Contains, Tail, 0, 1)
-
-        self.assertNotEqual (EntryList, None)
 
 
 
@@ -306,10 +294,10 @@ class TestCommitConflicts (unittest.TestCase):
         iFolderName = 'anIfolder'
 
         aniFolder = self.pyFolder.ifolderws.create_ifolder (iFolderName)
-        aniFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (\
+        aniFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (
             aniFolder.ID)
 
-        aFileEntry = self.pyFolder.ifolderws.create_entry (\
+        aFileEntry = self.pyFolder.ifolderws.create_entry (
             aniFolder.ID, aniFolderEntry.ID, aFile, self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -328,10 +316,10 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
 
-        ConflictedaniFolderLocalPath = self.pyFolder.add_conflicted_suffix (\
+        ConflictedaniFolderLocalPath = self.pyFolder.add_conflicted_suffix (
             aniFolderLocalPath)
 
-        ConflictedaFileLocalPath = os.path.join (\
+        ConflictedaFileLocalPath = os.path.join (
             ConflictedaniFolderLocalPath, aFile)
 
         self.assertTrue (os.path.isdir (ConflictedaniFolderLocalPath))
@@ -344,7 +332,7 @@ class TestCommitConflicts (unittest.TestCase):
         iFolderName = 'anIfolder'
 
         aniFolder = self.pyFolder.ifolderws.create_ifolder (iFolderName)
-        aniFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (\
+        aniFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (
             aniFolder.ID)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -363,10 +351,10 @@ class TestCommitConflicts (unittest.TestCase):
 
         self.pyFolder.commit ()
 
-        ConflictedaniFolderLocalPath = self.pyFolder.add_conflicted_suffix (\
+        ConflictedaniFolderLocalPath = self.pyFolder.add_conflicted_suffix (
             aniFolderLocalPath)
 
-        ConflictedaFileLocalPath = os.path.join (\
+        ConflictedaFileLocalPath = os.path.join (
             ConflictedaniFolderLocalPath, aFile)
 
         self.assertTrue (os.path.isdir (ConflictedaniFolderLocalPath))
@@ -499,7 +487,8 @@ class TestCommitConflicts (unittest.TestCase):
                 Entry.iFolderID, Entry.ID), None)
 
         Path = os.path.join (IFOLDER_NAME, Name)
-        Path = self.pyFolder.add_conflicted_suffix (Path)
+        Path = self.pyFolder.add_conflicted_suffix (
+            Path)
 
         self.assertTrue (self.pyFolder.path_isfile (Path))
 

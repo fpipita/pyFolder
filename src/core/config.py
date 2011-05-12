@@ -125,12 +125,11 @@ class ConfigManager ():
                                    'while running the `checkout\' action.')
 
     def __actions (self):
-        return [\
-            'checkout', \
-                'update', \
-                'commit', \
-                'noninteractive' \
-                ]
+        return [
+            'checkout',
+            'update',
+            'commit'
+            ]
     
     def __policies (self):
         return PolicyFactory.get_factories ()

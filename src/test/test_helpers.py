@@ -3,6 +3,7 @@
 
 
 import base64
+import datetime
 import os
 import shutil
 import sys
@@ -40,13 +41,16 @@ class TestHelpers (unittest.TestCase):
 
     def setUp (self):
         os.makedirs (TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'])
-        self.cm = ConfigManager (runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
-        self.pyFolder = pyFolder (self.cm, runfromtest=True)
+
+        self.cm = ConfigManager (
+            runfromtest=True, **TEST_CONFIG.USERDATA[PRIMARY_USER])
+
+        self.pyFolder = pyFolder (self.cm, runmode=RUN_FROM_TEST)
         self.iFolder = self.pyFolder.ifolderws.create_ifolder (IFOLDER_NAME)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
-        self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (\
+        self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (
             self.iFolder.ID)
 
         self.Type = self.pyFolder.ifolderws.get_ifolder_entry_type ()
@@ -63,30 +67,12 @@ class TestHelpers (unittest.TestCase):
 
 
 
-    def test_add_conflicted_suffix (self):
-        aFile = '/lol\\foo/bar/baz/file.exe.lol'
-        aDirectory = '/lol\\bar'
-        Suffix = 'conflicted'
+    def test_conflicted_suffix (self):
+        Name = '/lol\\foo/bar/baz/file.exe.lol'
+        Conflicted = self.pyFolder.add_conflicted_suffix (Name)
 
-        self.assertEqual (\
-            self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
-                '/lol\\foo/bar/baz/file.exe-{0}.lol'.format (Suffix))
-
-        self.assertEqual (\
-            self.pyFolder.add_conflicted_suffix (aDirectory, Suffix), \
-                '/lol\\bar-{0}'.format (Suffix))
-
-        aFile = '/lol/.bar'
-
-        self.assertEqual (\
-            self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
-                '/lol/.bar-{0}'.format (Suffix))
-
-        aFile = '/lol/.bar.exe'
-
-        self.assertEqual (\
-            self.pyFolder.add_conflicted_suffix (aFile, Suffix), \
-                '/lol/.bar-{0}.exe'.format (Suffix))
+        self.assertTrue (self.pyFolder.is_conflicted_entry (Conflicted))
+        self.assertFalse (self.pyFolder.is_conflicted_entry (Name))
 
 
 

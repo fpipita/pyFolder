@@ -142,7 +142,6 @@ class pyFolderWindow (Thread):
     def quit (self):
 
         self.__wait ()
-        self.pyFolder.stop ()
         PostMessage (self.hWnd, WM_DESTROY, None, None)
             
     
