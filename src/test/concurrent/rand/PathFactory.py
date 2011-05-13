@@ -35,7 +35,7 @@ class PathFactory:
             if isdir:
                 if not pyFolder.path_isdir (Path):
                     break
-            
+
             else:
                 if not pyFolder.path_isfile (Path):
                     break
@@ -87,3 +87,15 @@ class PathFactory:
             return random.choice (Tree)
 
         return None
+
+
+
+    @staticmethod
+    def select_conflicted_path (pyFolder):
+
+        ConflictedEntries = pyFolder.get_conflicted_entries ()
+
+        if not len (ConflictedEntries):
+            return None
+
+        return random.choice (ConflictedEntries)

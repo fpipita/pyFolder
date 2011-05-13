@@ -14,6 +14,7 @@ from CreateFile import *
 from DeleteDirectory import *
 from DeleteFile import *
 from ModifyFile import *
+from HandleConflict import *
 
 
 
@@ -29,7 +30,8 @@ class ActionFactory:
         'CreateFile' : CreateFile,
         'DeleteDirectory' : DeleteDirectory,
         'DeleteFile' : DeleteFile,
-        'ModifyFile' : ModifyFile
+        'ModifyFile' : ModifyFile,
+        'HandleConflict' : HandleConflict
         }
 
 

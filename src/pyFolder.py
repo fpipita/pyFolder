@@ -38,10 +38,9 @@ DEFAULT_SOAP_BUFLEN = 32768
 DEFAULT_CONFIG_FILE = os.path.expanduser (os.path.join ('~', '.ifolderrc'))
 DEFAULT_SQLITE_FILE = os.path.expanduser (os.path.join ('~', '.ifolderdb'))
 SIMIAS_SYNC_INTERVAL = 5
-PYFOLDER_SYNC_INTERVAL = 60
-CONFLICTED_SUFFIX = '({0}\'s conflicted copy {1} {2})'
+CONFLICTED_SUFFIX = ' ({0}\'s conflicted copy {1} {2})'
 CONFLICTED_SUFFIX_RE = re.compile (
-    r'\((.*)\'s conflicted copy ' \
+    r' \((.*)\'s conflicted copy ' \
         '(\d{4}-\d{2}-\d{2}) (\d{2}\.\d{2}\.\d{2}.\d{6})\)')
 ENTRY_INVALID_CHARS = [ '\\', ':', '*', '?', '\"', '<', '>', '|' ]
 DEFAULT_INVALID_CHAR_REPLACEMENT = ''
@@ -276,7 +275,7 @@ class pyFolder:
     #
     #  @return A valid version of the path.
 
-    def strip_invalid_characters (\
+    def strip_invalid_characters (
         self, Path, Replacement=DEFAULT_INVALID_CHAR_REPLACEMENT):
 
         Head, Tail = os.path.split (Path)
@@ -517,13 +516,41 @@ class pyFolder:
 
 
 
+    def get_conflicted_entries (self):
+        ConflictedEntries = []
+
+        iFolderTupleList = self.dbm.get_ifolders ()
+
+        for iFolderTuple in iFolderTupleList:
+            Name = iFolderTuple['name']
+
+            for Root, Dirs, Files in os.walk (self.add_prefix (Name)):
+
+                for File in Files:
+                    FilePath = self.remove_prefix (os.path.join (Root, File))
+
+                    if self.is_conflicted_entry (FilePath):
+                        ConflictedEntries.append (FilePath)
+
+                for Dir in Dirs:
+                    DirPath = self.remove_prefix (os.path.join (Root, Dir))
+
+                    if self.is_conflicted_entry (DirPath):
+                        ConflictedEntries.append (DirPath)
+
+        return ConflictedEntries
+
+
+
     ## Add an iFolder to the local database and create its local directory.
     #
     #  @param iFolderID The ID of the iFolder to add.
 
     def __add_ifolder (self, iFolderID):
-        iFolderEntry = self.__invoke (self.ifolderws.get_ifolder_as_entry, \
-                                          iFolderID)
+
+        iFolderEntry = self.__invoke (
+            self.ifolderws.get_ifolder_as_entry, iFolderID)
+
         iFolder = self.__invoke (self.ifolderws.get_ifolder, iFolderID)
 
         if iFolderEntry is not None and iFolder is not None:
@@ -1113,34 +1140,44 @@ class pyFolder:
             self.cm.get_username (), Today, Now)
 
         if Extension == '':
-            return '{0} {1}'.format (
+            return '{0}{1}'.format (
                 BaseName.encode ('utf-8'),
                 Suffix.encode ('utf-8'))
 
         else:
-            return '{0} {1}{2}'.format (
+            return '{0}{1}{2}'.format (
                 BaseName.encode ('utf-8'),
                 Suffix,
                 Extension.encode ('utf-8'))
 
 
 
-    # def strip_conflicted_suffix (self, Path):
-    #     BaseName, Extension = os.path.splitext (Path)
+    def strip_conflicted_suffix (self, Path):
 
-    #     Suffix = CONFLICTED_SUFFIX.format (
-    #         self.cm.get_username (),
-    #         datetime.date.today ())
+        if not self.is_conflicted_entry (Path):
+            return Path
 
-    #     if Path.find (Suffix):
-    #         return Path.replace (Suffix, '')
+        # The previous method ensures we've gotten a Match object
+        Match = CONFLICTED_SUFFIX_RE.search (Path)
 
-    #     return Path
+        Suffix = Match.group (0)
+
+        return Path.replace (Suffix, '')
 
 
 
     def is_conflicted_entry (self, Path):
-        Match = CONFLICTED_SUFFIX_RE.search (Path)
+        Match = CONFLICTED_SUFFIX_RE.search (os.path.split (Path)[1])
+
+        if Match is not None:
+            return True
+
+        return False
+
+
+
+    def has_conflicted_ancestors (self, Path):
+        Match = CONFLICTED_SUFFIX_RE.search (os.path.split (Path)[0])
 
         if Match is not None:
             return True
@@ -1556,7 +1593,8 @@ class pyFolder:
 
     def __is_new_local_entry (self, iFolderID, Path):
 
-        if self.is_conflicted_entry (Path):
+        if self.is_conflicted_entry (Path) or \
+                self.has_conflicted_ancestors (Path):
             return False
 
         EntryTuple = self.get_entry_by_ifolder_and_localpath (iFolderID, Path)
@@ -1684,11 +1722,14 @@ class pyFolder:
 
         for Dir in Dirs:
             Path = os.path.join (self.remove_prefix (Root), Dir)
+
             if self.is_new_local_directory (iFolderID, Path):
                 ParentID = self.__find_parent (iFolderID, Path)
+
                 if ParentID is not None:
-                    Entry = self.policy.add_remote_directory (\
+                    Entry = self.policy.add_remote_directory (
                         iFolderID, ParentID, Path)
+
                     if Entry is not None:
                         Updated = True
 

@@ -74,6 +74,20 @@ class TestHelpers (unittest.TestCase):
         self.assertTrue (self.pyFolder.is_conflicted_entry (Conflicted))
         self.assertFalse (self.pyFolder.is_conflicted_entry (Name))
 
+        self.assertFalse (
+            self.pyFolder.is_conflicted_entry (
+                os.path.join (Conflicted, 'bar')))
+
+
+
+    def test_has_conflicted_ancestors (self):
+        Name = '/lol\\foo/bar/baz/file.exe.lol'
+        Conflicted = self.pyFolder.add_conflicted_suffix (Name)
+
+        self.assertTrue (
+            self.pyFolder.has_conflicted_ancestors (
+                os.path.join (Conflicted, 'bar')))
+
 
 
     def test_strip_invalid_characters (self):
@@ -129,6 +143,50 @@ class TestHelpers (unittest.TestCase):
         Path = self.pyFolder.add_prefix (Path)
 
         self.assertTrue (ExpectedPath, Path)
+
+
+
+
+    def test_get_conflicted_entries (self):
+        Plain = [os.path.join (IFOLDER_NAME, i) for i in ['a', 'b', 'c', 'd']]
+        Conflicted = [self.pyFolder.add_conflicted_suffix (
+                os.path.join (IFOLDER_NAME, i)) for i in ['e', 'f', 'g', 'h']]
+
+        Dir = False
+
+        for List in [Plain, Conflicted]:
+            for Entry in List:
+
+                if Dir:
+                    self.pyFolder.mkdir (Entry)
+                    Dir = False
+
+                else:
+                    self.pyFolder.touch (Entry)
+                    Dir = True
+
+        self.assertEqual (
+            self.pyFolder.get_conflicted_entries ().sort (),
+            Conflicted.sort ())
+
+        ConflictedDir = os.path.join (IFOLDER_NAME, 'foo')
+        ConflictedDir = self.pyFolder.add_conflicted_suffix (ConflictedDir)
+        File = os.path.join (ConflictedDir, 'bar')
+
+        self.pyFolder.mkdir (ConflictedDir)
+
+        self.pyFolder.touch (File)
+
+        self.assertTrue (File not in self.pyFolder.get_conflicted_entries ())
+
+
+    def test_strip_conflicted_suffix (self):
+        Name = 'bar.exe'
+        ConflictedName = self.pyFolder.add_conflicted_suffix (Name)
+
+        self.assertEquals (
+            Name,
+            self.pyFolder.strip_conflicted_suffix (ConflictedName))
 
 
 
