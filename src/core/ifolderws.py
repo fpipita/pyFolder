@@ -128,13 +128,16 @@ class iFolderWS:
         
 
 
-    def get_entries_by_name (self, iFolderID, ParentID, Operation, Pattern, \
-                                 Index, Max):
+    def get_entries_by_name (self, iFolderID, ParentID, Operation, Pattern,
+                             Index, Max):
         try:
-            iFolderEntrySet = \
-                self.client.service.GetEntriesByName (\
-                iFolderID, ParentID, Operation, Pattern, \
-                                 Index, Max)
+            iFolderEntrySet = self.client.service.GetEntriesByName (
+                iFolderID,
+                ParentID,
+                Operation,
+                Pattern,
+                Index,
+                Max)
 
             if iFolderEntrySet.Total > 0:
                 return iFolderEntrySet.Items.iFolderEntry

@@ -383,19 +383,25 @@ class pyFolder:
 
     def fetch (self, iFolderID, EntryID, LocalPath):
         LocalPath = self.add_prefix (LocalPath)
-        Handle = self.__invoke (\
-            self.ifolderws.open_file_read, iFolderID, EntryID)
+
+        Handle = self.__invoke (
+            self.ifolderws.open_file_read,
+            iFolderID,
+            EntryID)
 
         if Handle is not None:
             with open (LocalPath, 'wb') as File:
+
                 while True:
-                    Base64Data = self.__invoke (self.ifolderws.read_file, \
-                                                    Handle)
+                    Base64Data = self.__invoke (
+                        self.ifolderws.read_file,
+                        Handle)
+
                     if Base64Data is None:
                         break
 
                     File.write (base64.b64decode (Base64Data))
-                self.__invoke (self.ifolderws.close_file, Handle)
+            self.__invoke (self.ifolderws.close_file, Handle)
 
 
 
