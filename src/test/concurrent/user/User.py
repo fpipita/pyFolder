@@ -3,6 +3,7 @@
 
 
 from threading import *
+import datetime
 import inspect
 import random
 import sys
@@ -23,7 +24,8 @@ from pyFolder import *
 
 
 MAX_VALUES_LENGTH = 199
-TRACE_MSG = 'In file `{1}\', lineno {2}, function `{3}\', code `{0}\''
+TRACE_MSG = '[ {1} ] In file `{3}\', lineno {4}, function `{5}\', code `{0}\'' \
+    '\nArgvalues={2}'
 
 
 
@@ -89,18 +91,24 @@ class User (Thread):
             except Exception, ex:
                 print '*' * 80
 
+                now = datetime.datetime.now ().isoformat ()
+
                 print 'Exception of type `{0}\' : {1}'.format (type (ex), ex)
 
                 Trace = inspect.trace ()
 
                 for Frame in Trace:
                     print '-' * 80
-                    print TRACE_MSG.format (
-                        Frame[4][Frame[5]].strip (), *Frame[1:4])
 
-                    print inspect.formatargvalues (
-                        *inspect.getargvalues (Frame[0]),
-                         formatvalue=formatvalue)
+                    argvalues = inspect.formatargvalues (
+                    *inspect.getargvalues (Frame[0]),
+                     formatvalue=formatvalue)
+
+                    print TRACE_MSG.format (
+                        Frame[4][Frame[5]].strip (),
+                        now,
+                        argvalues,
+                        *Frame[1:4])
 
                 print '*' * 80
 
