@@ -13,6 +13,10 @@ from suds import WebFault
 
 
 
+IFOLDERWS_LOGGER_NAME = '{0}.pyFolder.iFolderWS'
+
+
+
 class iFolderWS:
 
 
@@ -25,7 +29,8 @@ class iFolderWS:
 
 
     def __setup_logger (self):
-        self.logger = logging.getLogger ('pyFolder.iFolderWS')
+        self.logger = logging.getLogger (
+            IFOLDERWS_LOGGER_NAME.format (self.cm.get_username ()))
 
 
 
@@ -41,7 +46,7 @@ class iFolderWS:
                                        password=passwordBase64)
 
         self.client = Client (self.cm.get_ifolderws (), transport=transport)
-        
+
 
 
     def create_ifolder (self, Name, Description='', SSL=False, \
@@ -65,7 +70,7 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.error (wf)
             raise
-    
+
 
 
     def get_all_ifolders (self):
@@ -111,7 +116,7 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.error (wf)
             raise
-        
+
 
 
     def get_entry_by_path (self, iFolderID, Path):
@@ -125,7 +130,7 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.error (wf)
             raise
-        
+
 
 
     def get_entries_by_name (self, iFolderID, ParentID, Operation, Pattern,
@@ -191,7 +196,7 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.error (wf)
             raise
-        
+
 
 
     def open_file_read (self, iFolderID, EntryID):
@@ -232,7 +237,7 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.debug (wf)
             raise
-    
+
 
 
     def write_file (self, Handle, Data):
@@ -280,7 +285,7 @@ class iFolderWS:
         except WebFault, wf:
             self.logger.error (wf)
             raise
-        
+
 
 
     def add_member (self, iFolderID, UserID, Rights):
@@ -334,12 +339,12 @@ class iFolderWS:
 
     def get_ifolder_entry_type (self):
         return self.client.factory.create ('iFolderEntryType')
-        
+
 
 
     def get_change_entry_action (self):
         return self.client.factory.create ('ChangeEntryAction')
-    
+
 
 
     def get_rights (self):
@@ -349,7 +354,7 @@ class iFolderWS:
 
     def get_search_property (self):
         return self.client.factory.create ('SearchProperty')
-    
+
 
 
     def get_search_operation (self):

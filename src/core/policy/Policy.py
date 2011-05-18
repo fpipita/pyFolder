@@ -2,8 +2,15 @@
 
 
 
-from suds import WebFault
 import logging
+
+
+
+from suds import WebFault
+
+
+
+POLICY_LOGGER_NAME = '{0}.pyFolder.Policy'
 
 
 
@@ -19,15 +26,16 @@ class Policy:
 
     def __init__ (self, pyFolder):
         self.pyFolder = pyFolder
-        self.logger = logging.getLogger ('pyFolder.Policy')
+        self.logger = logging.getLogger (
+            POLICY_LOGGER_NAME.format (pyFolder.cm.get_username ()))
 
 
 
     ## The destructor.
-        
+
     def __del__ (self):
         self.pyFolder = None
-    
+
 
 
     ## Define what to do when the client requests for the creation
@@ -38,7 +46,7 @@ class Policy:
     #  @param EntryID The ID of the directory-entry.
     #  @param Path The path to the directory (without the pyFolder
     #              prefix added).
-        
+
     def add_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
 
@@ -83,7 +91,7 @@ class Policy:
 
     def modify_file (self, iFolderID, EntryID, Path):
         raise NotImplementedError
-    
+
 
 
     ## Define what to do when the client requests for the deletion
@@ -125,7 +133,7 @@ class Policy:
 
     def add_remote_directory (self, iFolderID, ParentID, Path):
         raise NotImplementedError
-    
+
 
 
     ## Define what to do when the client requests for the creation
@@ -153,7 +161,7 @@ class Policy:
 
     def modify_remote_directory (self, iFolderID, EntryID, Path):
         raise NotImplementedError
-    
+
 
 
     ## Define what to do when the client requests for the modification

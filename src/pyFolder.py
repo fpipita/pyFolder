@@ -49,6 +49,7 @@ LOGGER_FORMAT_STRING = \
     '%(levelname)s ' \
     '%(module)s.%(funcName)s - ' \
     '%(message)s'
+PYFOLDER_LOGGER_NAME = '{0}.pyFolder'
 LOG_ONCE_ONLY = [ 'write_file', 'read_file' ]
 LAST_CALLED = None
 
@@ -145,20 +146,25 @@ class pyFolder:
     ## Helper method. 
 
     def __setup_dbm (self):
-        self.dbm = DBM (self.cm.get_pathtodb ())
+        self.dbm = DBM (self.cm)
 
 
 
     ## Helper method. 
 
     def __setup_logger (self):
-        self.logger = logging.getLogger ('pyFolder')
+
+        self.logger = logging.getLogger (
+            PYFOLDER_LOGGER_NAME.format (self.cm.get_username ()))
+
         self.logger.setLevel (self.cm.get_loglevel ())
 
         self.handler = logging.StreamHandler ()
 
         formatter = logging.Formatter (LOGGER_FORMAT_STRING)
+
         self.handler.setFormatter (formatter)
+
         self.logger.addHandler (self.handler)
 
 
