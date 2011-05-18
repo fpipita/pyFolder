@@ -153,13 +153,9 @@ class pyFolder:
 
     def __setup_logger (self):
         self.logger = logging.getLogger ('pyFolder')
-        self.logger.setLevel (logging.INFO)
+        self.logger.setLevel (self.cm.get_loglevel ())
 
-        if self.cm.get_verbose ():
-            self.handler = logging.StreamHandler ()
-
-        else:
-            self.handler = NullHandler ()
+        self.handler = logging.StreamHandler ()
 
         formatter = logging.Formatter (LOGGER_FORMAT_STRING)
         self.handler.setFormatter (formatter)
@@ -210,28 +206,23 @@ class pyFolder:
             raise TypeError
 
         if self.should_method_be_logged (method.__name__):
-            self.logger.info (
-                'Invoking webmethod `{0}\''.format (method.__name__))
+            self.logger.debug ('{0} {1}'.format (method.__name__, args))
 
         SyncInterval = 0
         while True:
 
             try:
-
                 return method (*args)
 
             except WebFault, wf:
-
                 self.logger.error (wf)
 
                 OriginalException = \
                     wf.fault.detail.detail.OriginalException._type
 
                 if OriginalException == 'System.NullReferenceException':
-
                     SyncInterval = (SyncInterval + 1) % SIMIAS_SYNC_INTERVAL
                     time.sleep (SyncInterval)
-
                     continue
 
                 else:
@@ -2059,13 +2050,7 @@ if __name__ == '__main__':
         DEFAULT_SQLITE_FILE,
         DEFAULT_SOAP_BUFLEN)
 
-    try:
+    pf = pyFolder (cm)
 
-        pf = pyFolder (cm)
-
-        if pf.cm.get_action () != 'noninteractive':
-            pf.finalize ()
-
-    except Exception, e:
-
-        print >> sys.stderr, 'pyFolder failed with error : {0}'.format (e)
+    if pf.cm.get_action () != 'noninteractive':
+        pf.finalize ()
