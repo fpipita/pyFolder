@@ -7,7 +7,7 @@ soapbuflen = 65536
 prefix = /tmp/pyFolder
 config = .ifolderrc-user_a
 policy = DefaultPolicy
-verbose = False
+loglevel = INFO
 
 [SECONDARY_USER]
 username = user_b
@@ -18,7 +18,7 @@ soapbuflen = 65536
 prefix = /tmp/pyFolder
 config = .ifolderrc-user_b
 policy = DefaultPolicy
-verbose = False
+loglevel = INFO
 
 [Options]
 SIMIAS_REFRESH = 5

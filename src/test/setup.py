@@ -94,7 +94,7 @@ class Setup:
             'config': lambda config, USERDICT : \
                 os.path.join (USERDICT['prefix'], config),
             'policy': lambda policy, USERDICT : policy,
-            'verbose': lambda verbose, USERDICT : verbose == 'True'
+            'loglevel': lambda loglevel, USERDICT : loglevel
             }
 
 
@@ -131,9 +131,9 @@ class Setup:
                     for key in keys:
 
                         if config.has_option (SECTION, key):
-                            try:
 
-                                USERDICT[key] = USERDICT[key] (\
+                            try:
+                                USERDICT[key] = USERDICT[key] (
                                     config.get (SECTION, key), USERDICT)
 
                             except Exception, e:
@@ -152,16 +152,13 @@ class Setup:
                 self.error (INVALID_PREFIX)
 
             if config.has_section ('Options'):
-
                 if config.has_option ('Options', 'SIMIAS_REFRESH'):
 
                     try:
-
                         self.SIMIAS_REFRESH = \
                             config.getfloat ('Options', 'SIMIAS_REFRESH')
 
                     except ConfigParser.Error:
-
                         self.SIMIAS_REFRESH = SIMIAS_REFRESH
                         self.error (INVALID_REFRESH, (self.SIMIAS_REFRESH, ))
 
