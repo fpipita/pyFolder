@@ -50,7 +50,6 @@ class HandleConflict (Action):
             DeleteTarget = self.pyFolder.rmdir
 
         if Choice == KEEP_EXISTING:
-            print 'KEEP EXISTING {0}'.format (self.Target)
 
             if self.pyFolder.path_exists (OriginalPath):
                 DeleteOriginal (OriginalPath)
@@ -58,7 +57,6 @@ class HandleConflict (Action):
             self.pyFolder.rename (self.Target, OriginalPath)
 
         elif Choice == KEEP_NEW:
-            print 'KEEP NEW {0}'.format (OriginalPath)
             DeleteTarget (self.Target)
 
 
