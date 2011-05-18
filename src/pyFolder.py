@@ -49,6 +49,8 @@ LOGGER_FORMAT_STRING = \
     '%(levelname)s ' \
     '%(module)s.%(funcName)s - ' \
     '%(message)s'
+LOG_ONCE_ONLY = [ 'write_file', 'read_file' ]
+LAST_CALLED = None
 
 
 
@@ -175,6 +177,21 @@ class pyFolder:
 
 
 
+    def should_method_be_logged (self, method):
+        global LAST_CALLED
+        retval = True
+
+        if LAST_CALLED is None:
+            retval = True
+
+        if method in LOG_ONCE_ONLY:
+            retval = method != LAST_CALLED
+
+        LAST_CALLED = method
+        return retval
+
+
+
     ## Invoke the iFolder WEB Service.
     #
     #  All the calls to the Web Service, should be done through this method.
@@ -192,7 +209,9 @@ class pyFolder:
         if not callable (method):
             raise TypeError
 
-        self.logger.info ('Invoking webmethod `{0}\''.format (method.__name__))
+        if self.should_method_be_logged (method.__name__):
+            self.logger.info (
+                'Invoking webmethod `{0}\''.format (method.__name__))
 
         SyncInterval = 0
         while True:

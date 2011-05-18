@@ -190,5 +190,20 @@ class TestHelpers (unittest.TestCase):
 
 
 
+    def test_should_method_be_logged (self):
+        self.assertTrue (self.pyFolder.should_method_be_logged ('write_file'))
+        self.assertFalse (self.pyFolder.should_method_be_logged ('write_file'))
+        self.assertTrue (self.pyFolder.should_method_be_logged ('read_file'))
+        self.assertFalse (self.pyFolder.should_method_be_logged ('read_file'))
+
+        self.assertTrue (self.pyFolder.should_method_be_logged ('foo'))
+        self.assertTrue (self.pyFolder.should_method_be_logged ('foo'))
+        self.assertTrue (self.pyFolder.should_method_be_logged ('read_file'))
+        self.assertFalse (self.pyFolder.should_method_be_logged ('read_file'))
+        self.assertTrue (self.pyFolder.should_method_be_logged ('write_file'))
+        self.assertFalse (self.pyFolder.should_method_be_logged ('write_file'))
+
+
+
 if __name__ == '__main__':
     unittest.main ()
