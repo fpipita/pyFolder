@@ -62,12 +62,12 @@ class TestUpdateBasic (unittest.TestCase):
 
 
     def test_add_file (self):
-        FileName = 'test_add_file'
+        Name = 'foo'
 
         Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            FileName,
+            Name,
             self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -79,32 +79,28 @@ class TestUpdateBasic (unittest.TestCase):
         self.assertEqual (EntryTuple['ifolder'], Entry.iFolderID)
         self.assertNotEqual (EntryTuple['digest'], 'DIRECTORY')
 
-        LocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'],
-            Entry.Path)
-
-        self.assertTrue (os.path.isfile (LocalPath))
+        self.assertTrue (self.pyFolder.path_isfile (Entry.Path))
 
 
 
     def test_modify_file (self):
-        FileName = 'test_modify_file'
-        FileData = 'test_modify_file'
+        Name = 'foo'
+        Content = 'something'
 
         Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            FileName,
+            Name,
             self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
         self.pyFolder.update ()
 
         Handle = self.pyFolder.ifolderws.open_file_write (
-            Entry.iFolderID, Entry.ID, len (FileData))
+            Entry.iFolderID, Entry.ID, len (Content))
 
         self.pyFolder.ifolderws.write_file (
-            Handle, base64.b64encode (FileData))
+            Handle, base64.b64encode (Content))
 
         self.pyFolder.ifolderws.close_file (Handle)
 
@@ -118,23 +114,19 @@ class TestUpdateBasic (unittest.TestCase):
 
         self.assertEqual (EntryTuple['mtime'], Change.Time)
 
-        LocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
+        self.assertTrue (self.pyFolder.path_isfile (Entry.Path))
 
-        self.assertTrue (os.path.isfile (LocalPath))
-
-        with open (LocalPath, 'rb') as File:
-            self.assertEqual (File.readlines ()[0], FileData)
+        self.assertEqual (self.pyFolder.readlines (Entry.Path)[0], Content)
 
 
 
     def test_delete_file (self):
-        FileName = 'test_delete_file'
+        Name = 'foo'
 
         Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            FileName,
+            Name,
             self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -149,20 +141,17 @@ class TestUpdateBasic (unittest.TestCase):
 
         self.assertEqual (EntryTuple, None)
 
-        LocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
-
-        self.assertFalse (os.path.isfile (LocalPath))
+        self.assertFalse (self.pyFolder.path_isfile (Entry.Path))
 
 
 
     def test_add_directory (self):
-        DirectoryName = 'test_add_directory'
+        Name = 'foo'
 
         Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            DirectoryName,
+            Name,
             self.Type.Directory)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -174,20 +163,17 @@ class TestUpdateBasic (unittest.TestCase):
         self.assertEqual (EntryTuple['ifolder'], Entry.iFolderID)
         self.assertEqual (EntryTuple['digest'], 'DIRECTORY')
 
-        LocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
-
-        self.assertTrue (os.path.isdir (LocalPath))
+        self.assertTrue (self.pyFolder.path_isdir (Entry.Path))
 
 
 
     def test_delete_directory (self):
-        DirectoryName = 'test_delete_directory'
+        Name = 'foo'
 
         Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            DirectoryName,
+            Name,
             self.Type.Directory)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -202,17 +188,14 @@ class TestUpdateBasic (unittest.TestCase):
 
         self.assertEqual (EntryTuple, None)
 
-        LocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], Entry.Path)
-
-        self.assertFalse (os.path.isdir (LocalPath))
+        self.assertFalse (self.pyFolder.path_isdir (Entry.Path))
 
 
 
     def test_update_entry_on_parent_deletion (self):
         Parent = 'Parent'
         Child = 'Child'
-        aString = 'aString'
+        Content = 'something'
 
         ParentEntry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
@@ -229,10 +212,10 @@ class TestUpdateBasic (unittest.TestCase):
 
         self.pyFolder.update ()
 
-        Handle = self.pyFolder.ifolderws.open_file_write (\
-            self.iFolder.ID, ChildEntry.ID, len (aString))
+        Handle = self.pyFolder.ifolderws.open_file_write (
+            self.iFolder.ID, ChildEntry.ID, len (Content))
 
-        self.pyFolder.ifolderws.write_file (Handle, base64.b64encode (aString))
+        self.pyFolder.ifolderws.write_file (Handle, base64.b64encode (Content))
         self.pyFolder.ifolderws.close_file (Handle)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
@@ -247,10 +230,7 @@ class TestUpdateBasic (unittest.TestCase):
         self.pyFolder.update_entry (
             self.iFolder.ID, ChildEntryTuple['id'], ChildEntryTuple['mtime'])
 
-        ChildLocalPath = os.path.normpath (ChildEntry.Path)
-        ChildLocalPath = self.pyFolder.add_prefix (ChildLocalPath)
-
-        self.assertFalse (self.pyFolder.path_isfile (ChildLocalPath))
+        self.assertFalse (self.pyFolder.path_isfile (ChildEntry.Path))
 
 
 

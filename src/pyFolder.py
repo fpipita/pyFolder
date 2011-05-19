@@ -460,6 +460,21 @@ class pyFolder:
 
 
 
+    def readlines (self, Path):
+        Path = self.add_prefix (Path)
+
+        Lines = None
+
+        with open (Path, 'rb') as File:
+            Lines = File.readlines ()
+
+        self.logger.info ('Read {0} lines from local file `{1}\''.format (
+                len (Lines), Path.encode ('utf-8')))
+
+        return Lines
+
+
+
     ## Write the content of a local file to an existing remote one.
     #
     #  @param iFolderID the ID of the iFolder the remote file belongs to.
