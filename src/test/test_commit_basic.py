@@ -50,13 +50,11 @@ class TestCommitBasic (unittest.TestCase):
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
-        self.iFolderAsEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (
+        self.iFolderEntry = self.pyFolder.ifolderws.get_ifolder_as_entry (
             self.iFolder.ID)
 
-        self.iFolderEntryType = \
-            self.pyFolder.ifolderws.get_ifolder_entry_type ()
-        self.ChangeEntryAction = \
-            self.pyFolder.ifolderws.get_change_entry_action ()
+        self.Type = self.pyFolder.ifolderws.get_ifolder_entry_type ()
+        self.Action = self.pyFolder.ifolderws.get_change_entry_action ()
         self.SearchOperation = self.pyFolder.ifolderws.get_search_operation ()
 
         self.pyFolder.checkout ()
@@ -71,39 +69,38 @@ class TestCommitBasic (unittest.TestCase):
 
 
     def test_is_new_local_directory (self):
-        DirectoryName = 'test_is_new_local_directory'
+        Name = 'foo'
 
-        iFolderEntry = self.pyFolder.ifolderws.create_entry (
+        Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
-            self.iFolderAsEntry.ID,
-            DirectoryName,
-            self.iFolderEntryType.Directory)
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.Directory)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 
         self.assertFalse (self.pyFolder.is_new_local_directory (
-                iFolderEntry.iFolderID, os.path.normpath (iFolderEntry.Path)))
+                Entry.iFolderID, Entry.Path))
 
 
 
     def test_get_local_changes_on_file (self):
-        FileName = 'test_get_local_changes_on_file'
-        FileData = 'test_get_local_changes_on_file'
+        Name = 'foo'
+        Content = 'something'
 
-        iFolderEntry = self.pyFolder.ifolderws.create_entry (
+        Entry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
-            self.iFolderAsEntry.ID,
-            FileName,
-            self.iFolderEntryType.File)
+            self.iFolderEntry.ID,
+            Name,
+            self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 
-        EntryTuple = self.pyFolder.dbm.get_entry (
-            iFolderEntry.iFolderID, iFolderEntry.ID)
+        EntryTuple = self.pyFolder.dbm.get_entry (Entry.iFolderID, Entry.ID)
 
         iFolderID = EntryTuple['ifolder']
         iFolderEntryID = EntryTuple['id']
@@ -114,120 +111,97 @@ class TestCommitBasic (unittest.TestCase):
             iFolderID, iFolderEntryID, LocalPath, Digest)
 
         self.assertEqual (Action, None)
-        self.assertEqual (Type, self.iFolderEntryType.File)
+        self.assertEqual (Type, self.Type.File)
 
-        PrefixedLocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], iFolderEntry.Path)
+        self.pyFolder.write_file (Entry.Path, Content)
 
-        with open (PrefixedLocalPath, 'wb') as File:
-            File.write (FileData)
-
-        Action, Type = \
-            self.pyFolder.get_local_changes_on_entry (
+        Action, Type = self.pyFolder.get_local_changes_on_entry (
             iFolderID, iFolderEntryID, LocalPath, Digest)
 
-        self.assertEqual (Action, self.ChangeEntryAction.Modify)
-        self.assertEqual (Type, self.iFolderEntryType.File)
+        self.assertEqual (Action, self.Action.Modify)
+        self.assertEqual (Type, self.Type.File)
 
-        os.remove (PrefixedLocalPath)
+        self.pyFolder.delete (Entry.Path)
 
-        Action, Type = \
-            self.pyFolder.get_local_changes_on_entry (
+        Action, Type = self.pyFolder.get_local_changes_on_entry (
             iFolderID, iFolderEntryID, LocalPath, Digest)
 
-        self.assertEqual (Action, self.ChangeEntryAction.Delete)
-        self.assertEqual (Type, self.iFolderEntryType.File)
+        self.assertEqual (Action, self.Action.Delete)
+        self.assertEqual (Type, self.Type.File)
 
 
 
     def test_add_file (self):
-        FileName = 'File'
+        Name = 'foo'
+        Content = 'something'
+        Path = os.path.join (IFOLDER_NAME, Name)
 
-        FileLocalPath = os.path.join (
-            TEST_CONFIG.USERDATA[PRIMARY_USER]['prefix'], self.iFolder.Name)
-        FileLocalPath = os.path.join (FileLocalPath, FileName)
-
-        with open (FileLocalPath, 'wb') as File:
-            File.write (FileName)
+        self.pyFolder.touch (Path)
+        self.pyFolder.write_file (Path, Content)
 
         self.pyFolder.commit ()
 
-        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (
+        EntryList = self.pyFolder.ifolderws.get_entries_by_name (
             self.iFolder.ID,
-            self.iFolderAsEntry.ID,
+            self.iFolderEntry.ID,
             self.SearchOperation.Contains,
-            FileName, 0, 1)
+            Name, 0, 1)
 
-        if ArrayOfiFolderEntry is None:
-            self.fail ('ArrayOfiFolderEntry can\'t be of `NoneType\'')
-            return
+        self.assertNotEqual (EntryList, None)
 
-        iFolderEntry = ArrayOfiFolderEntry[0]
-        ChangeEntry = self.pyFolder.ifolderws.get_latest_change (
-            iFolderEntry.iFolderID, iFolderEntry.ID)
+        Entry = EntryList[0]
+        Change = self.pyFolder.ifolderws.get_latest_change (
+            Entry.iFolderID, Entry.ID)
 
-        if ChangeEntry is None:
-            self.fail ('ChangeEntry can\'t be of `NoneType\'')
-            return
+        self.assertNotEqual (Change, None)
 
-        FileTuple = self.pyFolder.dbm.get_entry (
-            iFolderEntry.iFolderID, iFolderEntry.ID)
+        EntryTuple = self.pyFolder.dbm.get_entry (Entry.iFolderID, Entry.ID)
 
-        if FileTuple is None:
-            self.fail ('FileTuple can\'t be of `NoneType\'')
-            return
+        self.assertNotEqual (EntryTuple, None)
 
-        self.assertEqual (ChangeEntry.Time, FileTuple['mtime'])
+        self.assertEqual (Change.Time, EntryTuple['mtime'])
 
 
 
     def test_modify_file (self):
-        FileName = 'File'
+        Name = 'foo'
+        Content = 'something'
+        Path = os.path.join (IFOLDER_NAME, Name)
 
-        FileLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        FileLocalPath = os.path.join (FileLocalPath, FileName)
-
-        with open (FileLocalPath, 'wb') as File:
-            File.write (FileName)
+        self.pyFolder.touch (Path)
+        self.pyFolder.write_file (Path, Content)
 
         self.pyFolder.commit ()
 
-        ArrayOfiFolderEntry = self.pyFolder.ifolderws.get_entries_by_name (
+        EntryList = self.pyFolder.ifolderws.get_entries_by_name (
             self.iFolder.ID,
-            self.iFolderAsEntry.ID,
+            self.iFolderEntry.ID,
             self.SearchOperation.Contains,
-            FileName, 0, 1)
+            Name, 0, 1)
 
-        if ArrayOfiFolderEntry is None:
-            self.fail ('ArrayOfiFolderEntry can\'t be of `NoneType\'')
-            return
+        self.assertNotEqual (EntryList, None)
 
-        iFolderEntry = ArrayOfiFolderEntry[0]
+        Entry = EntryList[0]
 
-        FileTupleBeforeModify = self.pyFolder.dbm.get_entry (
-            iFolderEntry.iFolderID, iFolderEntry.ID)
+        EntryTupleBeforeModify = self.pyFolder.dbm.get_entry (
+            Entry.iFolderID, Entry.ID)
 
-        if FileTupleBeforeModify is None:
-            self.fail ('FileTupleBeforeModify can\'t be of `NoneType\'')
-            return
+        self.assertNotEqual (EntryTupleBeforeModify, None)
 
-        with open (FileLocalPath, 'wb') as File:
-            File.write ('{0}{1}'.format (FileName, FileName))
+        self.pyFolder.write_file (Path, Content * 2)
 
         self.pyFolder.commit ()
 
-        FileTupleAfterModify = self.pyFolder.dbm.get_entry (
-            iFolderEntry.iFolderID, iFolderEntry.ID)
+        EntryTupleAfterModify = self.pyFolder.dbm.get_entry (
+            Entry.iFolderID, Entry.ID)
 
-        if FileTupleAfterModify is None:
-            self.fail ('FileTupleAfterModify can\'t be of `NoneType\'')
-            return
+        self.assertNotEqual (EntryTupleAfterModify, None)
 
         self.assertNotEqual (
-            FileTupleBeforeModify['mtime'], FileTupleAfterModify['mtime'])
+            EntryTupleBeforeModify['mtime'], EntryTupleAfterModify['mtime'])
 
         self.assertNotEqual (
-            FileTupleBeforeModify['digest'], FileTupleAfterModify['digest'])
+            EntryTupleBeforeModify['digest'], EntryTupleAfterModify['digest'])
 
 
 
@@ -236,82 +210,79 @@ class TestCommitBasic (unittest.TestCase):
         Parent = 'Parent'
         Child = 'Child'
 
-        AncestoriFolderEntry = self.pyFolder.ifolderws.create_entry (
+        AncestorEntry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
-            self.iFolderAsEntry.ID,
+            self.iFolderEntry.ID,
             Ancestor,
-            self.iFolderEntryType.Directory)
+            self.Type.Directory)
 
-        ParentiFolderEntry = self.pyFolder.ifolderws.create_entry (
+        ParentEntry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
-            AncestoriFolderEntry.ID,
+            AncestorEntry.ID,
             Parent,
-            self.iFolderEntryType.Directory)
+            self.Type.Directory)
 
-        ChildiFolderEntry = self.pyFolder.ifolderws.create_entry (
+        ChildEntry = self.pyFolder.ifolderws.create_entry (
             self.iFolder.ID,
-            ParentiFolderEntry.ID,
+            ParentEntry.ID,
             Child,
-            self.iFolderEntryType.File)
+            self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
+
         self.pyFolder.update ()
 
-        ChildEntryTuple = self.pyFolder.dbm.get_entry (
-            self.iFolder.ID, ChildiFolderEntry.ID)
+        ChildTuple = self.pyFolder.dbm.get_entry (
+            self.iFolder.ID, ChildEntry.ID)
 
-        PathToRename, iFolderEntry = \
+        PathToRename, Entry = \
             self.pyFolder.find_closest_ancestor_remotely_alive (
-            self.iFolder.ID, ChildEntryTuple['localpath'])
+            self.iFolder.ID, ChildTuple['localpath'])
 
         self.assertEqual (PathToRename, os.path.normpath (
                 'TestCommitBasic/Ancestor/Parent/Child'))
 
-        self.assertEqual (iFolderEntry.ID, ParentiFolderEntry.ID)
+        self.assertEqual (Entry.ID, ParentEntry.ID)
 
-        self.pyFolder.ifolderws.delete_entry (
-            self.iFolder.ID, ParentiFolderEntry.ID)
+        self.pyFolder.ifolderws.delete_entry (self.iFolder.ID, ParentEntry.ID)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
-        PathToRename, iFolderEntry = \
+        PathToRename, Entry = \
             self.pyFolder.find_closest_ancestor_remotely_alive (
-            self.iFolder.ID, ChildEntryTuple['localpath'])
+            self.iFolder.ID, ChildTuple['localpath'])
 
         self.assertEqual (PathToRename, os.path.normpath (
                 'TestCommitBasic/Ancestor/Parent'))
 
-        self.assertEqual (iFolderEntry.ID, AncestoriFolderEntry.ID)
+        self.assertEqual (Entry.ID, AncestorEntry.ID)
 
         self.pyFolder.ifolderws.delete_entry (
-            self.iFolder.ID, AncestoriFolderEntry.ID)
+            self.iFolder.ID, AncestorEntry.ID)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
-        PathToRename, iFolderEntry = \
+        PathToRename, Entry = \
             self.pyFolder.find_closest_ancestor_remotely_alive (
-            self.iFolder.ID, ChildEntryTuple['localpath'])
+            self.iFolder.ID, ChildTuple['localpath'])
 
         self.assertEqual (PathToRename, os.path.normpath (
                 'TestCommitBasic/Ancestor'))
 
-        self.assertEqual (self.iFolderAsEntry.ID, iFolderEntry.ID)
+        self.assertEqual (self.iFolderEntry.ID, Entry.ID)
 
 
 
     def test_add_locked_file (self):
-        LockedFile = '.DS_Store'
+        Name = '.DS_Store'
+        Path = os.path.join (IFOLDER_NAME, Name)
 
-        LockedFilePath = self.pyFolder.add_prefix (self.iFolder.Name)
-        LockedFilePath = os.path.join (LockedFilePath, LockedFile)
-
-        with open (LockedFilePath, 'wb') as File:
-            File.write ('aString')
+        self.pyFolder.touch (Path)
 
         self.pyFolder.commit ()
 
         EntryTuple = self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (LockedFilePath))
+            self.iFolder.ID, Path)
 
         self.assertEqual (EntryTuple, None)
 
@@ -328,22 +299,17 @@ class TestCommitBasic (unittest.TestCase):
         for Char in ENTRY_INVALID_CHARS:
             InvalidEntry = BaseName.format (Char)
 
-            InvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+            Path = os.path.join (IFOLDER_NAME, InvalidEntry)
 
-            InvalidEntryLocalPath = os.path.join (
-                InvalidEntryLocalPath,
-                InvalidEntry)
+            InvalidEntries.append (Path)
 
-            InvalidEntries.append (InvalidEntryLocalPath)
-
-            with open (InvalidEntryLocalPath, 'wb') as File:
-                File.write ('something')
+            self.pyFolder.touch (Path)
 
         self.pyFolder.commit ()
 
-        for InvalidEntry in InvalidEntries:
-            ValidEntry = self.pyFolder.strip_invalid_characters (InvalidEntry)
-            self.assertTrue (os.path.isfile (ValidEntry))
+        for Entry in InvalidEntries:
+            ValidEntry = self.pyFolder.strip_invalid_characters (Entry)
+            self.assertTrue (self.pyFolder.path_isfile (ValidEntry))
 
 
 
@@ -358,21 +324,17 @@ class TestCommitBasic (unittest.TestCase):
         for Char in ENTRY_INVALID_CHARS:
             InvalidEntry = BaseName.format (Char)
 
-            InvalidEntryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
+            Path = os.path.join (IFOLDER_NAME, InvalidEntry)
 
-            InvalidEntryLocalPath = os.path.join (
-                InvalidEntryLocalPath,
-                InvalidEntry)
+            InvalidEntries.append (Path)
 
-            InvalidEntries.append (InvalidEntryLocalPath)
-
-            os.mkdir (InvalidEntryLocalPath)
+            self.pyFolder.mkdir (Path)
 
         self.pyFolder.commit ()
 
-        for InvalidEntry in InvalidEntries:
-            ValidEntry = self.pyFolder.strip_invalid_characters (InvalidEntry)
-            self.assertTrue (os.path.isdir (ValidEntry))
+        for Entry in InvalidEntries:
+            ValidEntry = self.pyFolder.strip_invalid_characters (Entry)
+            self.assertTrue (self.pyFolder.path_isdir (ValidEntry))
 
 
 
