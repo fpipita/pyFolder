@@ -102,8 +102,8 @@ class TestHelpers (unittest.TestCase):
 
         for Char in InvalidCharacters:
 
-            self.assertEqual (\
-                self.pyFolder.strip_invalid_characters (\
+            self.assertEqual (
+                self.pyFolder.strip_invalid_characters (
                     InvalidPath.format (Char), Replacement), ValidPath)
 
 
