@@ -94,42 +94,37 @@ class TestCommitRights (unittest.TestCase):
 
 
     def test_add_file_on_read_only_rights (self):
-        aFile = 'aFile'
+        Name = 'foo'
 
-        aFileLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        aFileLocalPath = os.path.join (aFileLocalPath, aFile)
-
-        with open (aFileLocalPath, 'wb') as File:
-            File.write ('something')
+        Path = os.path.join (IFOLDER_NAME, Name)
+        self.pyFolder.touch (Path)
 
         self.ifolderws.set_member_rights (
             self.iFolder.ID, self.USER_A.ID, self.Rights.ReadOnly)
 
         self.pyFolder.commit ()
 
-        aFileEntry = self.ifolderws.get_entries_by_name (
+        Entry = self.ifolderws.get_entries_by_name (
             self.iFolder.ID,
             self.iFolderEntry.ID,
             self.SearchOperation.Contains,
-            aFile, 0, 1)
+            Name, 0, 1)
 
-        self.assertEqual (aFileEntry, None)
+        self.assertEqual (Entry, None)
 
-        aFileTuple = \
-            self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aFileLocalPath))
+        EntryTuple = self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
+            self.iFolder.ID, Path)
 
-        self.assertEqual (aFileTuple, None)
+        self.assertEqual (EntryTuple, None)
 
 
 
     def test_add_directory_on_read_only_rights (self):
-        aDirectory = 'aDirectory'
+        Name = 'foo'
 
-        aDirectoryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        aDirectoryLocalPath = os.path.join (aDirectoryLocalPath, aDirectory)
+        Path = os.path.join (IFOLDER_NAME, Name)
 
-        os.mkdir (aDirectoryLocalPath)
+        self.pyFolder.mkdir (Path)
 
         self.ifolderws.set_member_rights (
             self.iFolder.ID,
@@ -138,126 +133,115 @@ class TestCommitRights (unittest.TestCase):
 
         self.pyFolder.commit ()
 
-        aDirectoryEntry = self.ifolderws.get_entries_by_name (
+        Entry = self.ifolderws.get_entries_by_name (
             self.iFolder.ID,
             self.iFolderEntry.ID,
             self.SearchOperation.Contains,
-            aDirectory, 0, 1)
+            Name, 0, 1)
 
-        self.assertEqual (aDirectoryEntry, None)
+        self.assertEqual (Entry, None)
 
-        aDirectoryTuple = \
+        EntryTuple = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aDirectoryLocalPath))
+            self.iFolder.ID, Path)
 
-        self.assertEqual (aDirectoryTuple, None)
+        self.assertEqual (EntryTuple, None)
 
 
 
     def test_modify_file_on_read_only_rights (self):
-        aFile = 'aFile'
+        Name = 'foo'
+        Content = 'something'
 
-        aFileEntry = self.ifolderws.create_entry (
+        Entry = self.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            aFile,
+            Name,
             self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 
-        aFileLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        aFileLocalPath = os.path.join (aFileLocalPath, aFile)
+        self.pyFolder.write_file (Entry.Path, Content)
 
-        with open (aFileLocalPath, 'wb') as File:
-            File.write ('something')
-
-        self.ifolderws.set_member_rights (\
+        self.ifolderws.set_member_rights (
             self.iFolder.ID, self.USER_A.ID, self.Rights.ReadOnly)
 
-        aFileTupleBeforeCommit = \
+        EntryTupleBeforeCommit = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aFileLocalPath))
+            self.iFolder.ID, Entry.Path)
 
         self.pyFolder.commit ()
 
-        aFileTupleAfterCommit = \
+        EntryTupleAfterCommit = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aFileLocalPath))
+            self.iFolder.ID, Entry.Path)
 
-        self.assertEqual (aFileTupleBeforeCommit, aFileTupleAfterCommit)
+        self.assertEqual (EntryTupleBeforeCommit, EntryTupleAfterCommit)
 
 
 
     def test_delete_file_on_read_only_rights (self):
-        aFile = 'aFile'
+        Name = 'foo'
 
-        aFileEntry = self.ifolderws.create_entry (
-            self.iFolder.ID, self.iFolderEntry.ID, aFile, self.Type.File)
+        Entry = self.ifolderws.create_entry (
+            self.iFolder.ID, self.iFolderEntry.ID, Name, self.Type.File)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 
-        aFileLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        aFileLocalPath = os.path.join (aFileLocalPath, aFile)
+        self.pyFolder.delete (Entry.Path)
 
-        os.remove (aFileLocalPath)
-
-        self.ifolderws.set_member_rights (\
+        self.ifolderws.set_member_rights (
             self.iFolder.ID, self.USER_A.ID, self.Rights.ReadOnly)
 
-        aFileTupleBeforeCommit = \
+        EntryTupleBeforeCommit = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aFileLocalPath))
+            self.iFolder.ID, Entry.Path)
 
         self.pyFolder.commit ()
 
-        aFileTupleAfterCommit = \
+        EntryTupleAfterCommit = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aFileLocalPath))
+            self.iFolder.ID, Entry.Path)
 
-        self.assertEqual (aFileTupleBeforeCommit, aFileTupleAfterCommit)
+        self.assertEqual (EntryTupleBeforeCommit, EntryTupleAfterCommit)
 
 
 
     def test_delete_directory_on_read_only_rights (self):
-        aDirectory = 'aDirectory'
+        Name = 'foo'
 
-        aDirectoryEntry = self.ifolderws.create_entry (
+        Entry = self.ifolderws.create_entry (
             self.iFolder.ID,
             self.iFolderEntry.ID,
-            aDirectory,
+            Name,
             self.Type.Directory)
 
         time.sleep (TEST_CONFIG.SIMIAS_REFRESH)
 
         self.pyFolder.update ()
 
-        aDirectoryLocalPath = self.pyFolder.add_prefix (IFOLDER_NAME)
-        aDirectoryLocalPath = os.path.join (aDirectoryLocalPath, aDirectory)
-
-        shutil.rmtree (aDirectoryLocalPath)
+        self.pyFolder.rmdir (Entry.Path)
 
         self.ifolderws.set_member_rights (
             self.iFolder.ID,
             self.USER_A.ID,
             self.Rights.ReadOnly)
 
-        aDirectoryTupleBeforeCommit = \
+        EntryTupleBeforeCommit = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID, self.pyFolder.remove_prefix (aDirectoryLocalPath))
+            self.iFolder.ID, Entry.Path)
 
         self.pyFolder.commit ()
 
-        aDirectoryTupleAfterCommit = \
+        EntryTupleAfterCommit = \
             self.pyFolder.dbm.get_entry_by_ifolder_and_localpath (
-            self.iFolder.ID,
-            self.pyFolder.remove_prefix (aDirectoryLocalPath))
+            self.iFolder.ID, Entry.Path)
 
-        self.assertEqual (
-            aDirectoryTupleBeforeCommit, aDirectoryTupleAfterCommit)
+        self.assertEqual (EntryTupleBeforeCommit, EntryTupleAfterCommit)
 
 
 
