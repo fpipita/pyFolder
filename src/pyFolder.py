@@ -94,6 +94,7 @@ class pyFolder:
         self.policy = None
         self.ifolderws = None
         self.cm = None
+        self.logger.removeHandler (self.handler)
 
 
 
@@ -1615,6 +1616,8 @@ class pyFolder:
 
     def __is_new_local_entry (self, iFolderID, Path):
 
+        Path = os.path.normpath (Path)
+
         if self.is_conflicted_entry (Path) or \
                 self.has_conflicted_ancestors (Path):
             return False
@@ -1702,20 +1705,20 @@ class pyFolder:
         EntryTuple = self.get_entry_by_ifolder_and_localpath (iFolderID, Head)
 
         if EntryTuple == None:
-            iFolderEntry = self.__invoke (\
+            iFolderEntry = self.__invoke (
                 self.ifolderws.get_ifolder_as_entry, iFolderID)
+
             return LocalPath, iFolderEntry
 
         ParentID = EntryTuple['id']
 
         try:
+            Entry = self.__invoke (
+                self.ifolderws.get_entry, iFolderID, ParentID)
 
-            Entry = self.__invoke (self.ifolderws.get_entry, \
-                                       iFolderID, ParentID)
             return LocalPath, Entry
 
         except WebFault, wf:
-
             self.logger.error (wf)
             OriginalException = wf.fault.detail.detail.OriginalException._type
 
