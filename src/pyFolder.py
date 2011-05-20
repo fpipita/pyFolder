@@ -1591,7 +1591,7 @@ class pyFolder:
     #
     #  @sa The iFolder Web Service description.
 
-    def get_local_changes_on_entry (\
+    def get_local_changes_on_entry (
         self, iFolderID, EntryID, LocalPath, Digest):
 
         Action = self.ifolderws.get_change_entry_action ()

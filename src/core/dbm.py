@@ -132,6 +132,7 @@ class DBM:
     Q_GET_ENTRIES_BY_IFOLDER = \
         """
         SELECT * FROM entry AS e WHERE e.ifolder=?
+        ORDER BY e.path ASC
         """
 
 
@@ -335,7 +336,13 @@ class DBM:
     def get_entries_by_ifolder (self, iFolderID):
         cu = self.cx.cursor ()
         cu.execute (DBM.Q_GET_ENTRIES_BY_IFOLDER, (iFolderID,))
-        return cu.fetchall ()
+        EntryTupleList = cu.fetchall ()
+
+        if self.logger.isEnabledFor (logging.DEBUG):
+            for x in EntryTupleList:
+                self.logger.debug ('{0}'.format ([j for j in x]))
+
+        return EntryTupleList
 
 
 
