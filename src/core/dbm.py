@@ -93,6 +93,7 @@ class DBM:
     Q_GET_ENTRIES_BY_PARENT = \
         """
         SELECT * FROM entry AS e WHERE e.parent=?
+        ORDER BY e.path ASC
         """
 
 
