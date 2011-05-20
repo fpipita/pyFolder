@@ -335,7 +335,7 @@ class TestCommitConflicts (unittest.TestCase):
 
         ConflictedPath = os.path.join (ConflictedPath, FileName)
 
-        self.assertTrue (self.pyFolder.path_isfile (ConflictedaPath))
+        self.assertTrue (self.pyFolder.path_isfile (ConflictedPath))
 
 
 
