@@ -51,6 +51,7 @@ LOGGER_FORMAT_STRING = \
     '%(message)s'
 PYFOLDER_LOGGER_NAME = '{0}.pyFolder'
 LOG_ONCE_ONLY = [ 'write_file', 'read_file' ]
+WRITE_FILE_PRINTABLE_ARGS_LIMIT = 20
 LAST_CALLED = None
 
 
@@ -195,6 +196,18 @@ class pyFolder:
 
 
 
+    def filter_args (self, method_name, args):
+
+        printable_args = ()
+
+        if method_name == 'write_file':
+            printable_args = (args[0], args[1][:WRITE_FILE_PRINTABLE_ARGS_LIMIT])
+            return printable_args
+
+        return args
+
+
+
     ## Invoke the iFolder WEB Service.
     #
     #  All the calls to the Web Service, should be done through this method.
@@ -213,7 +226,9 @@ class pyFolder:
             raise TypeError
 
         if self.should_method_be_logged (method.__name__):
-            self.logger.debug ('{0} {1}'.format (method.__name__, args))
+            printable_args = self.filter_args (method.__name__, args)
+            self.logger.debug ('{0} {1}'.format (
+                    method.__name__, printable_args))
 
         SyncInterval = 0
         while True:

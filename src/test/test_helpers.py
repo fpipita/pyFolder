@@ -205,5 +205,14 @@ class TestHelpers (unittest.TestCase):
 
 
 
+    def test_filter_args (self):
+        args = ['lol', 'fooooooooooooooooooooooooooooooooooa']
+        printable_args = self.pyFolder.filter_args ('write_file', args)
+
+        self.assertTrue (
+            len (printable_args[1]) <= WRITE_FILE_PRINTABLE_ARGS_LIMIT)
+
+
+
 if __name__ == '__main__':
     unittest.main ()
