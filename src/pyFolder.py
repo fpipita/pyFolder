@@ -181,28 +181,28 @@ class pyFolder:
 
 
 
-    def should_method_be_logged (self, method):
+    def should_method_be_logged (self, Method):
         global LAST_CALLED
-        retval = True
+        Retval = True
 
         if LAST_CALLED is None:
-            retval = True
+            Retval = True
 
-        if method in LOG_ONCE_ONLY:
-            retval = method != LAST_CALLED
+        if Method in LOG_ONCE_ONLY:
+            Retval = Method != LAST_CALLED
 
-        LAST_CALLED = method
-        return retval
+        LAST_CALLED = Method
+        return Retval
 
 
 
-    def filter_args (self, method_name, args):
+    def filter_args (self, MethodName, args):
 
-        printable_args = ()
+        PrintableArgs = ()
 
-        if method_name == 'write_file':
-            printable_args = (args[0], args[1][:WRITE_FILE_PRINTABLE_ARGS_LIMIT])
-            return printable_args
+        if MethodName == 'write_file':
+            PrintableArgs = (args[0], args[1][:WRITE_FILE_PRINTABLE_ARGS_LIMIT])
+            return PrintableArgs
 
         return args
 
@@ -226,9 +226,10 @@ class pyFolder:
             raise TypeError
 
         if self.should_method_be_logged (method.__name__):
-            printable_args = self.filter_args (method.__name__, args)
+            PrintableArgs = self.filter_args (method.__name__, args)
+
             self.logger.debug ('{0} {1}'.format (
-                    method.__name__, printable_args))
+                    method.__name__, PrintableArgs))
 
         SyncInterval = 0
         while True:
