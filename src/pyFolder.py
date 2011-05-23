@@ -208,6 +208,26 @@ class pyFolder:
 
 
 
+    def get_original_exception (self, wf):
+
+        if hasattr (wf, 'fault'):
+            fault = wf.fault
+
+            if hasattr (fault, 'detail'):
+                detail = fault.detail
+
+                if hasattr (detail, 'detail'):
+                    innerdetail = detail.detail
+
+                    if hasattr (innerdetail, 'OriginalException'):
+                        ex = innerdetail.OriginalException
+
+                        if hasattr (ex, '_type'):
+                            return ex._type
+        raise wf
+
+
+
     ## Invoke the iFolder WEB Service.
     #
     #  All the calls to the Web Service, should be done through this method.
@@ -240,10 +260,9 @@ class pyFolder:
             except WebFault, wf:
                 self.logger.error (wf)
 
-                OriginalException = \
-                    wf.fault.detail.detail.OriginalException._type
+                ex = self.get_original_exception (wf)
 
-                if OriginalException == 'System.NullReferenceException':
+                if ex == 'System.NullReferenceException':
                     SyncInterval = (SyncInterval + 1) % SIMIAS_SYNC_INTERVAL
                     time.sleep (SyncInterval)
                     continue
@@ -753,14 +772,12 @@ class pyFolder:
                     self.__add_entries (iFolder.ID)
 
             except WebFault, wf:
+                ex = self.get_original_exception (wf)
 
-                OriginalException = \
-                    wf.fault.detail.detail.OriginalException._type
+                if ex == 'iFolder.WebService.MemberDoesNotExistException':
+                    self.policy.delete_ifolder (iFolderID, Name)
 
-                if OriginalException == \
-                        'iFolder.WebService.MemberDoesNotExistException' or \
-                        OriginalException == \
-                        'iFolder.WebService.iFolderDoesNotExistException':
+                elif ex == 'iFolder.WebService.iFolderDoesNotExistException':
                     self.policy.delete_ifolder (iFolderID, Name)
 
                 else:
@@ -1577,14 +1594,12 @@ class pyFolder:
                         self.__update_ifolder_in_dbm (iFolderID)
 
             except WebFault, wf:
+                ex = self.get_original_exception (wf)
 
-                OriginalException = \
-                    wf.fault.detail.detail.OriginalException._type
+                if ex == 'iFolder.WebService.MemberDoesNotExistException':
+                    self.policy.delete_ifolder (iFolderID, Name)
 
-                if OriginalException == \
-                        'iFolder.WebService.MemberDoesNotExistException' or \
-                        OriginalException == \
-                        'iFolder.WebService.iFolderDoesNotExistException':
+                elif ex == 'iFolder.WebService.iFolderDoesNotExistException':
                     self.policy.delete_ifolder (iFolderID, Name)
 
                 else:
@@ -1751,14 +1766,17 @@ class pyFolder:
 
         except WebFault, wf:
             self.logger.error (wf)
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.get_original_exception (wf)
 
-            if OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException' or \
-                    OriginalException == \
-                    'System.IO.DirectoryNotFoundException':
-                return self.find_closest_ancestor_remotely_alive (\
-                    iFolderID, Head)
+            if ex == 'iFolder.WebService.EntryDoesNotExistException':
+                return self.find_closest_ancestor_remotely_alive (
+                    iFolderID,
+                    Head)
+
+            elif ex == 'System.IO.DirectoryNotFoundException':
+                return self.find_closest_ancestor_remotely_alive (
+                    iFolderID,
+                    Head)
 
             else:
                 raise
@@ -2043,14 +2061,12 @@ class pyFolder:
                     or Updated
 
             except WebFault, wf:
+                ex = self.get_original_exception (wf)
 
-                OriginalException = \
-                    wf.fault.detail.detail.OriginalException._type
+                if ex == 'iFolder.WebService.MemberDoesNotExistException':
+                    self.policy.delete_ifolder (iFolderID, Name)
 
-                if OriginalException == \
-                        'iFolder.WebService.MemberDoesNotExistException' or \
-                        OriginalException == \
-                        'iFolder.WebService.iFolderDoesNotExistException':
+                elif ex == 'iFolder.WebService.iFolderDoesNotExistException':
                     self.policy.delete_ifolder (iFolderID, Name)
 
                 else:

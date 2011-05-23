@@ -33,13 +33,12 @@ class DefaultPolicy (Policy):
             return True
 
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.pyFolder.get_original_exception (wf)
 
-            if OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException':
+            if ex == 'iFolder.WebService.EntryDoesNotExistException':
                 return False
 
-            elif OriginalException == 'System.IO.IOException':
+            elif ex == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
                 return False
 
@@ -72,13 +71,12 @@ class DefaultPolicy (Policy):
             return True
 
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.pyFolder.get_original_exception (wf)
 
-            if OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException':
+            if ex == 'iFolder.WebService.EntryDoesNotExistException':
                 return False
 
-            elif OriginalException == 'System.IO.IOException':
+            elif ex == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
                 return False
 
@@ -131,30 +129,29 @@ class DefaultPolicy (Policy):
             return Entry
 
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.pyFolder.get_original_exception (wf)
 
-            if OriginalException == \
-                    'iFolder.WebService.EntryAlreadyExistException':
+            if ex == 'iFolder.WebService.EntryAlreadyExistException':
                 self.pyFolder.handle_name_conflict (Path)
                 return None
 
-            elif OriginalException == \
-                    'iFolder.WebService.EntryInvalidCharactersException':
+            elif ex == 'iFolder.WebService.EntryInvalidCharactersException':
                 self.pyFolder.handle_name_conflict (Path, InvalidChars=True)
                 return None
 
-            elif OriginalException == \
-                    'iFolder.WebService.FileTypeException':
+            elif ex == 'iFolder.WebService.FileTypeException':
                 self.pyFolder.ignore_locked (Path)
                 return None
 
-            elif OriginalException == 'System.NullReferenceException' or \
-                    OriginalException == \
-                    'System.IO.DirectoryNotFoundException':
+            elif ex == 'System.NullReferenceException':
                 self.pyFolder.rollback (iFolderID, Path)
                 return None
 
-            elif OriginalException == 'Simias.Storage.AccessException':
+            elif ex == 'System.IO.DirectoryNotFoundException':
+                self.pyFolder.rollback (iFolderID, Path)
+                return None
+
+            elif ex == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return None
 
@@ -174,30 +171,29 @@ class DefaultPolicy (Policy):
             return Entry
 
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.pyFolder.get_original_exception (wf)
 
-            if OriginalException == \
-                    'iFolder.WebService.EntryAlreadyExistException':
+            if ex == 'iFolder.WebService.EntryAlreadyExistException':
                 self.pyFolder.handle_name_conflict (Path)
                 return None
 
-            elif OriginalException == \
-                    'iFolder.WebService.EntryInvalidCharactersException':
+            elif ex == 'iFolder.WebService.EntryInvalidCharactersException':
                 self.pyFolder.handle_name_conflict (Path, InvalidChars=True)
                 return None
 
-            elif OriginalException == \
-                    'iFolder.WebService.FileTypeException':
+            elif ex == 'iFolder.WebService.FileTypeException':
                 self.pyFolder.ignore_locked (Path)
                 return None
 
-            elif OriginalException == 'System.NullReferenceException' or \
-                    OriginalException == \
-                    'System.IO.DirectoryNotFoundException':
+            elif ex == 'System.NullReferenceException':
                 self.pyFolder.rollback (iFolderID, Path)
                 return None
 
-            elif OriginalException == 'Simias.Storage.AccessException':
+            elif ex == 'System.IO.DirectoryNotFoundException':
+                self.pyFolder.rollback (iFolderID, Path)
+                return None
+
+            elif ex == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return None
 
@@ -218,18 +214,17 @@ class DefaultPolicy (Policy):
             return True
 
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.pyFolder.get_original_exception (wf)
 
-            if OriginalException == 'System.IO.IOException':
+            if ex == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
                 return False
 
-            elif OriginalException == 'Simias.Storage.AccessException':
+            elif ex == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return False
 
-            elif OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException':
+            elif ex == 'iFolder.WebService.EntryDoesNotExistException':
 
                 # BUG #0001 - Closed.
                 # It happened when we were going to modify a shared
@@ -239,10 +234,10 @@ class DefaultPolicy (Policy):
                 self.pyFolder.rollback (iFolderID, Path)
                 return False
 
-            elif OriginalException == \
-                    'iFolder.WebService.MemberDoesNotExistException' or \
-                    OriginalException == \
-                    'iFolder.WebService.iFolderDoesNotExistException':
+            elif ex == 'iFolder.WebService.MemberDoesNotExistException':
+                raise
+
+            elif ex == 'iFolder.WebService.iFolderDoesNotExistException':
                 raise
 
             else:
@@ -257,24 +252,23 @@ class DefaultPolicy (Policy):
             return True
 
         except WebFault, wf:
-            OriginalException = wf.fault.detail.detail.OriginalException._type
+            ex = self.pyFolder.get_original_exception (wf)
 
-            if OriginalException == 'System.IO.IOException':
+            if ex == 'System.IO.IOException':
                 self.pyFolder.ignore_in_use (Path)
                 return False
 
-            elif OriginalException == 'Simias.Storage.AccessException':
+            elif ex == 'Simias.Storage.AccessException':
                 self.pyFolder.ignore_no_rights (Path)
                 return False
 
-            elif OriginalException == \
-                    'iFolder.WebService.EntryDoesNotExistException':
+            elif ex == 'iFolder.WebService.EntryDoesNotExistException':
                 return True
 
-            elif OriginalException == \
-                    'iFolder.WebService.MemberDoesNotExistException' or \
-                    OriginalException == \
-                    'iFolder.WebService.iFolderDoesNotExistException':
+            elif ex == 'iFolder.WebService.MemberDoesNotExistException':
+                raise
+
+            elif ex == 'iFolder.WebService.iFolderDoesNotExistException':
                 raise
 
             else:
